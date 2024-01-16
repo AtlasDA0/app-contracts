@@ -1,0 +1,17 @@
+[package]
+name = "fee-contract-export"
+version = "0.1.0"
+edition = "2021"
+
+
+
+[dependencies]
+cosmwasm-std = "1.4.0"
+cosmwasm-schema = { version = "1.4.0" }
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.23" }
+schemars = "0.8.8"
+
+utils = { path = "../utils", version = "0.1.0" }
+
+[dev-dependencies]

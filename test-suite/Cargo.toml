@@ -1,0 +1,33 @@
+[package]
+name = "atlas-test-suite"
+version = "0.1.0"
+edition = "2021"
+
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+
+[features]
+backtraces = ["cosmwasm-std/backtraces"]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+
+
+[dependencies]
+cosmwasm-std = "1.4.0"
+cosmwasm-schema = "1.4.0"
+schemars = "0.8.8"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+sg-multi-test = "3.1.0"
+cw-multi-test = "0.16.0"
+sg-std = "3.1.0"
+sg721 = "3.3.0"
+sg721-base              = "3.3.0"
+vending-factory     = "3.3.0"
+vending-minter      = "3.3.0"
+sg2 = "3.3.0"
+
+raffles = { path = "../contracts/raffles", features=["library"] }
+nft-loans = { path = "../contracts/nft-loan" }
+utils = {path = "../packages/utils"}

@@ -1,0 +1,48 @@
+[package]
+name = "nft-loans"
+version = "0.1.0"
+authors = ["Katarina | Nois Network"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+panic = 'abort'
+incremental = false
+overflow-checks = true
+
+[features]
+# for more explicit tests, cargo test --features=backtraces
+backtraces = ["cosmwasm-std/backtraces"]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+
+[dependencies]
+cosmwasm-std = "1.4.0"
+cosmwasm-schema = "1.4.0"
+cw-storage-plus = "1.2.0"
+cw2 = "1.1.1"
+cw721 = "0.18.0"
+cw721-base = "0.18.0"
+nois = "0.8.0"
+schemars = "0.8.8"
+serde = { version = "1.0.137", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.31" }
+
+# Stargaze libs
+sg-std = "^3.2"
+sg721 = "^3.3"
+sg721-base = "^3.3"
+
+fee-distributor-export = { path = "../../packages/fee-distributor", version = "0.1.0" }
+fee-contract-export = { path = "../../packages/fee-contract", version = "0.1.0" }
+utils = { path = "../../packages/utils", version = "0.1.0" }
