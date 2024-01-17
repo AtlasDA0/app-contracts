@@ -608,17 +608,13 @@ pub fn repay_borrowed_funds(
 
     // And we pay the fee to the treasury
     if fee_depositor_payback.u128() > 0u128 {
-        res = res.add_message(into_cosmos_msg(
-            FeeDistributorMsg::DepositFees {
-                addresses: collateral_addresses,
-                fee_type: FeeType::Funds,
+        res = res.add_message(BankMsg::Send {
+                to_address: config.fee_distributor.to_string(),
+                amount: coins(
+                    fee_depositor_payback.u128(),
+                    info.funds[0].denom.clone()),
             },
-            config.fee_distributor,
-            Some(coins(
-                fee_depositor_payback.u128(),
-                info.funds[0].denom.clone(),
-            )),
-        )?);
+        );
     }
 
     Ok(res
