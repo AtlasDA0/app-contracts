@@ -1,0 +1,242 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QueryMsg",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "config"
+      ],
+      "properties": {
+        "config": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "borrower_info"
+      ],
+      "properties": {
+        "borrower_info": {
+          "type": "object",
+          "required": [
+            "borrower"
+          ],
+          "properties": {
+            "borrower": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "collateral_info"
+      ],
+      "properties": {
+        "collateral_info": {
+          "type": "object",
+          "required": [
+            "borrower",
+            "loan_id"
+          ],
+          "properties": {
+            "borrower": {
+              "type": "string"
+            },
+            "loan_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "collaterals"
+      ],
+      "properties": {
+        "collaterals": {
+          "type": "object",
+          "required": [
+            "borrower"
+          ],
+          "properties": {
+            "borrower": {
+              "type": "string"
+            },
+            "limit": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "start_after": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "all_collaterals"
+      ],
+      "properties": {
+        "all_collaterals": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "start_after": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              ],
+              "maxItems": 2,
+              "minItems": 2
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "offer_info"
+      ],
+      "properties": {
+        "offer_info": {
+          "type": "object",
+          "required": [
+            "global_offer_id"
+          ],
+          "properties": {
+            "global_offer_id": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "offers"
+      ],
+      "properties": {
+        "offers": {
+          "type": "object",
+          "required": [
+            "borrower",
+            "loan_id"
+          ],
+          "properties": {
+            "borrower": {
+              "type": "string"
+            },
+            "limit": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "loan_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "start_after": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "lender_offers"
+      ],
+      "properties": {
+        "lender_offers": {
+          "type": "object",
+          "required": [
+            "lender"
+          ],
+          "properties": {
+            "lender": {
+              "type": "string"
+            },
+            "limit": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "start_after": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  ]
+}

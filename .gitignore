@@ -27,4 +27,3 @@ tests/internal
 tarpaulin-report.*
 
 packages/*/schema
-contracts/*/schema

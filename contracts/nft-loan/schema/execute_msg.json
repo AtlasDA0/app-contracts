@@ -1,0 +1,518 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExecuteMsg",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "deposit_collaterals"
+      ],
+      "properties": {
+        "deposit_collaterals": {
+          "type": "object",
+          "required": [
+            "tokens"
+          ],
+          "properties": {
+            "comment": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "loan_preview": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/AssetInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "terms": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/LoanTerms"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tokens": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/AssetInfo"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Used to modify the loan terms and the associated comment",
+      "type": "object",
+      "required": [
+        "modify_collaterals"
+      ],
+      "properties": {
+        "modify_collaterals": {
+          "type": "object",
+          "required": [
+            "loan_id"
+          ],
+          "properties": {
+            "comment": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "loan_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "loan_preview": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/AssetInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "terms": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/LoanTerms"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Used to withdraw the collateral before the loan starts",
+      "type": "object",
+      "required": [
+        "withdraw_collaterals"
+      ],
+      "properties": {
+        "withdraw_collaterals": {
+          "type": "object",
+          "required": [
+            "loan_id"
+          ],
+          "properties": {
+            "loan_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Make an offer to deposited collaterals",
+      "type": "object",
+      "required": [
+        "make_offer"
+      ],
+      "properties": {
+        "make_offer": {
+          "type": "object",
+          "required": [
+            "borrower",
+            "loan_id",
+            "terms"
+          ],
+          "properties": {
+            "borrower": {
+              "type": "string"
+            },
+            "comment": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "loan_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "terms": {
+              "$ref": "#/definitions/LoanTerms"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "cancel_offer"
+      ],
+      "properties": {
+        "cancel_offer": {
+          "type": "object",
+          "required": [
+            "global_offer_id"
+          ],
+          "properties": {
+            "global_offer_id": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "refuse_offer"
+      ],
+      "properties": {
+        "refuse_offer": {
+          "type": "object",
+          "required": [
+            "global_offer_id"
+          ],
+          "properties": {
+            "global_offer_id": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "withdraw_refused_offer"
+      ],
+      "properties": {
+        "withdraw_refused_offer": {
+          "type": "object",
+          "required": [
+            "global_offer_id"
+          ],
+          "properties": {
+            "global_offer_id": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "accept_offer"
+      ],
+      "properties": {
+        "accept_offer": {
+          "type": "object",
+          "required": [
+            "global_offer_id"
+          ],
+          "properties": {
+            "global_offer_id": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "accept_loan"
+      ],
+      "properties": {
+        "accept_loan": {
+          "type": "object",
+          "required": [
+            "borrower",
+            "loan_id"
+          ],
+          "properties": {
+            "borrower": {
+              "type": "string"
+            },
+            "comment": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "loan_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "repay_borrowed_funds"
+      ],
+      "properties": {
+        "repay_borrowed_funds": {
+          "type": "object",
+          "required": [
+            "loan_id"
+          ],
+          "properties": {
+            "loan_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "withdraw_defaulted_loan"
+      ],
+      "properties": {
+        "withdraw_defaulted_loan": {
+          "type": "object",
+          "required": [
+            "borrower",
+            "loan_id"
+          ],
+          "properties": {
+            "borrower": {
+              "type": "string"
+            },
+            "loan_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Internal state",
+      "type": "object",
+      "required": [
+        "set_owner"
+      ],
+      "properties": {
+        "set_owner": {
+          "type": "object",
+          "required": [
+            "owner"
+          ],
+          "properties": {
+            "owner": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_fee_distributor"
+      ],
+      "properties": {
+        "set_fee_distributor": {
+          "type": "object",
+          "required": [
+            "fee_depositor"
+          ],
+          "properties": {
+            "fee_depositor": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_fee_rate"
+      ],
+      "properties": {
+        "set_fee_rate": {
+          "type": "object",
+          "required": [
+            "fee_rate"
+          ],
+          "properties": {
+            "fee_rate": {
+              "$ref": "#/definitions/Decimal"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  ],
+  "definitions": {
+    "AssetInfo": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "cw721_coin"
+          ],
+          "properties": {
+            "cw721_coin": {
+              "$ref": "#/definitions/Cw721Coin"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "sg721_token"
+          ],
+          "properties": {
+            "sg721_token": {
+              "$ref": "#/definitions/Sg721Token"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "coin"
+          ],
+          "properties": {
+            "coin": {
+              "$ref": "#/definitions/Coin"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Coin": {
+      "type": "object",
+      "required": [
+        "amount",
+        "denom"
+      ],
+      "properties": {
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "denom": {
+          "type": "string"
+        }
+      }
+    },
+    "Cw721Coin": {
+      "type": "object",
+      "required": [
+        "address",
+        "token_id"
+      ],
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "token_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Decimal": {
+      "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+      "type": "string"
+    },
+    "LoanTerms": {
+      "type": "object",
+      "required": [
+        "duration_in_blocks",
+        "interest",
+        "principle"
+      ],
+      "properties": {
+        "duration_in_blocks": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "interest": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "principle": {
+          "$ref": "#/definitions/Coin"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Sg721Token": {
+      "type": "object",
+      "required": [
+        "address",
+        "token_id"
+      ],
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "token_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Uint128": {
+      "description": "A thin wrapper around u128 that is using strings for JSON encoding/decoding, such that the full u128 range can be used for clients that convert JSON numbers to floats, like JavaScript and jq.\n\n# Examples\n\nUse `from` to create instances of this and `u128` to get the value out:\n\n``` # use cosmwasm_std::Uint128; let a = Uint128::from(123u128); assert_eq!(a.u128(), 123);\n\nlet b = Uint128::from(42u64); assert_eq!(b.u128(), 42);\n\nlet c = Uint128::from(70u32); assert_eq!(c.u128(), 70); ```",
+      "type": "string"
+    }
+  }
+}
