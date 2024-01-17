@@ -156,5 +156,4 @@ pub enum ContractError {
 
     #[error("This parameter name was not found, you can't change it !")]
     ParameterNotFound {},
-
 }

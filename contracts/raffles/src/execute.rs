@@ -51,11 +51,11 @@ pub fn execute_create_raffle(
     }
 
     let fee = info
-    .funds
-    .iter()
-    .find(|c| config.creation_fee_denom.contains(&c.denom))
-    .map(|c| Uint128::from(c.amount))
-    .unwrap_or_else(|| Uint128::zero());
+        .funds
+        .iter()
+        .find(|c| config.creation_fee_denom.contains(&c.denom))
+        .map(|c| Uint128::from(c.amount))
+        .unwrap_or_else(|| Uint128::zero());
 
     if fee < config.creation_fee_amount {
         return Err(ContractError::InvalidRaffleFee {});

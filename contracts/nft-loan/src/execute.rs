@@ -1,16 +1,25 @@
-use cosmwasm_std::{DepsMut, Env, MessageInfo, Addr, Storage, BankMsg, Empty, coins, StdResult, StdError, Decimal, Uint128, coin};
+use cosmwasm_std::{
+    coins, Addr, BankMsg, Decimal, DepsMut, Empty, Env, MessageInfo, StdError, StdResult,
+    Storage, Uint128,
+};
 
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
-use fee_contract_export::state::FeeType;
-use sg_std::{ Response, CosmosMsg};
 use sg721::ExecuteMsg as Sg721ExecuteMsg;
-use utils::state::{AssetInfo, Cw721Coin, Sg721Token, into_cosmos_msg};
+use sg_std::{CosmosMsg, Response};
+use utils::state::{into_cosmos_msg, AssetInfo, Cw721Coin, Sg721Token};
 
-use crate::{state::{ LoanTerms, COLLATERAL_INFO, BorrowerInfo, BORROWER_INFO, CollateralInfo, is_loan_modifiable, LoanState, is_collateral_withdrawable, is_loan_counterable, CONFIG, lender_offers, OfferInfo, OfferState, is_loan_acceptable, get_offer, save_offer, is_offer_borrower, is_lender, is_offer_refusable, is_loan_defaulted, is_active_lender, can_repay_loan, get_active_loan}, error::{self, ContractError}, query::is_nft_owner};
-use fee_distributor_export::msg::ExecuteMsg as FeeDistributorMsg;
-
-
+use crate::{
+    error::{self, ContractError},
+    query::is_nft_owner,
+    state::{
+        can_repay_loan, get_active_loan, get_offer, is_active_lender, is_collateral_withdrawable,
+        is_lender, is_loan_acceptable, is_loan_counterable, is_loan_defaulted, is_loan_modifiable,
+        is_offer_borrower, is_offer_refusable, lender_offers, save_offer, BorrowerInfo,
+        CollateralInfo, LoanState, LoanTerms, OfferInfo, OfferState, BORROWER_INFO,
+        COLLATERAL_INFO, CONFIG,
+    },
+};
 
 /// Signals the deposit of multiple collaterals in the same loan.
 /// This is the first entry point of the loan flow.
@@ -43,20 +52,22 @@ pub fn deposit_collaterals(
         return Err(ContractError::InvalidAmount {});
     }
 
-    let fee = info.funds
-    .iter()
-    .find(|c| config.deposit_fee_denom.contains(&c.denom))
-    .map(|c| Uint128::from(c.amount))
-    .unwrap_or_else(|| Uint128::zero());
+    let fee = info
+        .funds
+        .iter()
+        .find(|c| config.deposit_fee_denom.contains(&c.denom))
+        .map(|c| Uint128::from(c.amount))
+        .unwrap_or_else(|| Uint128::zero());
 
     if fee < config.deposit_fee_amount.into() {
-        return Err(ContractError::NoDepositFeeProvided {})
+        return Err(ContractError::NoDepositFeeProvided {});
     }
     // transfer into contract
     let transfer_fee: CosmosMsg = BankMsg::Send {
-        to_address:  env.contract.address.into_string(),
+        to_address: env.contract.address.into_string(),
         amount: info.funds,
-    }.into();
+    }
+    .into();
 
     // We save the collateral info in our internal structure
     // First we update the number of collateral a user has deposited (to make sure the id assigned is unique)
@@ -316,7 +327,6 @@ fn _accept_offer_raw(
                 )?)
             }
             AssetInfo::Sg721Token(Sg721Token { address, token_id }) => {
-
                 is_nft_owner(
                     deps.as_ref(),
                     borrower.clone(),
@@ -579,17 +589,6 @@ pub fn repay_borrowed_funds(
     // And the funds to send to the fee_depositor contract
     let fee_depositor_payback = info.funds[0].amount - lender_payback;
 
-    // The fee depositor needs to know which assets where involved in the transaction
-    let collateral_addresses = collateral
-        .associated_assets
-        .iter()
-        .map(|collateral| match collateral {
-            AssetInfo::Sg721Token(sg721) => Ok(sg721.address.clone()),
-            AssetInfo::Cw721Coin(cw721) => Ok(cw721.address.clone()),
-            _ => return Err(ContractError::Unreachable {}),
-        })
-        .collect::<Result<Vec<String>, ContractError>>()?;
-
     let mut res = Response::new();
     // We get the funds back to the lender
     if lender_payback.u128() > 0u128 {
@@ -609,12 +608,9 @@ pub fn repay_borrowed_funds(
     // And we pay the fee to the treasury
     if fee_depositor_payback.u128() > 0u128 {
         res = res.add_message(BankMsg::Send {
-                to_address: config.fee_distributor.to_string(),
-                amount: coins(
-                    fee_depositor_payback.u128(),
-                    info.funds[0].denom.clone()),
-            },
-        );
+            to_address: config.fee_distributor.to_string(),
+            amount: coins(fee_depositor_payback.u128(), info.funds[0].denom.clone()),
+        });
     }
 
     Ok(res
@@ -623,7 +619,6 @@ pub fn repay_borrowed_funds(
         .add_attribute("lender", offer_info.lender)
         .add_attribute("loan_id", loan_id.to_string()))
 }
-
 
 /// Withdraw the collateral from a defaulted loan
 /// If the loan duration has exceeded, the collateral can be withdrawn by the lender

@@ -1,13 +1,14 @@
 use cosmwasm_std::{
-     entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
-    QueryResponse, StdResult, 
+    entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo, QueryResponse,
+    StdResult,
 };
 use sg_std::StargazeMsgWrapper;
 
 use crate::error::ContractError;
 use crate::execute::{
     execute_buy_tickets, execute_cancel_raffle, execute_claim, execute_create_raffle,
-    execute_modify_raffle, execute_receive, execute_receive_nois, execute_update_randomness, execute_toggle_lock, execute_update_config,
+    execute_modify_raffle, execute_receive, execute_receive_nois, execute_toggle_lock,
+    execute_update_config, execute_update_randomness,
 };
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse};
 use crate::query::{query_all_raffles, query_all_tickets, query_config, query_ticket_number};
@@ -43,9 +44,9 @@ pub fn instantiate(
         None => MINIMUM_CREATION_FEE_AMOUNT.into(),
     };
 
-    let creation_fee_denom = match msg.creation_fee_denom{
+    let creation_fee_denom = match msg.creation_fee_denom {
         Some(cfd) => cfd,
-        None => vec!["ustars".to_string(), "usstars".to_string()]
+        None => vec!["ustars".to_string(), "usstars".to_string()],
     };
 
     let config = Config {
@@ -213,5 +214,3 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
     };
     Ok(response)
 }
-
-

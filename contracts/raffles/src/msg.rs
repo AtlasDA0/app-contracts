@@ -1,9 +1,9 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{HexBinary, Uint128, Decimal, StdResult, StdError, Addr};
+use cosmwasm_std::{Addr, Decimal, HexBinary, StdError, StdResult, Uint128};
 use nois::NoisCallback;
 use utils::state::AssetInfo;
 
-use crate::state::{ RaffleOptionsMsg, RaffleState, RaffleInfo};
+use crate::state::{RaffleInfo, RaffleOptionsMsg, RaffleState};
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -14,8 +14,8 @@ pub struct InstantiateMsg {
     pub creation_fee_denom: Option<Vec<String>>,
     pub creation_fee_amount: Option<Uint128>,
     pub owner: Option<String>,
-    pub fee_addr: Option<String>, // 
-    pub minimum_raffle_duration: Option<u64>, 
+    pub fee_addr: Option<String>, //
+    pub minimum_raffle_duration: Option<u64>,
     pub minimum_raffle_timeout: Option<u64>,
     pub max_participant_number: Option<u32>,
     pub raffle_fee: Option<Decimal>,
@@ -41,7 +41,6 @@ fn is_valid_name(name: &str) -> bool {
     }
     true
 }
-
 
 #[cw_serde]
 pub enum ExecuteMsg {
@@ -88,8 +87,8 @@ pub enum ExecuteMsg {
     ToggleLock {
         lock: bool,
     },
-     // provide job_id for randomness contract
-     UpdateRandomness {
+    // provide job_id for randomness contract
+    UpdateRandomness {
         raffle_id: u64,
     },
 }
@@ -136,9 +135,9 @@ pub struct ConfigResponse {
     pub creation_fee_amount: Uint128,
     pub creation_fee_denom: Vec<String>,
     pub raffle_fee: Decimal, // The percentage of the resulting ticket-tokens that will go to the treasury
-    pub lock: bool,        // Wether the contract can accept new raffles
+    pub lock: bool,          // Wether the contract can accept new raffles
     pub nois_proxy_addr: Addr,
-    pub nois_proxy_denom: String, 
+    pub nois_proxy_denom: String,
     pub nois_proxy_amount: Uint128,
 }
 
@@ -153,7 +152,6 @@ pub struct RaffleResponse {
 pub struct AllRafflesResponse {
     pub raffles: Vec<RaffleResponse>,
 }
-
 
 #[cw_serde]
 pub struct IsLuckyResponse {
@@ -173,4 +171,3 @@ pub struct IsClaimedResponse {
 
 #[cw_serde]
 pub struct MigrateMsg {}
-

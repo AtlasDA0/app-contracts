@@ -3,7 +3,7 @@ use cosmwasm_std::{Decimal, StdError, StdResult};
 
 use utils::state::{is_valid_name, AssetInfo};
 
-use crate::state::{ LoanTerms, Config, BorrowerInfo, CollateralInfo, OfferInfo};
+use crate::state::{BorrowerInfo, CollateralInfo, Config, LoanTerms, OfferInfo};
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -24,12 +24,9 @@ impl InstantiateMsg {
             ));
         }
         // Check the fee distribution
-        if self.fee_rate >= Decimal::one(){
-            return Err(StdError::generic_err(
-                "The Fee rate should be lower than 1"
-            ))
+        if self.fee_rate >= Decimal::one() {
+            return Err(StdError::generic_err("The Fee rate should be lower than 1"));
         }
-
 
         Ok(())
     }
@@ -42,14 +39,14 @@ pub enum ExecuteMsg {
         tokens: Vec<AssetInfo>,
         terms: Option<LoanTerms>,
         comment: Option<String>,
-        loan_preview: Option<AssetInfo>
+        loan_preview: Option<AssetInfo>,
     },
     /// Used to modify the loan terms and the associated comment
     ModifyCollaterals {
         loan_id: u64,
         terms: Option<LoanTerms>,
         comment: Option<String>,
-        loan_preview: Option<AssetInfo>
+        loan_preview: Option<AssetInfo>,
     },
     /// Used to withdraw the collateral before the loan starts
     WithdrawCollaterals {
@@ -86,8 +83,7 @@ pub enum ExecuteMsg {
         borrower: String,
         loan_id: u64,
     },
-    // TODO: Encode empathy 
-    
+    // TODO: Encode empathy
     /// Internal state
     SetOwner {
         owner: String,
@@ -105,6 +101,7 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     #[returns(Config)]
     Config {},
+
     #[returns(BorrowerInfo)]
     BorrowerInfo { borrower: String },
 

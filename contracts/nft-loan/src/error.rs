@@ -1,7 +1,7 @@
 use cosmwasm_std::{StdError, Uint128};
 use thiserror::Error;
 
-use crate::state::{OfferState, LoanState};
+use crate::state::{LoanState, OfferState};
 
 #[derive(Error, Debug)]
 pub enum ContractError {

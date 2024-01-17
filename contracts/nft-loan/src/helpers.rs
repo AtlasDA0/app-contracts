@@ -1,4 +1,3 @@
-
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{to_json_binary, Addr, StdResult, WasmMsg};
 use sg_std::CosmosMsg;

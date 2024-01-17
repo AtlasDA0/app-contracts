@@ -1,9 +1,17 @@
-use cosmwasm_std::{Deps, Addr, QueryRequest, WasmQuery, to_json_binary, StdError, StdResult, Env, Order, Api};
+use cosmwasm_std::{
+    to_json_binary, Addr, Api, Deps, Env, Order, QueryRequest, StdError, StdResult, WasmQuery,
+};
 use cw721::{Cw721QueryMsg, OwnerOfResponse};
 use cw_storage_plus::Bound;
 use utils::state::AssetInfo;
 
-use crate::{msg::{ConfigResponse, AllRafflesResponse, QueryFilters, RaffleResponse}, state::{CONFIG, RAFFLE_INFO, USER_TICKETS, load_raffle, RaffleState, get_raffle_state, RaffleInfo, RAFFLE_TICKETS}};
+use crate::{
+    msg::{AllRafflesResponse, ConfigResponse, QueryFilters, RaffleResponse},
+    state::{
+        get_raffle_state, load_raffle, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO,
+        RAFFLE_TICKETS, USER_TICKETS,
+    },
+};
 
 // settings for pagination
 const MAX_LIMIT: u32 = 100;
@@ -26,7 +34,6 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         nois_proxy_amount: config.nois_proxy_amount,
         creation_fee_amount: config.creation_fee_amount,
         creation_fee_denom: config.creation_fee_denom,
-        
     })
 }
 
@@ -130,7 +137,6 @@ pub fn query_all_tickets(
         .collect()
 }
 
-
 pub fn query_all_raffles_raw(
     deps: Deps,
     env: Env,
@@ -205,7 +211,6 @@ pub fn raffle_filter(
     }
 }
 
-
 pub fn is_nft_owner(
     deps: Deps,
     sender: Addr,
@@ -221,9 +226,9 @@ pub fn is_nft_owner(
             })?,
         }))?;
 
-        if owner_response.owner != sender {
-            return Err(StdError::generic_err("unauthorized"));
-        }
+    if owner_response.owner != sender {
+        return Err(StdError::generic_err("unauthorized"));
+    }
     Ok(())
 }
 

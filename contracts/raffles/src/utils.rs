@@ -1,18 +1,22 @@
-use cosmwasm_std::{Deps, Coin, coin, WasmMsg, to_json_binary, Storage, Env, Uint128, coins, BankMsg, Addr, Empty, StdError, StdResult};
+use crate::{
+    error::ContractError,
+    state::{
+        get_raffle_state, RaffleInfo, RaffleState, RandomnessParams, ATLAS_DAO_STARGAZE_TREASURY,
+        CONFIG, NOIS_AMOUNT, NOIS_RANDOMNESS, RAFFLE_INFO, RAFFLE_TICKETS,
+    },
+};
+use cosmwasm_std::{
+    coin, coins, to_json_binary, Addr, BankMsg, Coin, Deps, Empty, Env, StdError, StdResult,
+    Storage, Uint128, WasmMsg,
+};
 use cw721::Cw721ExecuteMsg;
-use nois::{ProxyExecuteMsg, int_in_range};
-use sg721::ExecuteMsg as Sg721ExecuteMsg;
-use sg_std::{Response, CosmosMsg};
-use utils::state::{AssetInfo, into_cosmos_msg};
 use cw721_base::Extension;
-use crate::{error::ContractError, state::{NOIS_AMOUNT, CONFIG, RaffleInfo, RandomnessParams, NOIS_RANDOMNESS, get_raffle_state, RAFFLE_TICKETS, ATLAS_DAO_STARGAZE_TREASURY, RAFFLE_INFO, RaffleState}};
+use nois::{int_in_range, ProxyExecuteMsg};
+use sg721::ExecuteMsg as Sg721ExecuteMsg;
+use sg_std::{CosmosMsg, Response};
+use utils::state::{into_cosmos_msg, AssetInfo};
 
-
-
-pub fn get_nois_randomness(
-    deps: Deps,
-    raffle_id: u64,
-) -> Result<Response, ContractError> {
+pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, ContractError> {
     // let raffle_info = load_raffle(deps.storage, raffle_id)?;
     // let config = CONFIG.load(deps.storage)?;
     let config = CONFIG.load(deps.storage)?;
@@ -21,20 +25,18 @@ pub fn get_nois_randomness(
 
     // TODO: if raffle already has randomness, error.
 
-
     let response = Response::new().add_message(WasmMsg::Execute {
         contract_addr: config.nois_proxy_addr.into_string(),
         // GetNextRandomness requests the randomness from the proxy
         // The job id is needed to know what randomness we are referring to upon reception in the callback.
         msg: to_json_binary(&ProxyExecuteMsg::GetNextRandomness {
-            job_id: "raffle-".to_string() + id.as_str(), 
+            job_id: "raffle-".to_string() + id.as_str(),
         })?,
-        
 
         funds: vec![nois_fee], // Pay from the contract
     });
     Ok(response)
-}   
+}
 
 /// Util to get the organizers and helpers messages to return when claiming a Raffle (returns the funds)
 pub fn get_raffle_owner_finished_messages(
@@ -50,7 +52,7 @@ pub fn get_raffle_owner_finished_messages(
         _ => return Err(ContractError::WrongFundsType {}),
     } * Uint128::from(raffle_info.number_of_tickets);
     let treasury_amount = total_paid * config.raffle_fee;
-    let owner_amount = total_paid  - treasury_amount;
+    let owner_amount = total_paid - treasury_amount;
 
     // Then we craft the messages needed for asset transfers
     match raffle_info.raffle_ticket_price {
@@ -150,14 +152,14 @@ fn _get_raffle_end_asset_messages(
                     recipient: receiver.clone(),
                     token_id: nft.token_id.clone(),
                 };
-                into_cosmos_msg(message, nft.address.clone(),None,)
+                into_cosmos_msg(message, nft.address.clone(), None)
             }
             AssetInfo::Sg721Token(sg721_token) => {
                 let message = Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
                     recipient: receiver.clone(),
                     token_id: sg721_token.token_id.clone(),
                 };
-                into_cosmos_msg(message, sg721_token.address.clone(),None,)
+                into_cosmos_msg(message, sg721_token.address.clone(), None)
             }
             _ => return Err(StdError::generic_err("unreachable")),
         })
@@ -207,7 +209,7 @@ pub fn can_buy_ticket(env: Env, raffle_info: RaffleInfo) -> Result<(), ContractE
     }
 }
 
-// RAFFLE WINNER 
+// RAFFLE WINNER
 
 /// Util to get the winner messages to return when claiming a Raffle (returns the raffled asset)
 pub fn get_raffle_winner_messages(env: Env, raffle_info: RaffleInfo) -> StdResult<Vec<CosmosMsg>> {

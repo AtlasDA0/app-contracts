@@ -1,9 +1,21 @@
-use cosmwasm_std::{Deps, Addr, QueryRequest, WasmQuery, to_json_binary, StdResult, StdError, Order};
-use cw721::{OwnerOfResponse, Cw721QueryMsg};
+use cosmwasm_std::{
+    to_json_binary, Addr, Deps, Order, QueryRequest, StdError, StdResult, WasmQuery,
+};
+use cw721::{Cw721QueryMsg, OwnerOfResponse};
 use cw_storage_plus::Bound;
 use sg721_base::QueryMsg as Sg721QueryMsg;
 
-use crate::{ state::{CONFIG, Config, BORROWER_INFO, BorrowerInfo, CollateralInfo, COLLATERAL_INFO, get_offer, get_actual_state, lender_offers}, msg::{MultipleCollateralsResponse, CollateralResponse, OfferResponse, MultipleOffersResponse, MultipleCollateralsAllResponse}, error::ContractError};
+use crate::{
+    error::ContractError,
+    msg::{
+        CollateralResponse, MultipleCollateralsAllResponse, MultipleCollateralsResponse,
+        MultipleOffersResponse, OfferResponse,
+    },
+    state::{
+        get_actual_state, get_offer, lender_offers, BorrowerInfo, CollateralInfo, Config,
+        BORROWER_INFO, COLLATERAL_INFO, CONFIG,
+    },
+};
 
 // settings for pagination
 const MAX_QUERY_LIMIT: u32 = 150;
@@ -116,7 +128,6 @@ pub fn query_offer_info(deps: Deps, global_offer_id: String) -> StdResult<OfferR
         offer_info,
     })
 }
-
 
 pub fn query_all_collaterals(
     deps: Deps,
