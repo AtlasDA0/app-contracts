@@ -1,11 +1,19 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{Addr, BlockInfo, Coin, Decimal, Timestamp, Uint128};
-    use cw_multi_test::Executor;
-    use nft_loans::msg::InstantiateMsg;
+    use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Decimal, Empty, Timestamp, Uint128};
+    use cw_multi_test::{BankSudo, Executor, SudoMsg};
+    use nft_loans::{
+        msg::{ExecuteMsg, InstantiateMsg},
+        state::{Config, LoanTerms},
+    };
+    use sg721::CollectionInfo;
     use sg_multi_test::StargazeApp;
     use sg_std::NATIVE_DENOM;
-    use vending_factory::state::{ParamsExtension, VendingMinterParams};
+    use utils::state::{AssetInfo, Sg721Token};
+    use vending_factory::{
+        msg::VendingMinterCreateMsg,
+        state::{ParamsExtension, VendingMinterParams},
+    };
 
     use crate::common_setup::contract_boxes::{
         contract_nft_loans, contract_sg721_base, contract_vending_factory, contract_vending_minter,
@@ -26,6 +34,23 @@ mod tests {
             time: Timestamp::from_nanos(1647032400000000000),
             chain_id: chainid,
         });
+
+        // fund test account
+        app.sudo(SudoMsg::Bank({
+            BankSudo::Mint {
+                to_address: OWNER_ADDR.to_string(),
+                amount: vec![coin(100000000000u128, NATIVE_DENOM.to_string())],
+            }
+        }))
+        .unwrap();
+        app.sudo(SudoMsg::Bank({
+            BankSudo::Mint {
+                to_address: OFFERER_ADDR.to_string(),
+                amount: vec![coin(100000000000u128, NATIVE_DENOM.to_string())],
+            }
+        }))
+        .unwrap();
+
         // store wasm code for nft, minter , nft-loan
         let loan_code_id = app.store_code(contract_nft_loans());
         let factory_id = app.store_code(contract_vending_factory());
@@ -97,15 +122,14 @@ mod tests {
     // certain functions may impact other functions, if present during testing.
     // TODO: update test workflow to prevent this issue
     mod init {
-        use cosmwasm_std::{coin, Addr, Empty};
-        use cw_multi_test::{BankSudo, SudoMsg};
+        use cosmwasm_std::StdError;
         use nft_loans::{
-            msg::ExecuteMsg,
-            state::{Config, LoanTerms},
+            error::ContractError,
+            msg::{CollateralResponse, MultipleCollateralsResponse, OfferResponse, QueryMsg},
+            state::{CollateralInfo, LoanState, OfferState},
         };
-        use sg721::CollectionInfo;
-        use utils::state::{AssetInfo, Sg721Token};
-        use vending_factory::msg::VendingMinterCreateMsg;
+
+        use crate::common_setup::helpers::assert_error;
 
         use super::*;
 
@@ -113,22 +137,7 @@ mod tests {
         fn can_init() {
             let (mut app, nft_loan_addr, factory_addr) = proper_instantiate();
 
-            // fund test account
             let current_time = app.block_info().time.clone();
-            app.sudo(SudoMsg::Bank({
-                BankSudo::Mint {
-                    to_address: OWNER_ADDR.to_string(),
-                    amount: vec![coin(100000000000u128, NATIVE_DENOM.to_string())],
-                }
-            }))
-            .unwrap();
-            app.sudo(SudoMsg::Bank({
-                BankSudo::Mint {
-                    to_address: OFFERER_ADDR.to_string(),
-                    amount: vec![coin(100000000000u128, NATIVE_DENOM.to_string())],
-                }
-            }))
-            .unwrap();
 
             // query contract config
             let query_config: Config = app
@@ -138,7 +147,7 @@ mod tests {
             assert_eq!(query_config.owner, Addr::unchecked("fee"));
 
             // create nft minter
-            let create_nft_minter = app.execute_contract(
+            let _create_nft_minter = app.execute_contract(
                 Addr::unchecked(OWNER_ADDR),
                 factory_addr.clone(),
                 &vending_factory::msg::ExecuteMsg::CreateMinter {
@@ -175,10 +184,10 @@ mod tests {
                     amount: Uint128::new(100000u128),
                 }],
             );
-            println!("{:#?}", create_nft_minter);
+            // println!("{:#?}", _create_nft_minter);
 
             // VENDING_MINTER is minter
-            let mint_nft_tokens = app
+            let _mint_nft_tokens = app
                 .execute_contract(
                     Addr::unchecked(OWNER_ADDR),
                     Addr::unchecked(VENDING_MINTER),
@@ -189,10 +198,10 @@ mod tests {
                     }],
                 )
                 .unwrap();
-            println!("{:#?}", mint_nft_tokens);
+            // println!("{:#?}", _mint_nft_tokens);
 
             // token id 41
-            let grant_approval = app
+            let _grant_approval = app
                 .execute_contract(
                     Addr::unchecked(OWNER_ADDR),
                     Addr::unchecked(SG721_CONTRACT),
@@ -204,10 +213,10 @@ mod tests {
                     &[],
                 )
                 .unwrap();
-            println!("{:#?}", grant_approval);
+            // println!("{:#?}", _grant_approval);
 
-            // good deposit collateral
-            let good_deposit_collateral = app
+            // good deposit single collateral
+            let _good_deposit_collateral = app
                 .execute_contract(
                     Addr::unchecked(OWNER_ADDR),
                     nft_loan_addr.clone(),
@@ -233,78 +242,220 @@ mod tests {
                     }],
                 )
                 .unwrap();
-            println!("{:#?}", good_deposit_collateral);
+            // println!("{:#?}", _good_deposit_collateral);
+
+            let res: MultipleCollateralsResponse = app
+                .wrap()
+                .query_wasm_smart(
+                    nft_loan_addr.clone(),
+                    &nft_loans::msg::QueryMsg::Collaterals {
+                        borrower: Addr::unchecked(OWNER_ADDR).to_string(),
+                        start_after: None,
+                        limit: None,
+                    },
+                )
+                .unwrap();
+            // println!("{:#?}", res);
+            assert_eq!(
+                res.collaterals[0],
+                CollateralResponse {
+                    borrower: Addr::unchecked(OWNER_ADDR).to_string(),
+                    loan_id: 0,
+                    collateral: CollateralInfo {
+                        terms: Some(LoanTerms {
+                            principle: coin(100, "ustars"),
+                            interest: Uint128::new(50u128),
+                            duration_in_blocks: 15,
+                        }),
+                        associated_assets: vec![AssetInfo::Sg721Token(Sg721Token {
+                            address: SG721_CONTRACT.to_string(),
+                            token_id: "41".to_string(),
+                        })],
+                        list_date: Timestamp::from_nanos(1647032400000000000),
+                        state: LoanState::Published,
+                        offer_amount: 0,
+                        active_offer: None,
+                        start_block: None,
+                        comment: Some("be water, my friend".to_string()),
+                        loan_preview: None,
+                    }
+                }
+            );
+            // TODO: check multiple collaterals
 
             // bad deposit collateral
-            // let bad_deposit_collateral_no_fee = app
-            //     .execute_contract(
-            //         Addr::unchecked(OWNER_ADDR),
-            //         nft_loan_addr.clone(),
-            //         &ExecuteMsg::DepositCollaterals {
-            //             tokens: vec![AssetInfo::Sg721Token(Sg721Token {
-            //                 address: SG721_CONTRACT.to_string(),
-            //                 token_id: "41".to_string(),
-            //             })],
-            //             terms: Some(LoanTerms {
-            //                 principle: Coin {
-            //                     denom: NATIVE_DENOM.to_string(),
-            //                     amount: Uint128::new(100),
-            //                 },
-            //                 interest: Uint128::new(15),
-            //                 duration_in_blocks: 15,
-            //             }),
-            //             comment: Some("be water, my friend".to_string()),
-            //             loan_preview: None,
-            //         },
-            //         &[],
-            //     )
-            //     .unwrap_err();
+            let bad_deposit_collateral_no_fee = app
+                .execute_contract(
+                    Addr::unchecked(OWNER_ADDR),
+                    nft_loan_addr.clone(),
+                    &ExecuteMsg::DepositCollaterals {
+                        tokens: vec![AssetInfo::Sg721Token(Sg721Token {
+                            address: SG721_CONTRACT.to_string(),
+                            token_id: "41".to_string(),
+                        })],
+                        terms: Some(LoanTerms {
+                            principle: Coin {
+                                denom: NATIVE_DENOM.to_string(),
+                                amount: Uint128::new(100),
+                            },
+                            interest: Uint128::new(15),
+                            duration_in_blocks: 15,
+                        }),
+                        comment: Some("be water, my friend".to_string()),
+                        loan_preview: None,
+                    },
+                    &[],
+                )
+                .unwrap_err();
             // println!("{:#?}", bad_deposit_collateral_no_fee);
+            assert_error(
+                Err(bad_deposit_collateral_no_fee),
+                ContractError::NoDepositFeeProvided {}.to_string(),
+            );
 
             // good modify collateral
-            // let good_modify_collateral = app
-            //     .execute_contract(
-            //         Addr::unchecked(OWNER_ADDR),
-            //         nft_loan_addr.clone(),
-            //         &ExecuteMsg::ModifyCollaterals {
-            //             loan_id: 0,
-            //             terms: None,
-            //             comment: Some(
-            //                 "Knowledge will give you power, but character respect".to_string(),
-            //             ),
-            //             loan_preview: None,
-            //         },
-            //         &[],
-            //     )
-            //     .unwrap();
+            let _good_modify_collateral = app
+                .execute_contract(
+                    Addr::unchecked(OWNER_ADDR),
+                    nft_loan_addr.clone(),
+                    &ExecuteMsg::ModifyCollaterals {
+                        loan_id: 0,
+                        terms: None,
+                        comment: Some(
+                            "Knowledge will give you power, but character respect".to_string(),
+                        ),
+                        loan_preview: None,
+                    },
+                    &[],
+                )
+                .unwrap();
             // println!("{:#?}", good_modify_collateral);
 
+            let res: CollateralInfo = app
+                .wrap()
+                .query_wasm_smart(
+                    nft_loan_addr.clone(),
+                    &nft_loans::msg::QueryMsg::CollateralInfo {
+                        borrower: Addr::unchecked(OWNER_ADDR).to_string(),
+                        loan_id: 0,
+                    },
+                )
+                .unwrap();
+            // println!("{:#?}", res.comment);
+            assert_eq!(
+                res.comment,
+                Some("Knowledge will give you power, but character respect".to_string())
+            );
+
             // bad modify collateral
-            // let bad_modify_collateral = app
-            //     .execute_contract(
-            //         Addr::unchecked("not-admin"),
-            //         nft_loan_addr.clone(),
-            //         &ExecuteMsg::ModifyCollaterals {
-            //             loan_id: 0,
-            //             terms: None,
-            //             comment: Some("Showing off is the fools idea of glory".to_string()),
-            //             loan_preview: None,
-            //         },
-            //         &[],
-            //     )
-            //     .unwrap_err();
+            let bad_modify_collateral = app
+                .execute_contract(
+                    Addr::unchecked("not-admin"),
+                    nft_loan_addr.clone(),
+                    &ExecuteMsg::ModifyCollaterals {
+                        loan_id: 0,
+                        terms: None,
+                        comment: Some("Showing off is the fools idea of glory".to_string()),
+                        loan_preview: None,
+                    },
+                    &[],
+                )
+                .unwrap_err();
             // println!("{:#?}", bad_modify_collateral);
+            assert_error(
+                Err(bad_modify_collateral),
+                ContractError::LoanNotFound {}.to_string(),
+            );
 
             // bad withdraw collateral
-            // let bad_withdraw_collateral = app
-            //     .execute_contract(
-            //         Addr::unchecked("not-owner".to_string()),
-            //         nft_loan_addr.clone(),
-            //         &ExecuteMsg::WithdrawCollaterals { loan_id: 0 },
-            //         &[],
-            //     )
-            //     .unwrap_err();
+            let bad_withdraw_collateral = app
+                .execute_contract(
+                    Addr::unchecked("not-owner".to_string()),
+                    nft_loan_addr.clone(),
+                    &ExecuteMsg::WithdrawCollaterals { loan_id: 0 },
+                    &[],
+                )
+                .unwrap_err();
             // println!("{:#?}", bad_withdraw_collateral);
+            assert_error(Err(bad_withdraw_collateral), StdError::NotFound { 
+                kind: "type: nft_loans::state::CollateralInfo; key: [00, 0F, 63, 6F, 6C, 6C, 61, 74, 65, 72, 61, 6C, 5F, 69, 6E, 66, 6F, 00, 09, 6E, 6F, 74, 2D, 6F, 77, 6E, 65, 72, 00, 00, 00, 00, 00, 00, 00, 00]"
+                .to_string() }.to_string());
+
+            // bad make offfer
+            let bad_make_offer = app
+                .execute_contract(
+                    Addr::unchecked(OFFERER_ADDR.to_string()),
+                    nft_loan_addr.clone(),
+                    &ExecuteMsg::MakeOffer {
+                        borrower: OWNER_ADDR.to_string(),
+                        loan_id: 0,
+                        terms: LoanTerms {
+                            principle: Coin {
+                                denom: NATIVE_DENOM.to_string(),
+                                amount: Uint128::new(50),
+                            },
+                            interest: Uint128::new(15),
+                            duration_in_blocks: 15,
+                        },
+                        comment: Some(
+                            "Obey the principles without being bound by them".to_string(),
+                        ),
+                    },
+                    &[],
+                )
+                .unwrap_err();
+            // println!("{:#?}", bad_make_offer);
+            assert_error(Err(bad_make_offer), ContractError::MultipleCoins {}.to_string());
+
+            // bad accept loan
+            let bad_accept_loan = app
+                .execute_contract(
+                    Addr::unchecked(OFFERER_ADDR.to_string()),
+                    nft_loan_addr.clone(),
+                    &ExecuteMsg::AcceptLoan {
+                        borrower: OWNER_ADDR.to_string(),
+                        loan_id: 0,
+                        comment: Some(
+                            "A quick temper will make a fool of you soon enough".to_string(),
+                        ),
+                    },
+                    &[Coin {
+                        denom: NATIVE_DENOM.to_string(),
+                        amount: Uint128::new(50),
+                    }],
+                )
+                .unwrap_err();
+            // println!("{:#?}", bad_accept_loan);
+            assert_error(Err(bad_accept_loan), ContractError::FundsDontMatchTerms {}.to_string());
+
+            // bad accept offer
+            let bad_accept_offer = app
+                .execute_contract(
+                    Addr::unchecked("not-owner"),
+                    nft_loan_addr.clone(),
+                    &ExecuteMsg::AcceptOffer {
+                        global_offer_id: 1.to_string(),
+                    },
+                    &[],
+                )
+                .unwrap_err();
+            // println!("{:#?}", bad_accept_offer);
+            assert_error(Err(bad_accept_offer), StdError::GenericErr { msg: "invalid offer".to_string() }.to_string());
+
+            // bad cancel offer
+            let bad_cancel_offer = app
+                .execute_contract(
+                    Addr::unchecked("not-offerer"),
+                    nft_loan_addr.clone(),
+                    &ExecuteMsg::CancelOffer {
+                        global_offer_id: 1.to_string(),
+                    },
+                    &[],
+                )
+                .unwrap_err();
+            // println!("{:#?}", bad_cancel_offer);
+            assert_error(Err(bad_cancel_offer), StdError::GenericErr { msg: "invalid offer".to_string() }.to_string());
+
 
             // // good withdraw collateral
             // let good_withdraw_collateral = app
@@ -318,7 +469,7 @@ mod tests {
             // println!("{:#?}", good_withdraw_collateral);
 
             // good make offfer
-            let good_make_offer = app
+            let _good_make_offer = app
                 .execute_contract(
                     Addr::unchecked(OFFERER_ADDR.to_string()),
                     nft_loan_addr.clone(),
@@ -343,86 +494,15 @@ mod tests {
                     }],
                 )
                 .unwrap();
-            println!("{:#?}", good_make_offer);
-
-            // bad make offfer
-            // let bad_make_offer = app
-            //     .execute_contract(
-            //         Addr::unchecked(OFFERER_ADDR.to_string()),
-            //         nft_loan_addr.clone(),
-            //         &ExecuteMsg::MakeOffer {
-            //             borrower: OWNER_ADDR.to_string(),
-            //             loan_id: 0,
-            //             terms: LoanTerms {
-            //                 principle: Coin {
-            //                     denom: NATIVE_DENOM.to_string(),
-            //                     amount: Uint128::new(50),
-            //                 },
-            //                 interest: Uint128::new(15),
-            //                 duration_in_blocks: 15,
-            //             },
-            //             comment: Some(
-            //                 "Obey the principles without being bound by them".to_string(),
-            //             ),
-            //         },
-            //         &[],
-            //     )
-            //     .unwrap_err();
-            // println!("{:#?}", bad_make_offer);
-
-            // accept loan
-            // let good_accept_loan = app
-            //     .execute_contract(
-            //         Addr::unchecked(OFFERER_ADDR.to_string()),
-            //         nft_loan_addr.clone(),
-            //         &ExecuteMsg::AcceptLoan {
-            //             borrower: OWNER_ADDR.to_string(),
-            //             loan_id: 0,
-            //             comment: Some("Real living is living for others".to_string()),
-            //         },
-            //         &[Coin {
-            //             denom: NATIVE_DENOM.to_string(),
-            //             amount: Uint128::new(100),
-            //         }],
-            //     )
-            //     .unwrap();
-            // println!("{:#?}", good_accept_loan);
-
-            // bad accept loan
-            // let bad_accept_loan = app
-            //     .execute_contract(
-            //         Addr::unchecked(OFFERER_ADDR.to_string()),
-            //         nft_loan_addr.clone(),
-            //         &ExecuteMsg::AcceptLoan {
-            //             borrower: OWNER_ADDR.to_string(),
-            //             loan_id: 0,
-            //             comment: Some(
-            //                 "A quick temper will make a fool of you soon enough".to_string(),
-            //             ),
-            //         },
-            //         &[Coin {
-            //             denom: NATIVE_DENOM.to_string(),
-            //             amount: Uint128::new(50),
-            //         }],
-            //     )
-            //     .unwrap_err();
-            // println!("{:#?}", bad_accept_loan);
-
-            // bad accept offer
-            // let bad_accept_offer = app
-            //     .execute_contract(
-            //         Addr::unchecked("not-owner"),
-            //         nft_loan_addr.clone(),
-            //         &ExecuteMsg::AcceptOffer {
-            //             global_offer_id: 1.to_string(),
-            //         },
-            //         &[],
-            //     )
-            //     .unwrap_err();
-            // println!("{:#?}", bad_accept_offer);
+            // println!("{:#?}", good_make_offer);
+            let res: OfferResponse = app.wrap().query_wasm_smart(
+                nft_loan_addr.clone(),
+                 &nft_loans::msg::QueryMsg::OfferInfo { global_offer_id: 1.to_string() }).unwrap();
+            // println!("{:#?}", res);
+            assert_eq!(res.global_offer_id, 1.to_string());
 
             // good accept offer
-            let good_accept_offer = app
+            let _good_accept_offer = app
                 .execute_contract(
                     Addr::unchecked(OWNER_ADDR),
                     nft_loan_addr.clone(),
@@ -432,85 +512,15 @@ mod tests {
                     &[],
                 )
                 .unwrap();
-            println!("{:#?}", good_accept_offer);
-
-            // good cancel offer
-            // let good_cancel_offer = app
-            //     .execute_contract(
-            //         Addr::unchecked(OFFERER_ADDR),
-            //         nft_loan_addr.clone(),
-            //         &ExecuteMsg::CancelOffer {
-            //             global_offer_id: 1.to_string(),
-            //         },
-            //         &[],
-            //     )
-            //     .unwrap();
-            // println!("{:#?}", good_cancel_offer);
-
-            // bad cancel offer
-            // let bad_cancel_offer = app
-            //     .execute_contract(
-            //         Addr::unchecked("not-offerer"),
-            //         nft_loan_addr.clone(),
-            //         &ExecuteMsg::CancelOffer {
-            //             global_offer_id: 1.to_string(),
-            //         },
-            //         &[],
-            //     )
-            //     .unwrap_err();
-            // println!("{:#?}", bad_cancel_offer);
-
-            // good refuse offer
-            // let good_refuse_offer = app.
-            // execute_contract(
-            //     Addr::unchecked(OWNER_ADDR),
-            //     nft_loan_addr.clone(),
-            //     &ExecuteMsg::RefuseOffer {
-            //         global_offer_id: 1.to_string(),
-            //     },
-            //     &[],
-            // ).unwrap();
-            // println!("{:#?}", good_refuse_offer);
-
-            // bad refuse offer
-            // let bad_refuse_offer = app
-            //     .execute_contract(
-            //         Addr::unchecked("not-owner"),
-            //         nft_loan_addr.clone(),
-            //         &ExecuteMsg::RefuseOffer {
-            //             global_offer_id: 1.to_string(),
-            //         },
-            //         &[],
-            //     )
-            //     .unwrap_err();
-            // println!("{:#?}", bad_refuse_offer);
-
-            // withdraw refused offer
-            // let good_withdraw_refused_offer = app
-            // .execute_contract(
-            //     Addr::unchecked(OFFERER_ADDR.to_string()),
-            //     nft_loan_addr.clone(),
-            //     &ExecuteMsg::WithdrawRefusedOffer {
-            //         global_offer_id: 1.to_string()
-            //     },
-            //     &[]
-            // ).unwrap();
-            // println!("{:#?}", good_withdraw_refused_offer);
-
-            // withdraw refused offer
-            // let bad_withdraw_refused_offer = app
-            // .execute_contract(
-            //     Addr::unchecked("not-offerer".to_string()),
-            //     nft_loan_addr.clone(),
-            //     &ExecuteMsg::WithdrawRefusedOffer {
-            //         global_offer_id: 1.to_string()
-            //     },
-            //     &[]
-            // ).unwrap_err();
-            // println!("{:#?}", bad_withdraw_refused_offer);
+            // println!("{:#?}", _good_accept_offer);
+            let res: OfferResponse = app.wrap().query_wasm_smart(
+                nft_loan_addr.clone(),
+            &QueryMsg::OfferInfo { global_offer_id: 1.to_string()}).unwrap();
+            // assert the offer state is now accepted
+            assert_eq!(res.offer_info.state, OfferState::Accepted);
 
             // repay borrowed funds
-            let good_repay_borrowed_funds = app
+            let _good_repay_borrowed_funds = app
                 .execute_contract(
                     Addr::unchecked(OWNER_ADDR.to_string()),
                     nft_loan_addr.clone(),
@@ -521,15 +531,68 @@ mod tests {
                     }],
                 )
                 .unwrap();
-            println!("{:#?}", good_repay_borrowed_funds);
+            // println!("{:#?}", _good_repay_borrowed_funds);
+            let res: CollateralInfo = app.wrap().query_wasm_smart(
+                nft_loan_addr.clone(),
+                 &QueryMsg::CollateralInfo { 
+                    borrower: Addr::unchecked(OWNER_ADDR).to_string(),
+                     loan_id: 0,
+                    }).unwrap();
+            assert_eq!(res.state,LoanState::Ended);
+
 
             // withdraw defaulted loans
-
-            // set owner
-
+            // TODO
             // set fee distributor
+            let bad_set_fee_distributor = app.execute_contract(
+                Addr::unchecked("not-admin".to_string()),
+                nft_loan_addr.clone(),
+                &ExecuteMsg::SetFeeDistributor { fee_depositor: "not-admin".to_string() },
+                &[]).unwrap_err();
+            // println!("{:#?}", bad_set_owner);
+            assert_error(Err(bad_set_fee_distributor), ContractError::Unauthorized {}.to_string());
 
-            // set fee rate
+            // bad set fee rate
+            let bad_set_fee_rate = app.execute_contract(
+                Addr::unchecked("not-admin".to_string()),
+                nft_loan_addr.clone(),
+                &ExecuteMsg::SetFeeRate { fee_rate: Decimal::percent(69) }, 
+                &[]).unwrap_err();
+            // println!("{:#?}", bad_set_fee_rate);
+            assert_error(Err(bad_set_fee_rate), ContractError::Unauthorized {}.to_string());
+
+            // good set fee rate
+            let _set_fee_rate = app.execute_contract(
+                Addr::unchecked(OWNER_ADDR),
+                nft_loan_addr.clone(),
+                &ExecuteMsg::SetFeeRate { fee_rate: Decimal::percent(69) }, 
+                &[]).unwrap();
+            // println!("{:#?}", _set_fee_rate);
+            let res: Config = app.wrap().query_wasm_smart(
+                nft_loan_addr.clone(),
+                &QueryMsg::Config {}).unwrap();
+            assert_eq!(res.fee_rate, Decimal::percent(69));
+
+            // bad set owner
+            let bad_set_owner = app.execute_contract(
+                Addr::unchecked("not-admin".to_string()),
+                nft_loan_addr.clone(),
+                &ExecuteMsg::SetOwner { owner: "not-admin".to_string() },
+                &[]).unwrap_err();
+            // println!("{:#?}", bad_set_owner);
+            assert_error(Err(bad_set_owner), ContractError::Unauthorized {}.to_string());
+
+            // good set owner
+            let _good_set_owner = app.execute_contract(
+                Addr::unchecked(OWNER_ADDR),
+                nft_loan_addr.clone(),
+                &ExecuteMsg::SetOwner { owner: "new-admin".to_string() },
+                &[]).unwrap();
+            // println!("{:#?}", good_set_owner);
+            let res: Config = app.wrap().query_wasm_smart(
+                nft_loan_addr.clone(),
+                &QueryMsg::Config {}).unwrap();
+            assert_eq!(res.owner,"new-admin".to_string());
         }
     }
 }

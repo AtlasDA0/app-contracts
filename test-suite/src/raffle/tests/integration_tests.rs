@@ -21,10 +21,7 @@ mod tests {
     const VENDING_MINTER: &str = "contract2";
     const SG721_CONTRACT: &str = "contract3";
 
-    pub fn assert_error(res: Result<AppResponse, Error>, expected: String) {
-        assert_eq!(res.unwrap_err().source().unwrap().to_string(), expected);
-    }
-
+  
     pub fn proper_instantiate() -> (StargazeApp, Addr, Addr) {
         let mut app = custom_mock_app();
         let chainid = app.block_info().chain_id.clone();
@@ -113,6 +110,8 @@ mod tests {
         use sg721::CollectionInfo;
         use utils::state::{AssetInfo, Sg721Token};
         use vending_factory::msg::VendingMinterCreateMsg;
+
+        use crate::common_setup::helpers::assert_error;
 
         use super::*;
 
