@@ -25,7 +25,7 @@ pub enum ContractError {
     #[error("Invalid input")]
     InvalidInput {},
 
-    #[error("Invalid input")]
+    #[error("The Raffle Fee you have provided is invalid.")]
     InvalidRaffleFee {},
 
     #[error("invalid amount:")]
