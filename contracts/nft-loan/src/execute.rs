@@ -44,10 +44,17 @@ pub fn deposit_collaterals(
     let borrower = info.sender;
 
     // ensure atleas one asset has been provided
+    // additional check: check if the person is really owner + if approved to be handled by contract
+    // need to check if the loan > approval because this could lead to problems
+    // cw721_base::msg::QueryMsg::Approval { token_id: "".to_string(), spender: "".to_string(), include_expired: None, }
+    // cw721_base::msg::QueryMsg::OwnerOf { token_id: "".to_string(), include_expired: None }
+    // same goes for sg721_base
     if tokens.is_empty() {
         return Err(ContractError::NoAssets {});
     }
 
+    // could check that info.funds.len() == 1 because the below does not cover 0
+    // and would error later
     if info.funds.len() > 1 {
         return Err(ContractError::InvalidAmount {});
     }
@@ -63,6 +70,7 @@ pub fn deposit_collaterals(
         return Err(ContractError::NoDepositFeeProvided {});
     }
     // transfer into contract
+    // if funds are sent to contract by user they are already in it
     let transfer_fee: CosmosMsg = BankMsg::Send {
         to_address: env.contract.address.into_string(),
         amount: info.funds,
@@ -93,7 +101,7 @@ pub fn deposit_collaterals(
         deps.storage,
         (borrower.clone(), loan_id),
         &CollateralInfo {
-            terms,
+            terms, // terms are not checked
             associated_assets: tokens,
             list_date: env.block.time,
             comment,
@@ -129,7 +137,7 @@ pub fn modify_collaterals(
                 is_loan_modifiable(&collateral)?;
 
                 if terms.is_some() {
-                    collateral.terms = terms;
+                    collateral.terms = terms; // no check being done
                 }
                 if comment.is_some() {
                     collateral.comment = comment;
@@ -175,6 +183,7 @@ pub fn withdraw_collateral(
     collateral.state = LoanState::Inactive;
     COLLATERAL_INFO.save(deps.storage, (borrower.clone(), loan_id), &collateral)?;
 
+    // need to make sure you cancel approval in the ui
     Ok(Response::new()
         // .add_message(return_fee)
         .add_attribute("action", "withdraw_collateral")
@@ -310,6 +319,9 @@ fn _accept_offer_raw(
                 // (Audit results)
                 // Before transferring the NFT, we make sure the current NFT owner is indeed the borrower of funds
                 // Otherwise, this would cause anyone to be able to create loans in the name of the owner if a bad approval was done
+
+                // I added a message for when the collateral is added so we could use this + the approval
+                // loan can fail here due to the approval as well
                 is_nft_owner(
                     deps.as_ref(),
                     borrower.clone(),
@@ -327,6 +339,7 @@ fn _accept_offer_raw(
                 )?)
             }
             AssetInfo::Sg721Token(Sg721Token { address, token_id }) => {
+                // same comments as above
                 is_nft_owner(
                     deps.as_ref(),
                     borrower.clone(),

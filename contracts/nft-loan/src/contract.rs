@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
     ensure_eq, entry_point, to_json_binary, Binary, Decimal, Deps, DepsMut, Empty, Env,
-    MessageInfo, StdResult,
+    MessageInfo, StdResult, ensure
 };
 
 use cw2::set_contract_version;
@@ -38,7 +38,7 @@ pub fn instantiate(
             .api
             .addr_validate(&msg.owner.unwrap_or_else(|| info.sender.to_string()))?,
         fee_distributor: deps.api.addr_validate(&msg.fee_distributor)?,
-        fee_rate: msg.fee_rate, //
+        fee_rate: msg.fee_rate, // Could check if > 0 && <= X
         global_offer_index: 0,
         deposit_fee_denom: msg.deposit_fee_denom,
         deposit_fee_amount: msg.deposit_fee_amount,

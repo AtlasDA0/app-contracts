@@ -22,6 +22,7 @@ schemars = "0.8.8"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 sg-multi-test = "3.1.0"
 cw-multi-test = "0.16.0"
+cw-utils = "1.0.3"
 sg-std = "3.1.0"
 sg721 = "3.3.0"
 sg721-base              = "3.3.0"
