@@ -47,6 +47,9 @@ pub enum ContractError {
     #[error("Sorry, you can't accept this loan")]
     NotAcceptable {},
 
+    #[error("The fee_rate you provided is not greater than 0, or less than 1")]
+    InvalidFeeRate {},
+
     #[error("Sorry, you can't make an offer on this loan")]
     NotCounterable {},
 

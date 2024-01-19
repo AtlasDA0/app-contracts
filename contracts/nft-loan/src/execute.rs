@@ -47,6 +47,7 @@ pub fn deposit_collaterals(
     if tokens.is_empty() {
         return Err(ContractError::NoAssets {});
     }
+    // TODO: ensure info.sender is actually owner
 
     if info.funds.len() > 1 {
         return Err(ContractError::InvalidAmount {});

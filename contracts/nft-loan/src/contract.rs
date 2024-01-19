@@ -1,3 +1,4 @@
+use cosmwasm_std::ensure;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
     ensure_eq, entry_point, to_json_binary, Binary, Decimal, Deps, DepsMut, Empty, Env,
@@ -32,6 +33,12 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+
+    ensure!(
+        msg.fee_rate > Decimal::zero() && msg.fee_rate <= Decimal::one(),
+        ContractError::InvalidFeeRate {}
+    );
+
     let data = Config {
         name: msg.name,
         owner: deps
