@@ -174,7 +174,10 @@ pub fn execute(
         ExecuteMsg::UpdateRandomness { raffle_id } => {
             execute_update_randomness(deps, env, info, raffle_id)
         }
-        ExecuteMsg::NoisReceive { callback } => execute_receive_nois(deps, env, info, callback),
+        ExecuteMsg::NoisReceive {
+            callback,
+            raffle_id,
+        } => execute_receive_nois(deps, env, info, callback, raffle_id),
         // Admin messages
         ExecuteMsg::ToggleLock { lock } => execute_toggle_lock(deps, env, info, lock),
     }

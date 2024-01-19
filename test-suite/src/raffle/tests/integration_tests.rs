@@ -1,8 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use anyhow::Error;
     use cosmwasm_std::{Addr, BlockInfo, Coin, Timestamp, Uint128};
-    use cw_multi_test::{AppResponse, Executor};
+    use cw_multi_test::Executor;
     use raffles::msg::InstantiateMsg;
     use sg_multi_test::StargazeApp;
     use sg_std::NATIVE_DENOM;
@@ -21,7 +20,6 @@ mod tests {
     const VENDING_MINTER: &str = "contract2";
     const SG721_CONTRACT: &str = "contract3";
 
-  
     pub fn proper_instantiate() -> (StargazeApp, Addr, Addr) {
         let mut app = custom_mock_app();
         let chainid = app.block_info().chain_id.clone();
@@ -104,9 +102,14 @@ mod tests {
     }
 
     mod init {
-        use cosmwasm_std::{coin, Coin, Empty, Uint128};
+        use cosmwasm_std::{coin, Coin, Empty, HexBinary, Uint128};
         use cw_multi_test::{BankSudo, SudoMsg};
-        use raffles::{error::ContractError, state::RaffleOptionsMsg};
+        use nois::NoisCallback;
+        use raffles::{
+            error::ContractError,
+            msg::{ExecuteMsg, RaffleResponse},
+            state::{RaffleOptionsMsg, RaffleState},
+        };
         use sg721::CollectionInfo;
         use utils::state::{AssetInfo, Sg721Token};
         use vending_factory::msg::VendingMinterCreateMsg;
@@ -129,10 +132,20 @@ mod tests {
             assert_eq!(query_config.owner, Addr::unchecked("fee"));
 
             let current_time = app.block_info().time.clone();
+            let current_block = app.block_info().height.clone();
+            let chainid = app.block_info().chain_id.clone();
+
             // fund test account
             app.sudo(SudoMsg::Bank({
                 BankSudo::Mint {
                     to_address: OWNER_ADDR.to_string(),
+                    amount: vec![coin(100000000000u128, "ustars".to_string())],
+                }
+            }))
+            .unwrap();
+            app.sudo(SudoMsg::Bank({
+                BankSudo::Mint {
+                    to_address: "ticket-purchaser".to_string(),
                     amount: vec![coin(100000000000u128, "ustars".to_string())],
                 }
             }))
@@ -221,10 +234,8 @@ mod tests {
                             token_id: "41".to_string(),
                         })],
                         raffle_options: RaffleOptionsMsg {
-                            raffle_start_timestamp: Some(Timestamp::from_nanos(
-                                1647032400000000000,
-                            )),
-                            raffle_duration: Some(1),
+                            raffle_start_timestamp: Some(current_time.clone()),
+                            raffle_duration: None,
                             raffle_timeout: None,
                             comment: None,
                             max_participant_number: None,
@@ -398,7 +409,7 @@ mod tests {
             // buy ticket
             let _ticket_purchase = app
                 .execute_contract(
-                    Addr::unchecked(OWNER_ADDR),
+                    Addr::unchecked("ticket-purchaser"),
                     raffle_contract_addr.clone(),
                     &raffles::msg::ExecuteMsg::BuyTicket {
                         raffle_id: 0,
@@ -414,20 +425,110 @@ mod tests {
                     }],
                 )
                 .unwrap();
-            
+
             let res: u32 = app
                 .wrap()
                 .query_wasm_smart(
                     raffle_contract_addr.clone(),
                     &raffles::msg::QueryMsg::TicketNumber {
-                        owner: Addr::unchecked(OWNER_ADDR).to_string(),
+                        owner: Addr::unchecked("ticket-purchaser").to_string(),
                         raffle_id: 0,
                     },
                 )
                 .unwrap();
             assert_eq!(res, 16);
 
-            // TODO: claim ticket
+            // move forward in time
+            app.set_block(BlockInfo {
+                height: current_block.clone() + 100,
+                time: current_time.clone().plus_seconds(130),
+                chain_id: chainid.clone(),
+            });
+
+            // try to claim ticket before randomness is requested
+            let claim_but_no_randomness_yet = app
+                .execute_contract(
+                    Addr::unchecked("ticket-purchaser".to_string()),
+                    raffle_contract_addr.clone(),
+                    &ExecuteMsg::ClaimNft { raffle_id: 0 },
+                    &[],
+                )
+                .unwrap_err();
+            // println!("{:#?}", claim_but_no_randomness_yet);
+            assert_error(
+                Err(claim_but_no_randomness_yet),
+                ContractError::WrongStateForClaim {
+                    status: RaffleState::Closed,
+                }
+                .to_string(),
+            );
+
+            // ensure only nois_proxy provides randomness
+            let bad_recieve_randomness = app
+                .execute_contract(
+                    Addr::unchecked("ticket-purchaser"),
+                    raffle_contract_addr.clone(),
+                    &ExecuteMsg::NoisReceive {
+                        callback: NoisCallback {
+                            job_id: "raffle".to_string(),
+                            published: current_time.clone(),
+                            randomness: HexBinary::from_hex(
+                                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
+                            )
+                            .unwrap(),
+                        },
+                        raffle_id: 0,
+                    },
+                    &[],
+                )
+                .unwrap_err();
+            // println!("{:#?}", bad_recieve_randomness);
+            assert_error(
+                Err(bad_recieve_randomness),
+                ContractError::UnauthorizedReceive.to_string(),
+            );
+
+            // simulates the response from nois_proxy
+            let _good_receive_randomness = app
+                .execute_contract(
+                    Addr::unchecked(NOIS_PROXY_ADDR),
+                    raffle_contract_addr.clone(),
+                    &ExecuteMsg::NoisReceive {
+                        callback: NoisCallback {
+                            job_id: "raffle".to_string(),
+                            published: current_time.clone(),
+                            randomness: HexBinary::from_hex(
+                                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
+                            )
+                            .unwrap(),
+                        },
+                        raffle_id: 0,
+                    },
+                    &[],
+                )
+                .unwrap();
+
+            // claims the ticket
+            let _claim_ticket = app
+                .execute_contract(
+                    Addr::unchecked("ticket-purchaser".to_string()),
+                    raffle_contract_addr.clone(),
+                    &ExecuteMsg::ClaimNft { raffle_id: 0 },
+                    &[],
+                )
+                .unwrap();
+            // println!("{:#?}", claim_ticket);
+            let res: RaffleResponse = app
+                .wrap()
+                .query_wasm_smart(
+                    raffle_contract_addr.clone(),
+                    &raffles::msg::QueryMsg::RaffleInfo { raffle_id: 0 },
+                )
+                .unwrap();
+            assert_eq!(res.raffle_state, RaffleState::Claimed);
+
+            // TODO: assert a finished raffle state
+
         }
     }
 }

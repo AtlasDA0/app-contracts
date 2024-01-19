@@ -65,6 +65,9 @@ pub enum ContractError {
     )]
     RandomAfterIsTooMuchInTheFuture { max_allowed_beacon_time: Timestamp },
 
+    #[error("Randomness has already been provided to this raffle")]
+    RandomnessAlreadyProvided {},
+
     #[error("Received invalid randomness")]
     InvalidRandomness,
 

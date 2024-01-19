@@ -82,6 +82,7 @@ pub enum ExecuteMsg {
     },
     NoisReceive {
         callback: NoisCallback,
+        raffle_id: u64,
     },
     // Admin messages
     ToggleLock {

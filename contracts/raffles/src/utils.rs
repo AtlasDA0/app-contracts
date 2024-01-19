@@ -110,15 +110,10 @@ pub fn get_raffle_winner(
         });
     }
 
-    // TODO: get_nois_for_raffle(env, raffle_id)
-
     // We initiate the random number generator
-    if raffle_info.randomness.is_none() {
-        return Err(ContractError::WrongStateForClaim {
-            status: get_raffle_state(env, raffle_info),
-        });
+    if raffle_info.randomness == false {
+        return Err(ContractError::ContractBug {});
     }
-    // let mut rng: Prng = Prng::new(&raffle_info.randomness.unwrap().randomness);
 
     // We pick a winner id
     let winner_id = int_in_range(

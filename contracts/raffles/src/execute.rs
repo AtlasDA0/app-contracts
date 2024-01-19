@@ -162,7 +162,7 @@ pub fn _create_raffle(
             assets: all_assets.clone(),
             raffle_ticket_price: raffle_ticket_price.clone(), // No checks for the assetInfo type, the worst thing that can happen is an error when trying to buy a raffle ticket
             number_of_tickets: 0u32,
-            randomness: None,
+            randomness: false,
             winner: None,
             is_cancelled: false,
             raffle_options: RaffleOptions::new(env, all_assets.len(), raffle_options, config),
@@ -454,12 +454,14 @@ pub fn execute_receive_nois(
     _env: Env,
     info: MessageInfo,
     callback: NoisCallback,
+    raffle_id: u64,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     let RandomnessParams {
         nois_randomness,
         requested,
     } = NOIS_RANDOMNESS.load(deps.storage)?;
+    let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
 
     // callback should only be allowed to be called by the proxy contract
     // otherwise anyone can cut the randomness workflow and cheat the randomness by sending the randomness directly to this contract
@@ -472,7 +474,13 @@ pub fn execute_receive_nois(
         .randomness
         .to_array()
         .map_err(|_| ContractError::InvalidRandomness)?;
-    // Make sure the randomness does not exist yet
+
+    // We make sure the raffle has not updated the global randomness yet
+    if raffle_info.randomness == true {
+        return Err(ContractError::RandomnessAlreadyProvided {});
+    } else {
+        raffle_info.randomness = true;
+    }
 
     match nois_randomness {
         None => NOIS_RANDOMNESS.save(
@@ -484,6 +492,8 @@ pub fn execute_receive_nois(
         ),
         Some(_randomness) => return Err(ContractError::ImmutableRandomness),
     }?;
+
+    RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 
     Ok(Response::default())
 }

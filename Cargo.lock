@@ -34,6 +34,7 @@ dependencies = [
  "cosmwasm-std",
  "cw-multi-test",
  "nft-loans",
+ "nois",
  "raffles",
  "schemars",
  "serde",

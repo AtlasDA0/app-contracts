@@ -2,7 +2,6 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Decimal, StdError, StdResult, Coin, Timestamp, Env, Storage,  Uint128};
 
 use cw_storage_plus::{Item, Map};
-use sg_std::NATIVE_DENOM;
 use utils::state::AssetInfo;
 
 //TODO: add to contract config
@@ -10,7 +9,7 @@ pub const ATLAS_DAO_STARGAZE_TREASURY: &str = "stars1jyg4j6t4kdptgsx6q55mu0f434z
 pub const NOIS_AMOUNT: u128 = 500000;
 pub const MINIMUM_RAFFLE_DURATION: u64 = 1;
 pub const MINIMUM_RAFFLE_TIMEOUT: u64 = 120; // The raffle timeout is a least 2 minutes
-pub const DECIMAL_FRACTIONAL: u128 = 1_000_000_000_000_000_000u128; // 1*10**18
+pub const DECIMAL_FRACTIONAL: u128 = 1_000_00;
 pub const MINIMUM_RAND_FEE: Decimal = Decimal::raw(DECIMAL_FRACTIONAL/10_000u128); // The randomness provider gets at least 1/10_000 of the total raffle price
 pub const MINIMUM_CREATION_FEE_AMOUNT: u128 = 69;
 
@@ -98,7 +97,7 @@ pub struct RaffleInfo {
     pub assets: Vec<AssetInfo>,
     pub raffle_ticket_price: AssetInfo,
     pub number_of_tickets: u32,
-    pub randomness: Option<RandomnessParams>,
+    pub randomness: bool,
     pub winner: Option<Addr>,
     pub is_cancelled: bool,
     pub raffle_options: RaffleOptions,
@@ -151,7 +150,7 @@ pub fn get_raffle_state(env: Env, raffle_info: RaffleInfo) -> RaffleState {
             .raffle_start_timestamp
             .plus_seconds(raffle_info.raffle_options.raffle_duration)
             .plus_seconds(raffle_info.raffle_options.raffle_timeout)
-        || raffle_info.randomness.is_none()
+        || raffle_info.randomness == false
     {
         RaffleState::Closed
     } else if raffle_info.winner.is_none() {
