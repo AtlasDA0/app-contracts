@@ -1,3 +1,7 @@
+// I think there are tests missing to make sure all states and responses works properly
+// I would add unit tests and integration as well
+// This is only a suggestion
+
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::{Addr, BlockInfo, Coin, Timestamp, Uint128};

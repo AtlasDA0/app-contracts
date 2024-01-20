@@ -57,6 +57,7 @@ pub fn execute_create_raffle(
         .map(|c| Uint128::from(c.amount))
         .unwrap_or_else(|| Uint128::zero());
 
+    // why not check if fee != config.creation_fee_amount
     if fee < config.creation_fee_amount {
         return Err(ContractError::InvalidRaffleFee {});
     }
@@ -266,6 +267,8 @@ pub fn execute_buy_tickets(
     assets: AssetInfo,
 ) -> Result<Response, ContractError> {
     // First we physcially transfer the AssetInfo
+
+    // you dont accept nft as tickets in the below function why accepting them here?
     let transfer_messages = match &assets {
         AssetInfo::Cw721Coin(token) => {
             let message = Cw721ExecuteMsg::TransferNft {

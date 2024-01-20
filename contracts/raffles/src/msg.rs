@@ -73,7 +73,7 @@ pub enum ExecuteMsg {
     },
     BuyTicket {
         raffle_id: u64,
-        ticket_number: u32,
+        ticket_number: u32, // ticket_count would be less misleading
         sent_assets: AssetInfo,
     },
     Receive(cw721::Cw721ReceiveMsg),

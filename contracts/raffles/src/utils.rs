@@ -111,6 +111,9 @@ pub fn get_raffle_winner(
     }
 
     // We initiate the random number generator
+    // as we assume the contract has funds to call for randomness, we could make the claim
+    // to call for randomness instead of throwing an error so it triggers it for the next one
+    // who would like to claim
     if raffle_info.randomness == false {
         return Err(ContractError::ContractBug {});
     }
