@@ -85,4 +85,7 @@ pub enum ContractError {
 
     #[error("You did not provide the required fee to request for a loan")]
     NoDepositFeeProvided {},
+
+    #[error("There is an issue with the approval of the tokens. please approve this contract to interact with your nfts & try again!")]
+    TokenApprovalIssue {},
 }

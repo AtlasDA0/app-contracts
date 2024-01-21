@@ -2,6 +2,7 @@ use cosmwasm_std::{
     to_json_binary, Addr, Api, Deps, Env, Order, QueryRequest, StdError, StdResult, WasmQuery,
 };
 use cw721::{Cw721QueryMsg, OwnerOfResponse};
+use sg721_base::QueryMsg as Sg721QueryMsg;
 use cw_storage_plus::Bound;
 use utils::state::AssetInfo;
 
@@ -10,7 +11,7 @@ use crate::{
     state::{
         get_raffle_state, load_raffle, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO,
         RAFFLE_TICKETS, USER_TICKETS,
-    },
+    }, error::ContractError,
 };
 
 // settings for pagination
@@ -227,7 +228,28 @@ pub fn is_nft_owner(
         }))?;
 
     if owner_response.owner != sender {
-        return Err(StdError::generic_err("unauthorized"));
+        return Err(StdError::generic_err("message sender is not owner of tokens being raffled"));
+    }
+    Ok(())
+}
+
+pub fn is_sg721_owner(
+    deps: Deps,
+    sender: Addr,
+    nft_address: String,
+    token_id: String,
+) -> Result<(), StdError> {
+    let owner_response: OwnerOfResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: nft_address,
+            msg: to_json_binary(&Sg721QueryMsg::OwnerOf {
+                token_id,
+                include_expired: None,
+            })?,
+        }))?;
+
+    if owner_response.owner != sender {
+        return Err(StdError::generic_err("message sender is not owner of tokens being raffled"));
     }
     Ok(())
 }

@@ -1,7 +1,7 @@
 use cosmwasm_std::{
-    to_json_binary, Addr, Deps, Order, QueryRequest, StdError, StdResult, WasmQuery,
+    to_json_binary, Addr, Deps, Env, Never, Order, QueryRequest, StdError, StdResult, WasmQuery,
 };
-use cw721::{Cw721QueryMsg, OwnerOfResponse};
+use cw721::{ApprovalResponse, Cw721QueryMsg, Expiration, OwnerOfResponse};
 use cw_storage_plus::Bound;
 use sg721_base::QueryMsg as Sg721QueryMsg;
 
@@ -25,6 +25,7 @@ pub fn query_config(deps: Deps) -> StdResult<Config> {
     CONFIG.load(deps.storage).map_err(|err| err)
 }
 
+// confirm ownership
 pub fn is_nft_owner(
     deps: Deps,
     sender: Addr,
@@ -46,6 +47,7 @@ pub fn is_nft_owner(
     Ok(())
 }
 
+// confirm ownership
 pub fn is_sg721_owner(
     deps: Deps,
     sender: Addr,
@@ -67,6 +69,54 @@ pub fn is_sg721_owner(
     Ok(())
 }
 
+// confirm token approval
+pub fn is_approved_cw721(
+    deps: Deps,
+    env: Env,
+    sender: Addr,
+    nft_address: String,
+    token_id: String,
+) -> Result<(), ContractError> {
+    let approval_response: ApprovalResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: nft_address,
+            msg: to_json_binary(&Cw721QueryMsg::Approval {
+                token_id,
+                spender: sender.to_string(),
+                include_expired: None,
+            })?,
+        }))?;
+
+    if approval_response.approval.expires <= Expiration::AtHeight(env.block.height) {
+        return Err(ContractError::TokenApprovalIssue {});
+    }
+    Ok(())
+}
+
+// confirm token approval
+pub fn is_approved_sg721(
+    deps: Deps,
+    env: Env,
+    sender: Addr,
+    nft_address: String,
+    token_id: String,
+) -> Result<(), ContractError> {
+    let approval_response: ApprovalResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: nft_address,
+            msg: to_json_binary(&Sg721QueryMsg::Approval {
+                token_id,
+                spender: sender.to_string(),
+                include_expired: None,
+            })?,
+        }))?;
+
+    if approval_response.approval.expires <= Expiration::AtHeight(env.block.height) {
+        return Err(ContractError::TokenApprovalIssue {});
+    }
+    Ok(())
+}
+
 pub fn query_borrower_info(deps: Deps, borrower: String) -> StdResult<BorrowerInfo> {
     let borrower = deps.api.addr_validate(&borrower)?;
     BORROWER_INFO
@@ -76,6 +126,7 @@ pub fn query_borrower_info(deps: Deps, borrower: String) -> StdResult<BorrowerIn
 
 pub fn query_collateral_info(
     deps: Deps,
+    _env: Env,
     borrower: String,
     loan_id: u64,
 ) -> StdResult<CollateralInfo> {

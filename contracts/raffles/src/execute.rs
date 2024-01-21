@@ -12,7 +12,7 @@ use utils::state::{into_cosmos_msg, AssetInfo, Cw721Coin, Sg721Token};
 use crate::{
     error::ContractError,
     msg::ExecuteMsg,
-    query::is_nft_owner,
+    query::{is_nft_owner, is_sg721_owner},
     state::{
         get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState,
         RandomnessParams, CONFIG, MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, NOIS_RANDOMNESS,
@@ -94,7 +94,7 @@ pub fn execute_create_raffle(
                 into_cosmos_msg(message, token.address.clone(), None)
             }
             AssetInfo::Sg721Token(token) => {
-                is_nft_owner(
+                is_sg721_owner(
                     deps.as_ref(),
                     info.sender.clone(),
                     token.address.to_string(),

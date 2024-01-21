@@ -140,14 +140,14 @@ pub fn execute(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Config {} => to_json_binary(&query_config(deps)?),
         QueryMsg::BorrowerInfo { borrower } => {
             to_json_binary(&query_borrower_info(deps, borrower)?)
         }
         QueryMsg::CollateralInfo { borrower, loan_id } => {
-            to_json_binary(&query_collateral_info(deps, borrower, loan_id)?)
+            to_json_binary(&query_collateral_info(deps, env, borrower, loan_id)?)
         }
         QueryMsg::Collaterals {
             borrower,

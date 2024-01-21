@@ -528,7 +528,7 @@ mod tests {
             assert_eq!(res.raffle_state, RaffleState::Claimed);
 
             // TODO: assert a finished raffle state
-
+            
         }
     }
 }

@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    coins, Addr, BankMsg, Decimal, DepsMut, Empty, Env, MessageInfo, StdError, StdResult,
-    Storage, Uint128,
+    coins, Addr, BankMsg, Decimal, DepsMut, Empty, Env, MessageInfo, StdError, StdResult, Storage,
+    Uint128,
 };
 
 use cw721::Cw721ExecuteMsg;
@@ -11,7 +11,7 @@ use utils::state::{into_cosmos_msg, AssetInfo, Cw721Coin, Sg721Token};
 
 use crate::{
     error::{self, ContractError},
-    query::is_nft_owner,
+    query::{is_nft_owner, is_sg721_owner, is_approved_cw721, is_approved_sg721},
     state::{
         can_repay_loan, get_active_loan, get_offer, is_active_lender, is_collateral_withdrawable,
         is_lender, is_loan_acceptable, is_loan_counterable, is_loan_defaulted, is_loan_modifiable,
@@ -47,7 +47,44 @@ pub fn deposit_collaterals(
     if tokens.is_empty() {
         return Err(ContractError::NoAssets {});
     }
-    // TODO: ensure info.sender is actually owner
+
+    tokens.iter().try_for_each(|token| match token {
+        AssetInfo::Cw721Coin(Cw721Coin { address, token_id }) => {
+            // asserts borrower is owner of collateral
+            is_nft_owner(
+                deps.as_ref(),
+                borrower.clone(),
+                address.to_string(),
+                token_id.to_string(),
+            )?;
+            // asserts nft has been approved for use by loan contract
+            is_approved_cw721(
+                deps.as_ref(),
+                env.clone(),
+                borrower.clone(),
+                address.clone(),
+                token_id.clone()
+            )
+        }
+        AssetInfo::Sg721Token(Sg721Token { address, token_id }) => {
+            // asserts borrower is owner of collateral
+            is_sg721_owner(
+                deps.as_ref(),
+                borrower.clone(),
+                address.to_string(),
+                token_id.to_string(),
+            )?;
+            // asserts nft has been approved for use by loan contract
+            is_approved_sg721(
+                deps.as_ref(),
+                env.clone(),
+                borrower.clone(),
+                address.clone(),
+                token_id.clone()
+            )
+        }
+        _ => Err(ContractError::SenderNotOwner {}),
+    })?;
 
     if info.funds.len() > 1 {
         return Err(ContractError::InvalidAmount {});
@@ -328,7 +365,7 @@ fn _accept_offer_raw(
                 )?)
             }
             AssetInfo::Sg721Token(Sg721Token { address, token_id }) => {
-                is_nft_owner(
+                is_sg721_owner(
                     deps.as_ref(),
                     borrower.clone(),
                     address.to_string(),
