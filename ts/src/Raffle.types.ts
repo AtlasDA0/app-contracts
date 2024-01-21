@@ -140,7 +140,7 @@ export type QueryMsg = {
     start_after?: number | null;
   };
 } | {
-  ticket_number: {
+  ticket_count: {
     owner: string;
     raffle_id: number;
   };

@@ -255,7 +255,7 @@ pub fn is_sg721_owner(
 }
 
 /// Query the number of tickets a ticket_depositor bought in a specific raffle, designated by a raffle_id
-pub fn query_ticket_number(
+pub fn query_ticket_count(
     deps: Deps,
     _env: Env,
     raffle_id: u64,

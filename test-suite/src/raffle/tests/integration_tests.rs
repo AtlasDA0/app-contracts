@@ -431,7 +431,7 @@ mod tests {
                 .wrap()
                 .query_wasm_smart(
                     raffle_contract_addr.clone(),
-                    &raffles::msg::QueryMsg::TicketNumber {
+                    &raffles::msg::QueryMsg::TicketCount {
                         owner: Addr::unchecked("ticket-purchaser").to_string(),
                         raffle_id: 0,
                     },

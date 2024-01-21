@@ -33,13 +33,13 @@ export interface RaffleReadOnlyInterface {
     raffleId: number;
     startAfter?: number;
   }) => Promise<AllTicketsResponse>;
-  ticketNumber: ({
+  ticketCount: ({
     owner,
     raffleId
   }: {
     owner: string;
     raffleId: number;
-  }) => Promise<TicketNumberResponse>;
+  }) => Promise<TicketCountResponse>;
 }
 export class RaffleQueryClient implements RaffleReadOnlyInterface {
   client: CosmWasmClient;
@@ -52,7 +52,7 @@ export class RaffleQueryClient implements RaffleReadOnlyInterface {
     this.raffleInfo = this.raffleInfo.bind(this);
     this.allRaffles = this.allRaffles.bind(this);
     this.allTickets = this.allTickets.bind(this);
-    this.ticketNumber = this.ticketNumber.bind(this);
+    this.ticketCount = this.ticketCount.bind(this);
   }
 
   config = async (): Promise<ConfigResponse> => {
@@ -105,15 +105,15 @@ export class RaffleQueryClient implements RaffleReadOnlyInterface {
       }
     });
   };
-  ticketNumber = async ({
+  ticketCount = async ({
     owner,
     raffleId
   }: {
     owner: string;
     raffleId: number;
-  }): Promise<TicketNumberResponse> => {
+  }): Promise<TicketCountResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
-      ticket_number: {
+      ticket_count: {
         owner,
         raffle_id: raffleId
       }

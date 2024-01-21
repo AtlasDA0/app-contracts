@@ -11,7 +11,7 @@ use crate::execute::{
     execute_update_config, execute_update_randomness,
 };
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse};
-use crate::query::{query_all_raffles, query_all_tickets, query_config, query_ticket_number};
+use crate::query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count};
 use crate::state::{
     get_raffle_state, load_raffle, Config, RandomnessParams, CONFIG, MINIMUM_CREATION_FEE_AMOUNT,
     MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, NOIS_RANDOMNESS,
@@ -211,8 +211,8 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
             start_after,
             limit,
         )?)?,
-        QueryMsg::TicketNumber { owner, raffle_id } => {
-            to_json_binary(&query_ticket_number(deps, env, raffle_id, owner)?)?
+        QueryMsg::TicketCount { owner, raffle_id } => {
+            to_json_binary(&query_ticket_count(deps, env, raffle_id, owner)?)?
         }
     };
     Ok(response)

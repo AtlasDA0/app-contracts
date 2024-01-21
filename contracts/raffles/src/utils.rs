@@ -173,18 +173,18 @@ pub fn is_raffle_owner(
 /// Computes the ticket cost for multiple tickets bought together
 pub fn ticket_cost(
     raffle_info: RaffleInfo,
-    ticket_number: u32,
+    ticket_count: u32,
 ) -> Result<AssetInfo, ContractError> {
     Ok(match raffle_info.raffle_ticket_price {
         AssetInfo::Coin(x) => AssetInfo::Coin(Coin {
             denom: x.denom,
-            amount: Uint128::from(ticket_number) * x.amount,
+            amount: Uint128::from(ticket_count) * x.amount,
         }),
         // TODO: to set cost as Cw721Coin, we expect a possible
         // array of Cw721Coins as price cost.
         // AssetInfo::Sg721Token(x) => AssetInfo::Sg721Token(Sg721Token {
         //     address: x.address,
-        //     amount: Uint128::from(ticket_number) * x.amount,
+        //     amount: Uint128::from(ticket_count) * x.amount,
         //     token_id: todo!(),
         // }),
         _ => return Err(ContractError::WrongAssetType {}),

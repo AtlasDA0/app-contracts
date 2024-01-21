@@ -114,7 +114,7 @@ pub enum QueryMsg {
         limit: Option<u32>,
     },
     #[returns(u32)]
-    TicketNumber { owner: String, raffle_id: u64 },
+    TicketCount { owner: String, raffle_id: u64 },
 }
 
 #[cw_serde]
