@@ -145,7 +145,35 @@ mod tests {
             .unwrap();
             app.sudo(SudoMsg::Bank({
                 BankSudo::Mint {
-                    to_address: "ticket-purchaser".to_string(),
+                    to_address: "wallet-1".to_string(),
+                    amount: vec![coin(100000000000u128, "ustars".to_string())],
+                }
+            }))
+            .unwrap();
+            app.sudo(SudoMsg::Bank({
+                BankSudo::Mint {
+                    to_address: "wallet-2".to_string(),
+                    amount: vec![coin(100000000000u128, "ustars".to_string())],
+                }
+            }))
+            .unwrap();
+            app.sudo(SudoMsg::Bank({
+                BankSudo::Mint {
+                    to_address: "wallet-3".to_string(),
+                    amount: vec![coin(100000000000u128, "ustars".to_string())],
+                }
+            }))
+            .unwrap();
+            app.sudo(SudoMsg::Bank({
+                BankSudo::Mint {
+                    to_address: "wallet-4".to_string(),
+                    amount: vec![coin(100000000000u128, "ustars".to_string())],
+                }
+            }))
+            .unwrap();
+            app.sudo(SudoMsg::Bank({
+                BankSudo::Mint {
+                    to_address: "wallet-5".to_string(),
                     amount: vec![coin(100000000000u128, "ustars".to_string())],
                 }
             }))
@@ -406,10 +434,10 @@ mod tests {
                 ContractError::Unauthorized {}.to_string(),
             );
 
-            // buy ticket
-            let _ticket_purchase = app
+            // buy tickets
+            let _ticket_purchase1 = app
                 .execute_contract(
-                    Addr::unchecked("ticket-purchaser"),
+                    Addr::unchecked("wallet-1"),
                     raffle_contract_addr.clone(),
                     &raffles::msg::ExecuteMsg::BuyTicket {
                         raffle_id: 0,
@@ -425,14 +453,90 @@ mod tests {
                     }],
                 )
                 .unwrap();
-            println!("{:#?}", _ticket_purchase);
+            // println!("{:#?}", _ticket_purchase1);
+            let _ticket_purchase2 = app
+                .execute_contract(
+                    Addr::unchecked("wallet-2"),
+                    raffle_contract_addr.clone(),
+                    &raffles::msg::ExecuteMsg::BuyTicket {
+                        raffle_id: 0,
+                        ticket_count: 16,
+                        sent_assets: AssetInfo::Coin(Coin {
+                            denom: NATIVE_DENOM.to_string(),
+                            amount: Uint128::new(1600u128),
+                        }),
+                    },
+                    &[Coin {
+                        denom: NATIVE_DENOM.to_string(),
+                        amount: Uint128::new(1600u128),
+                    }],
+                )
+                .unwrap();
+            // println!("{:#?}", _ticket_purchase2);
+            let _ticket_purchase3 = app
+                .execute_contract(
+                    Addr::unchecked("wallet-3"),
+                    raffle_contract_addr.clone(),
+                    &raffles::msg::ExecuteMsg::BuyTicket {
+                        raffle_id: 0,
+                        ticket_count: 16,
+                        sent_assets: AssetInfo::Coin(Coin {
+                            denom: NATIVE_DENOM.to_string(),
+                            amount: Uint128::new(1600u128),
+                        }),
+                    },
+                    &[Coin {
+                        denom: NATIVE_DENOM.to_string(),
+                        amount: Uint128::new(1600u128),
+                    }],
+                )
+                .unwrap();
+            // println!("{:#?}", _ticket_purchase3);
+            let _ticket_purchase4 = app
+                .execute_contract(
+                    Addr::unchecked("wallet-4"),
+                    raffle_contract_addr.clone(),
+                    &raffles::msg::ExecuteMsg::BuyTicket {
+                        raffle_id: 0,
+                        ticket_count: 16,
+                        sent_assets: AssetInfo::Coin(Coin {
+                            denom: NATIVE_DENOM.to_string(),
+                            amount: Uint128::new(1600u128),
+                        }),
+                    },
+                    &[Coin {
+                        denom: NATIVE_DENOM.to_string(),
+                        amount: Uint128::new(1600u128),
+                    }],
+                )
+                .unwrap();
+            // println!("{:#?}", _ticket_purchase4);
+            let _ticket_purchase5 = app
+                .execute_contract(
+                    Addr::unchecked("wallet-5"),
+                    raffle_contract_addr.clone(),
+                    &raffles::msg::ExecuteMsg::BuyTicket {
+                        raffle_id: 0,
+                        ticket_count: 16,
+                        sent_assets: AssetInfo::Coin(Coin {
+                            denom: NATIVE_DENOM.to_string(),
+                            amount: Uint128::new(1600u128),
+                        }),
+                    },
+                    &[Coin {
+                        denom: NATIVE_DENOM.to_string(),
+                        amount: Uint128::new(1600u128),
+                    }],
+                )
+                .unwrap();
+            // println!("{:#?}", _ticket_purchase5);
 
             let res: u32 = app
                 .wrap()
                 .query_wasm_smart(
                     raffle_contract_addr.clone(),
                     &raffles::msg::QueryMsg::TicketCount {
-                        owner: Addr::unchecked("ticket-purchaser").to_string(),
+                        owner: Addr::unchecked("wallet-1").to_string(),
                         raffle_id: 0,
                     },
                 )
@@ -449,7 +553,7 @@ mod tests {
             // try to claim ticket before randomness is requested
             let claim_but_no_randomness_yet = app
                 .execute_contract(
-                    Addr::unchecked("ticket-purchaser".to_string()),
+                    Addr::unchecked("wallet-1".to_string()),
                     raffle_contract_addr.clone(),
                     &ExecuteMsg::ClaimNft { raffle_id: 0 },
                     &[],
@@ -467,7 +571,7 @@ mod tests {
             // ensure only nois_proxy provides randomness
             let bad_recieve_randomness = app
                 .execute_contract(
-                    Addr::unchecked("ticket-purchaser"),
+                    Addr::unchecked("wallet-1"),
                     raffle_contract_addr.clone(),
                     &ExecuteMsg::NoisReceive {
                         callback: NoisCallback {
@@ -512,13 +616,13 @@ mod tests {
             // claims the ticket
             let _claim_ticket = app
                 .execute_contract(
-                    Addr::unchecked("ticket-purchaser".to_string()),
+                    Addr::unchecked("wallet-1".to_string()),
                     raffle_contract_addr.clone(),
                     &ExecuteMsg::ClaimNft { raffle_id: 0 },
                     &[],
                 )
                 .unwrap();
-            // println!("{:#?}", claim_ticket);
+            println!("{:#?}", _claim_ticket);
             let res: RaffleResponse = app
                 .wrap()
                 .query_wasm_smart(
@@ -529,7 +633,7 @@ mod tests {
             assert_eq!(res.raffle_state, RaffleState::Claimed);
 
             // TODO: assert a finished raffle state
-            
+            // test no raffle ticket purchase
         }
     }
 }
