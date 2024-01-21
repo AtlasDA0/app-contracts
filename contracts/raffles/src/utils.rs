@@ -1,8 +1,9 @@
 use crate::{
     error::ContractError,
     state::{
-        get_raffle_state, RaffleInfo, RaffleState, RandomnessParams, ATLAS_DAO_STARGAZE_TREASURY,
-        CONFIG, NOIS_AMOUNT, NOIS_RANDOMNESS, RAFFLE_INFO, RAFFLE_TICKETS,
+        get_raffle_state, RaffleInfo, RaffleState,
+        ATLAS_DAO_STARGAZE_TREASURY, CONFIG, NOIS_AMOUNT, RAFFLE_INFO,
+        RAFFLE_TICKETS,
     },
 };
 use cosmwasm_std::{
@@ -99,25 +100,20 @@ pub fn get_raffle_winner(
     raffle_id: u64,
     raffle_info: RaffleInfo,
 ) -> Result<Addr, ContractError> {
-    let RandomnessParams {
-        nois_randomness,
-        requested: _,
-    } = NOIS_RANDOMNESS.load(deps.storage)?;
-
-    if nois_randomness.is_none() {
+    if raffle_info.randomness.is_none() {
         return Err(ContractError::WrongStateForClaim {
             status: get_raffle_state(env, raffle_info),
         });
     }
 
     // We initiate the random number generator
-    if raffle_info.randomness == false {
+    if raffle_info.randomness == None {
         return Err(ContractError::ContractBug {});
     }
 
     // We pick a winner id
     let winner_id = int_in_range(
-        nois_randomness.expect("expect a value here"),
+        raffle_info.randomness.expect("expect a value here"),
         0,
         raffle_info.number_of_tickets,
     );

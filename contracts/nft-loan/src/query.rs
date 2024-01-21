@@ -1,5 +1,5 @@
 use cosmwasm_std::{
-    to_json_binary, Addr, Deps, Env, Never, Order, QueryRequest, StdError, StdResult, WasmQuery,
+    to_json_binary, Addr, Deps, Env, Order, QueryRequest, StdError, StdResult, WasmQuery,
 };
 use cw721::{ApprovalResponse, Cw721QueryMsg, Expiration, OwnerOfResponse};
 use cw_storage_plus::Bound;

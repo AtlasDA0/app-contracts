@@ -11,7 +11,7 @@ use crate::{
     state::{
         get_raffle_state, load_raffle, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO,
         RAFFLE_TICKETS, USER_TICKETS,
-    }, error::ContractError,
+    },
 };
 
 // settings for pagination

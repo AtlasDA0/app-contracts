@@ -14,9 +14,8 @@ use crate::{
     msg::ExecuteMsg,
     query::{is_nft_owner, is_sg721_owner},
     state::{
-        get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState,
-        RandomnessParams, CONFIG, MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, NOIS_RANDOMNESS,
-        RAFFLE_INFO, RAFFLE_TICKETS, USER_TICKETS,
+        get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState, CONFIG,
+        MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, RAFFLE_INFO, RAFFLE_TICKETS, USER_TICKETS,
     },
     utils::{
         can_buy_ticket, get_nois_randomness, get_raffle_owner_finished_messages,
@@ -162,7 +161,7 @@ pub fn _create_raffle(
             assets: all_assets.clone(),
             raffle_ticket_price: raffle_ticket_price.clone(), // No checks for the assetInfo type, the worst thing that can happen is an error when trying to buy a raffle ticket
             number_of_tickets: 0u32,
-            randomness: false,
+            randomness: None,
             winner: None,
             is_cancelled: false,
             raffle_options: RaffleOptions::new(env, all_assets.len(), raffle_options, config),
@@ -457,10 +456,6 @@ pub fn execute_receive_nois(
     raffle_id: u64,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
-    let RandomnessParams {
-        nois_randomness,
-        requested,
-    } = NOIS_RANDOMNESS.load(deps.storage)?;
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
 
     // callback should only be allowed to be called by the proxy contract
@@ -476,22 +471,11 @@ pub fn execute_receive_nois(
         .map_err(|_| ContractError::InvalidRandomness)?;
 
     // We make sure the raffle has not updated the global randomness yet
-    if raffle_info.randomness == true {
+    if raffle_info.randomness != None {
         return Err(ContractError::RandomnessAlreadyProvided {});
     } else {
-        raffle_info.randomness = true;
-    }
-
-    match nois_randomness {
-        None => NOIS_RANDOMNESS.save(
-            deps.storage,
-            &RandomnessParams {
-                nois_randomness: Some(randomness),
-                requested,
-            },
-        ),
-        Some(_randomness) => return Err(ContractError::ImmutableRandomness),
-    }?;
+        raffle_info.randomness = Some(randomness);
+    };
 
     RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 
@@ -507,8 +491,9 @@ pub fn execute_claim(
     // Loading the raffle object
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
 
-    // We make sure the raffle is ended
+    // We make sure the raffle is ended, and randomness from nois has been provided.
     let raffle_state = get_raffle_state(env.clone(), raffle_info.clone());
+
     if raffle_state != RaffleState::Finished {
         return Err(ContractError::WrongStateForClaim {
             status: raffle_state,

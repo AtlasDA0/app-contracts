@@ -97,7 +97,7 @@ pub struct RaffleInfo {
     pub assets: Vec<AssetInfo>,
     pub raffle_ticket_price: AssetInfo,
     pub number_of_tickets: u32,
-    pub randomness: bool,
+    pub randomness: Option<[u8; 32]>,
     pub winner: Option<Addr>,
     pub is_cancelled: bool,
     pub raffle_options: RaffleOptions,
@@ -150,7 +150,7 @@ pub fn get_raffle_state(env: Env, raffle_info: RaffleInfo) -> RaffleState {
             .raffle_start_timestamp
             .plus_seconds(raffle_info.raffle_options.raffle_duration)
             .plus_seconds(raffle_info.raffle_options.raffle_timeout)
-        || raffle_info.randomness == false
+        || raffle_info.randomness == None
     {
         RaffleState::Closed
     } else if raffle_info.winner.is_none() {
