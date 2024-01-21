@@ -349,7 +349,7 @@ mod tests {
                     raffle_contract_addr.clone(),
                     &raffles::msg::ExecuteMsg::BuyTicket {
                         raffle_id: 1,
-                        ticket_number: 1,
+                        ticket_count: 1,
                         sent_assets: AssetInfo::Coin(Coin {
                             denom: "ustars".to_string(),
                             amount: Uint128::new(69u128),
@@ -413,7 +413,7 @@ mod tests {
                     raffle_contract_addr.clone(),
                     &raffles::msg::ExecuteMsg::BuyTicket {
                         raffle_id: 0,
-                        ticket_number: 16,
+                        ticket_count: 16,
                         sent_assets: AssetInfo::Coin(Coin {
                             denom: NATIVE_DENOM.to_string(),
                             amount: Uint128::new(1600u128),
@@ -425,6 +425,7 @@ mod tests {
                     }],
                 )
                 .unwrap();
+            println!("{:#?}", _ticket_purchase);
 
             let res: u32 = app
                 .wrap()

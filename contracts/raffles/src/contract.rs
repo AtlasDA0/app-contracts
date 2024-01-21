@@ -166,9 +166,9 @@ pub fn execute(
         ),
         ExecuteMsg::BuyTicket {
             raffle_id,
-            ticket_number,
+            ticket_count,
             sent_assets,
-        } => execute_buy_tickets(deps, env, info, raffle_id, ticket_number, sent_assets),
+        } => execute_buy_tickets(deps, env, info, raffle_id, ticket_count, sent_assets),
         ExecuteMsg::Receive(msg) => execute_receive(deps, env, info, msg),
         ExecuteMsg::ClaimNft { raffle_id } => execute_claim(deps, env, info, raffle_id),
         ExecuteMsg::UpdateRandomness { raffle_id } => {

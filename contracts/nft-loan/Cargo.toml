@@ -27,16 +27,16 @@ backtraces = ["cosmwasm-std/backtraces"]
 library = []
 
 [dependencies]
-cosmwasm-std = "1.4.0"
-cosmwasm-schema = "1.4.0"
-cw-storage-plus = "1.2.0"
-cw2 = "1.1.1"
-cw721 = "0.18.0"
-cw721-base = "0.18.0"
-nois = "0.8.0"
-schemars = "0.8.8"
-serde = { version = "1.0.137", default-features = false, features = ["derive"] }
-thiserror = { version = "1.0.31" }
+cosmwasm-std        = "1.4.0"
+cosmwasm-schema     = "1.4.0"
+cw-storage-plus     = "1.2.0"
+cw2                 = "1.1.1"
+cw721               = "0.18.0"
+cw721-base          = "0.18.0"
+nois                = "0.8.0"
+schemars            = "0.8.8"
+serde               = { version = "1.0.137", default-features = false, features = ["derive"] }
+thiserror           = { version = "1.0.31" }
 
 # Stargaze libs
 sg-std = "^3.2"

@@ -138,14 +138,17 @@
           "$ref": "#/definitions/AssetInfo"
         },
         "randomness": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/RandomnessParams"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "integer",
+            "format": "uint8",
+            "minimum": 0.0
+          },
+          "maxItems": 32,
+          "minItems": 32
         },
         "winner": {
           "anyOf": [
@@ -222,31 +225,6 @@
         "claimed",
         "cancelled"
       ]
-    },
-    "RandomnessParams": {
-      "type": "object",
-      "required": [
-        "requested"
-      ],
-      "properties": {
-        "nois_randomness": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "integer",
-            "format": "uint8",
-            "minimum": 0.0
-          },
-          "maxItems": 32,
-          "minItems": 32
-        },
-        "requested": {
-          "type": "boolean"
-        }
-      },
-      "additionalProperties": false
     },
     "Sg721Token": {
       "type": "object",

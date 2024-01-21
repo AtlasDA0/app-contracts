@@ -39,7 +39,7 @@ export type ExecuteMsg = {
   buy_ticket: {
     raffle_id: number;
     sent_assets: AssetInfo;
-    ticket_number: number;
+    ticket_count: number;
   };
 } | {
   receive: Cw721ReceiveMsg;
@@ -50,6 +50,7 @@ export type ExecuteMsg = {
 } | {
   nois_receive: {
     callback: NoisCallback;
+    raffle_id: number;
   };
 } | {
   toggle_lock: {
@@ -167,7 +168,7 @@ export interface RaffleInfo {
   owner: Addr;
   raffle_options: RaffleOptions;
   raffle_ticket_price: AssetInfo;
-  randomness?: RandomnessParams | null;
+  randomness?: [number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number] | null;
   winner?: Addr | null;
 }
 export interface RaffleOptions {
@@ -178,10 +179,6 @@ export interface RaffleOptions {
   raffle_preview: number;
   raffle_start_timestamp: Timestamp;
   raffle_timeout: number;
-}
-export interface RandomnessParams {
-  nois_randomness?: [number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number] | null;
-  requested: boolean;
 }
 export type ArrayOfString = string[];
 export interface ConfigResponse {

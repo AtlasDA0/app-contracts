@@ -14,7 +14,7 @@ pub struct InstantiateMsg {
     pub creation_fee_denom: Option<Vec<String>>,
     pub creation_fee_amount: Option<Uint128>,
     pub owner: Option<String>,
-    pub fee_addr: Option<String>, //
+    pub fee_addr: Option<String>, 
     pub minimum_raffle_duration: Option<u64>,
     pub minimum_raffle_timeout: Option<u64>,
     pub max_participant_number: Option<u32>,
@@ -73,7 +73,7 @@ pub enum ExecuteMsg {
     },
     BuyTicket {
         raffle_id: u64,
-        ticket_number: u32,
+        ticket_count: u32,
         sent_assets: AssetInfo,
     },
     Receive(cw721::Cw721ReceiveMsg),

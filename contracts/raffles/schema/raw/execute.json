@@ -211,7 +211,7 @@
           "required": [
             "raffle_id",
             "sent_assets",
-            "ticket_number"
+            "ticket_count"
           ],
           "properties": {
             "raffle_id": {
@@ -222,7 +222,7 @@
             "sent_assets": {
               "$ref": "#/definitions/AssetInfo"
             },
-            "ticket_number": {
+            "ticket_count": {
               "type": "integer",
               "format": "uint32",
               "minimum": 0.0
@@ -277,11 +277,17 @@
         "nois_receive": {
           "type": "object",
           "required": [
-            "callback"
+            "callback",
+            "raffle_id"
           ],
           "properties": {
             "callback": {
               "$ref": "#/definitions/NoisCallback"
+            },
+            "raffle_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
             }
           },
           "additionalProperties": false

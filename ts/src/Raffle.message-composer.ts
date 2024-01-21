@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "cosmwasm";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { ExecuteMsg, AssetInfo, Uint128, Timestamp, Uint64, Decimal, Binary, HexBinary, Cw721Coin, Sg721Token, Coin, RaffleOptionsMsg, Cw721ReceiveMsg, NoisCallback, InstantiateMsg, QueryMsg, QueryFilters, Addr, RaffleState, AllRafflesResponse, RaffleResponse, RaffleInfo, RaffleOptions, RandomnessParams, ArrayOfString, ConfigResponse, Uint32 } from "./Raffle.types";
+import { ExecuteMsg, AssetInfo, Uint128, Timestamp, Uint64, Decimal, Binary, HexBinary, Cw721Coin, Sg721Token, Coin, RaffleOptionsMsg, Cw721ReceiveMsg, NoisCallback, InstantiateMsg, QueryMsg, QueryFilters, Addr, RaffleState, AllRafflesResponse, RaffleResponse, RaffleInfo, RaffleOptions, ArrayOfString, ConfigResponse, Uint32 } from "./Raffle.types";
 export interface RaffleMessage {
   contractAddress: string;
   sender: string;
@@ -64,11 +64,11 @@ export interface RaffleMessage {
   buyTicket: ({
     raffleId,
     sentAssets,
-    ticketNumber
+    ticketCount
   }: {
     raffleId: number;
     sentAssets: AssetInfo;
-    ticketNumber: number;
+    ticketCount: number;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
   receive: ({
     msg,
@@ -85,9 +85,11 @@ export interface RaffleMessage {
     raffleId: number;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
   noisReceive: ({
-    callback
+    callback,
+    raffleId
   }: {
     callback: NoisCallback;
+    raffleId: number;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
   toggleLock: ({
     lock
@@ -243,11 +245,11 @@ export class RaffleMessageComposer implements RaffleMessage {
   buyTicket = ({
     raffleId,
     sentAssets,
-    ticketNumber
+    ticketCount
   }: {
     raffleId: number;
     sentAssets: AssetInfo;
-    ticketNumber: number;
+    ticketCount: number;
   }, funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -258,7 +260,7 @@ export class RaffleMessageComposer implements RaffleMessage {
           buy_ticket: {
             raffle_id: raffleId,
             sent_assets: sentAssets,
-            ticket_number: ticketNumber
+            ticket_count: ticketCount
           }
         })),
         funds
@@ -310,9 +312,11 @@ export class RaffleMessageComposer implements RaffleMessage {
     };
   };
   noisReceive = ({
-    callback
+    callback,
+    raffleId
   }: {
     callback: NoisCallback;
+    raffleId: number;
   }, funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -321,7 +325,8 @@ export class RaffleMessageComposer implements RaffleMessage {
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           nois_receive: {
-            callback
+            callback,
+            raffle_id: raffleId
           }
         })),
         funds
