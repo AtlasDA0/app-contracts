@@ -195,7 +195,6 @@ pub fn modify_collaterals(
 /// Withdraw an NFT collateral (cancel a loan collateral)
 /// This simply cancels the potential loan.
 /// The collateral is not given back as there is not deposited collateral when creating a new loan
-/// The creation_fee is sent back to the owner if the withdraw can happend
 pub fn withdraw_collateral(
     deps: DepsMut,
     _env: Env,
@@ -207,7 +206,6 @@ pub fn withdraw_collateral(
     let mut collateral = COLLATERAL_INFO.load(deps.storage, (borrower.clone(), loan_id))?;
     is_collateral_withdrawable(&collateral)?;
 
-    // TODO: return creation_fee to borrower?
 
     // We update the internal state, the loan proposal is no longer valid
     collateral.state = LoanState::Inactive;

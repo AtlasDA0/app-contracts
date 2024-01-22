@@ -84,6 +84,7 @@ pub enum ExecuteMsg {
         loan_id: u64,
     },
     // TODO: Encode empathy
+    
     /// Internal state
     SetOwner {
         owner: String,

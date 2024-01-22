@@ -4,14 +4,12 @@ use cosmwasm_std::{Addr, Decimal, StdError, StdResult, Coin, Timestamp, Env, Sto
 use cw_storage_plus::{Item, Map};
 use utils::state::AssetInfo;
 
-//TODO: add to contract config
 pub const ATLAS_DAO_STARGAZE_TREASURY: &str = "stars1jyg4j6t4kdptgsx6q55mu0f434zqcfppkx6ww9gs7p4x7clgfrjq29sgmc";
+pub const MINIMUM_CREATION_FEE_AMOUNT: u128 = 69;
 pub const NOIS_AMOUNT: u128 = 500000;
 pub const MINIMUM_RAFFLE_DURATION: u64 = 1;
 pub const MINIMUM_RAFFLE_TIMEOUT: u64 = 120; // The raffle timeout is a least 2 minutes
 pub const DECIMAL_FRACTIONAL: u128 = 1_000_00;
-pub const MINIMUM_RAND_FEE: Decimal = Decimal::raw(DECIMAL_FRACTIONAL/10_000u128); // The randomness provider gets at least 1/10_000 of the total raffle price
-pub const MINIMUM_CREATION_FEE_AMOUNT: u128 = 69;
 
 
 #[cw_serde]
@@ -24,9 +22,9 @@ pub struct Config {
     pub fee_addr: Addr,
     /// The most recent raffle id 
     pub last_raffle_id: Option<u64>,
-    /// The minimum duration in which users can buy raffle tickets
+    /// The minimum duration, in seconds, in which users can buy raffle tickets
     pub minimum_raffle_duration: u64, 
-    /// The minimum interval during which users can provide entropy to the contract.
+    /// The minimum interval, in seconds, during which users can provide entropy to the contract.
     pub minimum_raffle_timeout: u64, 
     /// The accepted token denominations to create a new raffle. 
     pub creation_fee_denom: Vec<String>,
@@ -61,13 +59,7 @@ impl Config{
     }
 }
 
-#[cw_serde]
-pub struct RandomnessParams {
-    // The randomness beacon received from the proxy
-    pub nois_randomness: Option<[u8; 32]>,
-    // If the randomness has already been requested
-    pub requested: bool,
-}
+
 
 #[cw_serde]
 pub struct NoisProxy {
@@ -82,7 +74,6 @@ pub const CONFIG: Item<Config> = Item::new(CONFIG_KEY);
 pub const RAFFLE_INFO: Map<u64, RaffleInfo> = Map::new("raffle_info");
 pub const RAFFLE_TICKETS: Map<(u64, u32), Addr> = Map::new("raffle_tickets");
 pub const USER_TICKETS: Map<(&Addr, u64), u32> = Map::new("user_tickets");
-pub const NOIS_RANDOMNESS: Item<RandomnessParams> = Item::new("nois_randomness");
 
 
 // RAFFLES

@@ -119,7 +119,6 @@ export interface InstantiateMsg {
   nois_proxy_denom: string;
   owner?: string | null;
   raffle_fee?: Decimal | null;
-  rand_fee?: Decimal | null;
 }
 export type QueryMsg = {
   config: {};

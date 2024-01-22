@@ -13,8 +13,8 @@ use crate::execute::{
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse};
 use crate::query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count};
 use crate::state::{
-    get_raffle_state, load_raffle, Config, RandomnessParams, CONFIG, MINIMUM_CREATION_FEE_AMOUNT,
-    MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, NOIS_RANDOMNESS,
+    get_raffle_state, load_raffle, Config, CONFIG, MINIMUM_CREATION_FEE_AMOUNT,
+    MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT,
 };
 use cw2::set_contract_version;
 
@@ -31,13 +31,6 @@ pub fn instantiate(
         .api
         .addr_validate(&msg.nois_proxy_addr)
         .map_err(|_| ContractError::InvalidProxyAddress)?;
-    NOIS_RANDOMNESS.save(
-        deps.storage,
-        &RandomnessParams {
-            nois_randomness: None,
-            requested: false,
-        },
-    )?;
 
     let creation_fee_amount = match msg.creation_fee_amount {
         Some(int) => int,
@@ -69,17 +62,12 @@ pub fn instantiate(
         raffle_fee: msg.raffle_fee.unwrap_or(Decimal::zero()),
         creation_fee_denom,
         creation_fee_amount,
-        // rand_fee: msg
-        //     .rand_fee
-        //     .unwrap_or(MINIMUM_RAND_FEE)
-        //     .max(MINIMUM_RAND_FEE),
         lock: false,
         nois_proxy_addr,
         nois_proxy_denom: msg.nois_proxy_denom,
         nois_proxy_amount: msg.nois_proxy_amount,
     };
 
-    // TODO: add fair-burn module?
     config.validate_fee()?;
 
     CONFIG.save(deps.storage, &config)?;

@@ -33,6 +33,7 @@ dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-multi-test",
+ "cw721 0.18.0",
  "nft-loans",
  "nois",
  "raffles",

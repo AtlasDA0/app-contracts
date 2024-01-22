@@ -19,7 +19,6 @@ pub struct InstantiateMsg {
     pub minimum_raffle_timeout: Option<u64>,
     pub max_participant_number: Option<u32>,
     pub raffle_fee: Option<Decimal>,
-    pub rand_fee: Option<Decimal>,
 }
 
 impl InstantiateMsg {

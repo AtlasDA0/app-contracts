@@ -1,9 +1,8 @@
 use crate::{
     error::ContractError,
     state::{
-        get_raffle_state, RaffleInfo, RaffleState,
-        ATLAS_DAO_STARGAZE_TREASURY, CONFIG, NOIS_AMOUNT, RAFFLE_INFO,
-        RAFFLE_TICKETS,
+        get_raffle_state, RaffleInfo, RaffleState, ATLAS_DAO_STARGAZE_TREASURY, CONFIG,
+        NOIS_AMOUNT, RAFFLE_INFO, RAFFLE_TICKETS,
     },
 };
 use cosmwasm_std::{
@@ -18,13 +17,14 @@ use sg_std::{CosmosMsg, Response};
 use utils::state::{into_cosmos_msg, AssetInfo};
 
 pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, ContractError> {
-    // let raffle_info = load_raffle(deps.storage, raffle_id)?;
-    // let config = CONFIG.load(deps.storage)?;
+    let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id.clone())?;
     let config = CONFIG.load(deps.storage)?;
     let id = raffle_id.to_string();
     let nois_fee: Coin = coin(NOIS_AMOUNT, config.nois_proxy_denom);
 
-    // TODO: if raffle already has randomness, error.
+    if raffle_info.randomness.is_some() {
+        return Err(ContractError::RandomnessAlreadyProvided {});
+    }
 
     let response = Response::new().add_message(WasmMsg::Execute {
         contract_addr: config.nois_proxy_addr.into_string(),
@@ -59,15 +59,6 @@ pub fn get_raffle_owner_finished_messages(
     match raffle_info.raffle_ticket_price {
         AssetInfo::Coin(coin) => {
             let mut messages: Vec<CosmosMsg> = vec![];
-            // if rand_amount != Uint128::zero() {
-            //     messages.push(
-            //         BankMsg::Send { // TODO: Swap into $NOIS ?
-            //             to_address: ATLAS_DAO_STARGAZE_TREASURY.to_string(),
-            //             amount: coins(rand_amount.u128(), coin.denom.clone()),
-            //         }
-            //         .into(),
-            //     );
-            // };
             if treasury_amount != Uint128::zero() {
                 messages.push(
                     BankMsg::Send {
@@ -80,7 +71,7 @@ pub fn get_raffle_owner_finished_messages(
             if owner_amount != Uint128::zero() {
                 messages.push(
                     BankMsg::Send {
-                        to_address: ATLAS_DAO_STARGAZE_TREASURY.to_string(),
+                        to_address: config.fee_addr.to_string(),
                         amount: coins(owner_amount.u128(), coin.denom),
                     }
                     .into(),
@@ -171,22 +162,12 @@ pub fn is_raffle_owner(
 }
 
 /// Computes the ticket cost for multiple tickets bought together
-pub fn ticket_cost(
-    raffle_info: RaffleInfo,
-    ticket_count: u32,
-) -> Result<AssetInfo, ContractError> {
+pub fn ticket_cost(raffle_info: RaffleInfo, ticket_count: u32) -> Result<AssetInfo, ContractError> {
     Ok(match raffle_info.raffle_ticket_price {
         AssetInfo::Coin(x) => AssetInfo::Coin(Coin {
             denom: x.denom,
             amount: Uint128::from(ticket_count) * x.amount,
         }),
-        // TODO: to set cost as Cw721Coin, we expect a possible
-        // array of Cw721Coins as price cost.
-        // AssetInfo::Sg721Token(x) => AssetInfo::Sg721Token(Sg721Token {
-        //     address: x.address,
-        //     amount: Uint128::from(ticket_count) * x.amount,
-        //     token_id: todo!(),
-        // }),
         _ => return Err(ContractError::WrongAssetType {}),
     })
 }

@@ -85,16 +85,6 @@
           "type": "null"
         }
       ]
-    },
-    "rand_fee": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/Decimal"
-        },
-        {
-          "type": "null"
-        }
-      ]
     }
   },
   "additionalProperties": false,

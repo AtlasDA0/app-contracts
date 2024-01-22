@@ -42,7 +42,6 @@ pub fn execute_create_raffle(
         return Err(ContractError::ContractIsLocked {});
     }
 
-    // TODO: ensure static creation_fee has been provided
     if info.funds.len() > 1 {
         return Err(ContractError::InvalidAmount(
             "too many tokens in fee payment".to_string(),
@@ -56,7 +55,7 @@ pub fn execute_create_raffle(
         .map(|c| Uint128::from(c.amount))
         .unwrap_or_else(|| Uint128::zero());
 
-    if fee < config.creation_fee_amount {
+    if fee != config.creation_fee_amount {
         return Err(ContractError::InvalidRaffleFee {});
     }
 
@@ -516,6 +515,7 @@ pub fn execute_claim(
     let winner_transfer_messages = get_raffle_winner_messages(env.clone(), raffle_info.clone())?;
     let funds_transfer_messages =
         get_raffle_owner_finished_messages(deps.storage, env, raffle_info.clone())?;
+        
     // We distribute the ticket prices to the owner and in part to the treasury
     Ok(Response::new()
         .add_messages(winner_transfer_messages)
@@ -563,11 +563,9 @@ pub fn execute_update_config(
     nois_proxy_denom: Option<String>,
     nois_proxy_amount: Option<Uint128>,
 ) -> Result<Response, ContractError> {
-    //TODO: let mut config
     let config = CONFIG.load(deps.storage)?;
     // ensure msg sender is admin
     ensure_eq!(info.sender, config.owner, ContractError::Unauthorized);
-    // TODO: check if new value is_valid_name
     let name = config.name;
     let owner = match owner {
         Some(ow) => deps.api.addr_validate(&ow)?,
@@ -589,10 +587,6 @@ pub fn execute_update_config(
         Some(rf) => rf,
         None => config.raffle_fee,
     };
-    // let rand_fee = match rand_fee {
-    //     Some(raf) => raf,
-    //     None => config.rand_fee,
-    // };
     let nois_proxy_addr = match nois_proxy_addr {
         Some(prx) => deps.api.addr_validate(&prx)?,
         None => config.nois_proxy_addr,
