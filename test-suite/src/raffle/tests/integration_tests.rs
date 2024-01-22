@@ -90,7 +90,6 @@ mod tests {
                     minimum_raffle_timeout: None,
                     max_participant_number: None,
                     raffle_fee: None,
-                    rand_fee: None,
                 },
                 &[],
                 "raffle",
@@ -357,7 +356,6 @@ mod tests {
                         minimum_raffle_timeout: None,
                         max_participant_number: None,
                         raffle_fee: None,
-                        rand_fee: None,
                     },
                     &[],
                     "raffle",
@@ -622,7 +620,7 @@ mod tests {
                     &[],
                 )
                 .unwrap();
-            println!("{:#?}", _claim_ticket);
+            // println!("{:#?}", _claim_ticket);
             let res: RaffleResponse = app
                 .wrap()
                 .query_wasm_smart(
@@ -632,8 +630,6 @@ mod tests {
                 .unwrap();
             assert_eq!(res.raffle_state, RaffleState::Claimed);
 
-            // TODO: assert a finished raffle state
-            // test no raffle ticket purchase
         }
     }
 }

@@ -542,7 +542,7 @@ mod tests {
 
 
             // withdraw defaulted loans
-            // TODO
+
             // set fee distributor
             let bad_set_fee_distributor = app.execute_contract(
                 Addr::unchecked("not-admin".to_string()),
