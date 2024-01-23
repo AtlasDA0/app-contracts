@@ -97,12 +97,12 @@ pub fn deposit_collaterals(
         .map(|c| Uint128::from(c.amount))
         .unwrap_or_else(|| Uint128::zero());
 
-    if fee < config.deposit_fee_amount.into() {
+    if fee != Uint128::from(config.deposit_fee_amount) {
         return Err(ContractError::NoDepositFeeProvided {});
     }
-    // transfer into contract
+    // transfer fee to fee_distributor
     let transfer_fee: CosmosMsg = BankMsg::Send {
-        to_address: env.contract.address.into_string(),
+        to_address: config.fee_distributor.to_string(),
         amount: info.funds,
     }
     .into();

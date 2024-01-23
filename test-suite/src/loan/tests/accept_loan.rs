@@ -4,8 +4,8 @@ mod tests {
     use cw_multi_test::{BankSudo, Executor, SudoMsg};
     use nft_loans::{
         error::ContractError,
-        msg::{ExecuteMsg, InstantiateMsg},
-        state::LoanTerms,
+        msg::{CollateralResponse, ExecuteMsg, InstantiateMsg},
+        state::{CollateralInfo, LoanState, LoanTerms, BORROWER_INFO},
     };
     use sg721::CollectionInfo;
     use sg_multi_test::StargazeApp;
@@ -26,6 +26,8 @@ mod tests {
 
     const OWNER_ADDR: &str = "fee";
     const OFFERER_ADDR: &str = "offerer";
+    const DEPOSITOR_ADDR: &str = "depositor";
+    const BORROWER_ADDR: &str = "borrower";
     const VENDING_MINTER: &str = "contract2";
     const SG721_CONTRACT: &str = "contract3";
 
@@ -50,6 +52,20 @@ mod tests {
         app.sudo(SudoMsg::Bank({
             BankSudo::Mint {
                 to_address: OFFERER_ADDR.to_string(),
+                amount: vec![coin(100000000000u128, NATIVE_DENOM.to_string())],
+            }
+        }))
+        .unwrap();
+        app.sudo(SudoMsg::Bank({
+            BankSudo::Mint {
+                to_address: BORROWER_ADDR.to_string(),
+                amount: vec![coin(100000000000u128, NATIVE_DENOM.to_string())],
+            }
+        }))
+        .unwrap();
+        app.sudo(SudoMsg::Bank({
+            BankSudo::Mint {
+                to_address: DEPOSITOR_ADDR.to_string(),
                 amount: vec![coin(100000000000u128, NATIVE_DENOM.to_string())],
             }
         }))
@@ -248,7 +264,7 @@ mod tests {
                 },
                 &[Coin {
                     denom: NATIVE_DENOM.to_string(),
-                    amount: Uint128::new(100u128),
+                    amount: Uint128::new(50u128),
                 }],
             )
             .unwrap();
@@ -271,6 +287,7 @@ mod tests {
             )
             .unwrap_err();
         // println!("{:#?}", funds_dont_match_terms);
+
         assert_error(
             Err(funds_dont_match_terms),
             ContractError::FundsDontMatchTerms {}.to_string(),
@@ -292,6 +309,57 @@ mod tests {
                 }],
             )
             .unwrap();
-        // println!("{:#?}", _good_accept_loan);
+        let res: CollateralInfo = app
+            .wrap()
+            .query_wasm_smart(
+                nft_loan_addr.clone(),
+                &nft_loans::msg::QueryMsg::CollateralInfo {
+                    borrower: OWNER_ADDR.to_string(),
+                    loan_id: 0,
+                },
+            )
+            .unwrap();
+        assert_eq!(res.state, LoanState::Started);
+
+        // verify collateral cannot be withdraw after loan is accepted
+
+        // move forward in time
+        let current_time = app.block_info().time.clone();
+        let current_block = app.block_info().height.clone();
+        let chainid = app.block_info().chain_id.clone();
+
+        println!("{:#?}", current_block);
+
+        app.set_block(BlockInfo {
+            height: current_block.clone() + 20,
+            time: current_time.clone().plus_seconds(20),
+            chain_id: chainid.clone(),
+        });
+
+        // verify defaulted loan
+        let bad_repay_loan = app
+            .execute_contract(
+                Addr::unchecked(OFFERER_ADDR.to_string()),
+                nft_loan_addr.clone(),
+                &ExecuteMsg::RepayBorrowedFunds { loan_id: 0 },
+                &[Coin {
+                    denom: NATIVE_DENOM.to_string(),
+                    amount: Uint128::new(150),
+                }],
+            )
+            .unwrap_err();
+        // println!("{:#?}", bad_repay_loan);
+
+        let res: CollateralInfo = app
+            .wrap()
+            .query_wasm_smart(
+                nft_loan_addr.clone(),
+                &nft_loans::msg::QueryMsg::CollateralInfo {
+                    borrower: OWNER_ADDR.to_string(),
+                    loan_id: 0,
+                },
+            )
+            .unwrap();
+        // println!("{:#?}", res);
     }
 }
