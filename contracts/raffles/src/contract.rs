@@ -6,7 +6,7 @@ use sg_std::StargazeMsgWrapper;
 
 use crate::error::ContractError;
 use crate::execute::{
-    execute_buy_tickets, execute_cancel_raffle, execute_claim, execute_create_raffle,
+    execute_buy_tickets, execute_cancel_raffle, execute_create_raffle, execute_determine_winner,
     execute_modify_raffle, execute_receive, execute_receive_nois, execute_toggle_lock,
     execute_update_config, execute_update_randomness,
 };
@@ -158,14 +158,13 @@ pub fn execute(
             sent_assets,
         } => execute_buy_tickets(deps, env, info, raffle_id, ticket_count, sent_assets),
         ExecuteMsg::Receive(msg) => execute_receive(deps, env, info, msg),
-        ExecuteMsg::ClaimNft { raffle_id } => execute_claim(deps, env, info, raffle_id),
+        ExecuteMsg::DetermineWinner { raffle_id } => {
+            execute_determine_winner(deps, env, info, raffle_id)
+        }
         ExecuteMsg::UpdateRandomness { raffle_id } => {
             execute_update_randomness(deps, env, info, raffle_id)
         }
-        ExecuteMsg::NoisReceive {
-            callback,
-            raffle_id,
-        } => execute_receive_nois(deps, env, info, callback, raffle_id),
+        ExecuteMsg::NoisReceive { callback } => execute_receive_nois(deps, env, info, callback),
         // Admin messages
         ExecuteMsg::ToggleLock { lock } => execute_toggle_lock(deps, env, info, lock),
     }

@@ -14,7 +14,7 @@ pub struct InstantiateMsg {
     pub creation_fee_denom: Option<Vec<String>>,
     pub creation_fee_amount: Option<Uint128>,
     pub owner: Option<String>,
-    pub fee_addr: Option<String>, 
+    pub fee_addr: Option<String>,
     pub minimum_raffle_duration: Option<u64>,
     pub minimum_raffle_timeout: Option<u64>,
     pub max_participant_number: Option<u32>,
@@ -76,12 +76,11 @@ pub enum ExecuteMsg {
         sent_assets: AssetInfo,
     },
     Receive(cw721::Cw721ReceiveMsg),
-    ClaimNft {
+    DetermineWinner {
         raffle_id: u64,
     },
     NoisReceive {
         callback: NoisCallback,
-        raffle_id: u64,
     },
     // Admin messages
     ToggleLock {
@@ -91,6 +90,8 @@ pub enum ExecuteMsg {
     UpdateRandomness {
         raffle_id: u64,
     },
+    // updates the nois_proxy contract
+    // UpdateNoisProxy {},
 }
 
 #[cw_serde]

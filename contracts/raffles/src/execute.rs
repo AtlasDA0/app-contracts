@@ -454,10 +454,8 @@ pub fn execute_receive_nois(
     _env: Env,
     info: MessageInfo,
     callback: NoisCallback,
-    raffle_id: u64,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
-    let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
 
     // callback should only be allowed to be called by the proxy contract
     // otherwise anyone can cut the randomness workflow and cheat the randomness by sending the randomness directly to this contract
@@ -471,19 +469,27 @@ pub fn execute_receive_nois(
         .to_array()
         .map_err(|_| ContractError::InvalidRandomness)?;
 
+    // extract participant address
+    let job_id = callback.job_id;
+    let raffle_id = job_id
+        .strip_prefix("raffle-")
+        .expect("Strange, how is the job-id not prefixed with raffle-");
+    let raffle_id: u64 = raffle_id.parse().unwrap();
+
+    let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
+
     // We make sure the raffle has not updated the global randomness yet
     if raffle_info.randomness != None {
         return Err(ContractError::RandomnessAlreadyProvided {});
     } else {
         raffle_info.randomness = Some(randomness);
     };
-
     RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 
     Ok(Response::default())
 }
 
-pub fn execute_claim(
+pub fn execute_determine_winner(
     deps: DepsMut,
     env: Env,
     _info: MessageInfo,
@@ -515,7 +521,7 @@ pub fn execute_claim(
     let winner_transfer_messages = get_raffle_winner_messages(env.clone(), raffle_info.clone())?;
     let funds_transfer_messages =
         get_raffle_owner_finished_messages(deps.storage, env, raffle_info.clone())?;
-        
+
     // We distribute the ticket prices to the owner and in part to the treasury
     Ok(Response::new()
         .add_messages(winner_transfer_messages)

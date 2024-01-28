@@ -1,7 +1,7 @@
 use crate::{
     error::ContractError,
     state::{
-        get_raffle_state, RaffleInfo, RaffleState, ATLAS_DAO_STARGAZE_TREASURY, CONFIG,
+        get_raffle_state, RaffleInfo, RaffleState, CONFIG,
         NOIS_AMOUNT, RAFFLE_INFO, RAFFLE_TICKETS,
     },
 };
