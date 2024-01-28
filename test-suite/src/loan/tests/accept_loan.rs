@@ -4,8 +4,8 @@ mod tests {
     use cw_multi_test::{BankSudo, Executor, SudoMsg};
     use nft_loans::{
         error::ContractError,
-        msg::{CollateralResponse, ExecuteMsg, InstantiateMsg},
-        state::{CollateralInfo, LoanState, LoanTerms, BORROWER_INFO},
+        msg::{ExecuteMsg, InstantiateMsg},
+        state::{CollateralInfo, LoanState, LoanTerms},
     };
     use sg721::CollectionInfo;
     use sg_multi_test::StargazeApp;
@@ -337,7 +337,7 @@ mod tests {
         });
 
         // verify defaulted loan
-        let bad_repay_loan = app
+        let _bad_repay_loan = app
             .execute_contract(
                 Addr::unchecked(OFFERER_ADDR.to_string()),
                 nft_loan_addr.clone(),
@@ -350,7 +350,7 @@ mod tests {
             .unwrap_err();
         // println!("{:#?}", bad_repay_loan);
 
-        let res: CollateralInfo = app
+        let _res: CollateralInfo = app
             .wrap()
             .query_wasm_smart(
                 nft_loan_addr.clone(),

@@ -106,7 +106,7 @@ mod tests {
         use nois::NoisCallback;
         use raffles::{
             error::ContractError,
-            msg::{ExecuteMsg, RaffleResponse},
+            msg::ExecuteMsg,
             state::{RaffleOptionsMsg, RaffleState},
         };
         use sg721::CollectionInfo;
@@ -500,14 +500,13 @@ mod tests {
                     raffle_contract_addr.clone(),
                     &ExecuteMsg::NoisReceive {
                         callback: NoisCallback {
-                            job_id: "raffle".to_string(),
+                            job_id: "raffle-0".to_string(),
                             published: current_time.clone(),
                             randomness: HexBinary::from_hex(
                                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa420",
                             )
                             .unwrap(),
                         },
-                        raffle_id: 0,
                     },
                     &[],
                 )
@@ -531,7 +530,7 @@ mod tests {
             .execute_contract(
                 Addr::unchecked("wallet-1".to_string()),
                 raffle_contract_addr.clone(),
-                &ExecuteMsg::ClaimNft { raffle_id: 0 },
+                &ExecuteMsg::DetermineWinner { raffle_id: 0 },
                 &[],
             )
             .unwrap();

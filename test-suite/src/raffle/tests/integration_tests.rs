@@ -553,7 +553,7 @@ mod tests {
                 .execute_contract(
                     Addr::unchecked("wallet-1".to_string()),
                     raffle_contract_addr.clone(),
-                    &ExecuteMsg::ClaimNft { raffle_id: 0 },
+                    &ExecuteMsg::DetermineWinner { raffle_id: 0 },
                     &[],
                 )
                 .unwrap_err();
@@ -573,14 +573,13 @@ mod tests {
                     raffle_contract_addr.clone(),
                     &ExecuteMsg::NoisReceive {
                         callback: NoisCallback {
-                            job_id: "raffle".to_string(),
+                            job_id: "raffle-0".to_string(),
                             published: current_time.clone(),
                             randomness: HexBinary::from_hex(
                                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
                             )
                             .unwrap(),
                         },
-                        raffle_id: 0,
                     },
                     &[],
                 )
@@ -598,25 +597,33 @@ mod tests {
                     raffle_contract_addr.clone(),
                     &ExecuteMsg::NoisReceive {
                         callback: NoisCallback {
-                            job_id: "raffle".to_string(),
+                            job_id: "raffle-0".to_string(),
                             published: current_time.clone(),
                             randomness: HexBinary::from_hex(
                                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
                             )
                             .unwrap(),
                         },
-                        raffle_id: 0,
                     },
                     &[],
                 )
                 .unwrap();
+
+            let res: RaffleResponse = app
+                .wrap()
+                .query_wasm_smart(
+                    raffle_contract_addr.clone(),
+                    &raffles::msg::QueryMsg::RaffleInfo { raffle_id: 0 },
+                )
+                .unwrap();
+            println!("{:#?}", res);
 
             // claims the ticket
             let _claim_ticket = app
                 .execute_contract(
                     Addr::unchecked("wallet-1".to_string()),
                     raffle_contract_addr.clone(),
-                    &ExecuteMsg::ClaimNft { raffle_id: 0 },
+                    &ExecuteMsg::DetermineWinner { raffle_id: 0 },
                     &[],
                 )
                 .unwrap();
@@ -629,7 +636,6 @@ mod tests {
                 )
                 .unwrap();
             assert_eq!(res.raffle_state, RaffleState::Claimed);
-
         }
     }
 }

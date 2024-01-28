@@ -25,6 +25,7 @@ mod tests {
     }, helpers::assert_error};
 
     const OWNER_ADDR: &str = "fee";
+    const FEE_COLLECTOR_ADDR: &str = "collector";
     const OFFERER_ADDR: &str = "offerer";
     const VENDING_MINTER: &str = "contract2";
     const SG721_CONTRACT: &str = "contract3";
@@ -110,7 +111,7 @@ mod tests {
                 &InstantiateMsg {
                     name: "loan-with-insights".to_string(),
                     owner: Some(Addr::unchecked(OWNER_ADDR).to_string()),
-                    fee_distributor: Addr::unchecked(OWNER_ADDR).to_string(),
+                    fee_distributor: Addr::unchecked(FEE_COLLECTOR_ADDR).to_string(),
                     fee_rate: Decimal::percent(5),
                     deposit_fee_denom: vec!["usstars".to_string(), NATIVE_DENOM.to_string()],
                     deposit_fee_amount: 50,
@@ -137,6 +138,7 @@ mod tests {
                 .query_wasm_smart(nft_loan_addr.clone(), &nft_loans::msg::QueryMsg::Config {})
                 .unwrap();
             assert_eq!(query_config.owner, Addr::unchecked("fee"));
+            assert_eq!(query_config.fee_distributor, Addr::unchecked("collector"));
 
             // create nft minter
             let _create_nft_minter = app.execute_contract(
@@ -178,7 +180,7 @@ mod tests {
             );
 
             // VENDING_MINTER is minter
-            let mint41 = app
+            let _mint41 = app
                 .execute_contract(
                     Addr::unchecked(OWNER_ADDR),
                     Addr::unchecked(VENDING_MINTER),
@@ -189,7 +191,7 @@ mod tests {
                     }],
                 )
                 .unwrap();
-            let mint56 = app
+            let _mint56 = app
             .execute_contract(
                 Addr::unchecked(OWNER_ADDR),
                 Addr::unchecked(VENDING_MINTER),
@@ -257,6 +259,25 @@ mod tests {
 
 
             // good deposit collaterals
+        let [
+            contract_bal_before,
+            sender_bal_before,
+            fee_bal_before,
+        ]: [Uint128; 3] = [
+            nft_loan_addr.to_string(),
+            OWNER_ADDR.to_string(),
+            FEE_COLLECTOR_ADDR.to_string(),
+        ]
+            .into_iter()
+            .map(|x| {
+                app.wrap()
+                    .query_balance(&x, NATIVE_DENOM.to_string())
+                    .unwrap()
+                    .amount
+            })
+            .collect::<Vec<Uint128>>()
+            .try_into() // Try to convert Vec<Uint128> into [Uint128; 3]
+            .unwrap();
             let _good_deposit_collaterals = app
                 .execute_contract(
                     Addr::unchecked(OWNER_ADDR),
@@ -287,6 +308,31 @@ mod tests {
                     }],
                 )
                 .unwrap();
+        let [
+        contract_bal_after,
+        sender_bal_after,
+        fee_bal_after,
+        ]: [Uint128; 3] = [
+            nft_loan_addr.to_string(),
+            OWNER_ADDR.to_string(),
+            FEE_COLLECTOR_ADDR.to_string(),
+        ]
+            .into_iter()
+            .map(|x| {
+                app.wrap()
+                    .query_balance(&x, NATIVE_DENOM.to_string())
+                    .unwrap()
+                    .amount
+            })
+            .collect::<Vec<Uint128>>()
+            .try_into() // Try to convert Vec<Uint128> into [Uint128; 3]
+            .unwrap();
+        // contract shouldnt hold fees
+        assert_eq!(contract_bal_after, contract_bal_before);
+        // sender should be 50 less
+        assert_eq!(sender_bal_after, sender_bal_before - Uint128::new(50u128));
+        // collector should have extra 50
+        assert_eq!(fee_bal_after, fee_bal_before + Uint128::new(50u128));
 
             let res: MultipleCollateralsResponse = app
                 .wrap()
@@ -329,7 +375,7 @@ mod tests {
                 }
             );
 
-            let deposit61 = app
+            let _deposit61 = app
             .execute_contract(
                 Addr::unchecked(OWNER_ADDR),
                 nft_loan_addr.clone(),
@@ -686,4 +732,3 @@ mod tests {
 
         }
     }
-
