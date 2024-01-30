@@ -44,13 +44,12 @@ export type ExecuteMsg = {
 } | {
   receive: Cw721ReceiveMsg;
 } | {
-  claim_nft: {
+  determine_winner: {
     raffle_id: number;
   };
 } | {
   nois_receive: {
     callback: NoisCallback;
-    raffle_id: number;
   };
 } | {
   toggle_lock: {

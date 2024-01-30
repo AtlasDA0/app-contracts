@@ -191,17 +191,15 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
     sender: string;
     tokenId: string;
   }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
-  claimNft: ({
+  determineWinner: ({
     raffleId
   }: {
     raffleId: number;
   }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
   noisReceive: ({
-    callback,
-    raffleId
+    callback
   }: {
     callback: NoisCallback;
-    raffleId: number;
   }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
   toggleLock: ({
     lock
@@ -230,7 +228,7 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
     this.modifyRaffle = this.modifyRaffle.bind(this);
     this.buyTicket = this.buyTicket.bind(this);
     this.receive = this.receive.bind(this);
-    this.claimNft = this.claimNft.bind(this);
+    this.determineWinner = this.determineWinner.bind(this);
     this.noisReceive = this.noisReceive.bind(this);
     this.toggleLock = this.toggleLock.bind(this);
     this.updateRandomness = this.updateRandomness.bind(this);
@@ -359,28 +357,25 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
       }
     }, fee, memo, funds);
   };
-  claimNft = async ({
+  determineWinner = async ({
     raffleId
   }: {
     raffleId: number;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
-      claim_nft: {
+      determine_winner: {
         raffle_id: raffleId
       }
     }, fee, memo, funds);
   };
   noisReceive = async ({
-    callback,
-    raffleId
+    callback
   }: {
     callback: NoisCallback;
-    raffleId: number;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       nois_receive: {
-        callback,
-        raffle_id: raffleId
+        callback
       }
     }, fee, memo, funds);
   };

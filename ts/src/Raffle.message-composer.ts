@@ -79,17 +79,15 @@ export interface RaffleMessage {
     sender: string;
     tokenId: string;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  claimNft: ({
+  determineWinner: ({
     raffleId
   }: {
     raffleId: number;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
   noisReceive: ({
-    callback,
-    raffleId
+    callback
   }: {
     callback: NoisCallback;
-    raffleId: number;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
   toggleLock: ({
     lock
@@ -115,7 +113,7 @@ export class RaffleMessageComposer implements RaffleMessage {
     this.modifyRaffle = this.modifyRaffle.bind(this);
     this.buyTicket = this.buyTicket.bind(this);
     this.receive = this.receive.bind(this);
-    this.claimNft = this.claimNft.bind(this);
+    this.determineWinner = this.determineWinner.bind(this);
     this.noisReceive = this.noisReceive.bind(this);
     this.toggleLock = this.toggleLock.bind(this);
     this.updateRandomness = this.updateRandomness.bind(this);
@@ -292,7 +290,7 @@ export class RaffleMessageComposer implements RaffleMessage {
       })
     };
   };
-  claimNft = ({
+  determineWinner = ({
     raffleId
   }: {
     raffleId: number;
@@ -303,7 +301,7 @@ export class RaffleMessageComposer implements RaffleMessage {
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          claim_nft: {
+          determine_winner: {
             raffle_id: raffleId
           }
         })),
@@ -312,11 +310,9 @@ export class RaffleMessageComposer implements RaffleMessage {
     };
   };
   noisReceive = ({
-    callback,
-    raffleId
+    callback
   }: {
     callback: NoisCallback;
-    raffleId: number;
   }, funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -325,8 +321,7 @@ export class RaffleMessageComposer implements RaffleMessage {
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           nois_receive: {
-            callback,
-            raffle_id: raffleId
+            callback
           }
         })),
         funds
