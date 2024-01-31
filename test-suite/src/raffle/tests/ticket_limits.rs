@@ -106,8 +106,8 @@ mod tests {
         use nois::NoisCallback;
         use raffles::{
             error::ContractError,
-            msg::ExecuteMsg,
-            state::{RaffleOptionsMsg, RaffleState},
+            msg::{ConfigResponse, ExecuteMsg},
+            state::{RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState},
         };
         use sg721::CollectionInfo;
         use utils::state::{AssetInfo, Sg721Token};
@@ -131,24 +131,24 @@ mod tests {
                 .unwrap();
 
             // println!("{:#?}", query_config);
-            assert_eq!(query_config.clone().owner, Addr::unchecked("fee"));
-            assert_eq!(query_config.clone().fee_addr, Addr::unchecked("fee"));
-            assert_eq!(query_config.clone().minimum_raffle_duration, 20);
-            assert_eq!(query_config.clone().minimum_raffle_timeout, 420);
-            assert_eq!(query_config.clone().minimum_raffle_timeout, 420);
-            assert_eq!(query_config.clone().creation_fee_amount, Uint128::new(50));
             assert_eq!(
-                query_config.clone().creation_fee_denom,
-                vec!["ustars".to_string(), "usstars".to_string()]
+                query_config,
+                ConfigResponse {
+                    name: NAME.to_string(),
+                    owner: Addr::unchecked("fee"),
+                    fee_addr: Addr::unchecked("fee"),
+                    last_raffle_id: 0,
+                    minimum_raffle_duration: 20,
+                    minimum_raffle_timeout: 420,
+                    creation_fee_amount:  Uint128::new(50),
+                    creation_fee_denom:  vec!["ustars".to_string(), "usstars".to_string()],
+                    raffle_fee:  Decimal::percent(50),
+                    lock: false,
+                    nois_proxy_addr: Addr::unchecked("nois"),
+                    nois_proxy_denom:  "ustars".to_string(),
+                    nois_proxy_amount: Uint128::new(50),
+                }
             );
-            assert_eq!(query_config.clone().raffle_fee, Decimal::percent(50));
-            assert_eq!(query_config.clone().lock, false);
-            assert_eq!(
-                query_config.clone().nois_proxy_addr,
-                Addr::unchecked("nois")
-            );
-            assert_eq!(query_config.clone().nois_proxy_denom, "ustars".to_string());
-            assert_eq!(query_config.clone().nois_proxy_amount, Uint128::new(50));
 
             let current_time = app.block_info().time.clone();
             let current_block = app.block_info().height.clone();
@@ -314,11 +314,6 @@ mod tests {
                 )
                 .unwrap();
 
-            // create a raffle, ensure:
-            // - timeout
-            // - max participants
-            // - start time
-
             let _good_create_raffle = app
                 .execute_contract(
                     Addr::unchecked(OWNER_ADDR),
@@ -362,82 +357,36 @@ mod tests {
                     &raffles::msg::QueryMsg::RaffleInfo { raffle_id: 0 },
                 )
                 .unwrap();
-            // verify owner defaults to info.sender if None
+
             assert_eq!(
-                res.clone().raffle_info.unwrap().owner,
-                Addr::unchecked(OWNER_ADDR)
-            );
-            // verify array of tokens being raffled
-            assert_eq!(
-                res.clone().raffle_info.unwrap().assets,
-                vec![
-                    AssetInfo::Sg721Token(Sg721Token {
-                        address: SG721_CONTRACT.to_string(),
-                        token_id: "41".to_string(),
-                    }),
-                    AssetInfo::Sg721Token(Sg721Token {
-                        address: SG721_CONTRACT.to_string(),
-                        token_id: "56".to_string(),
-                    })
-                ]
-            );
-            // verify raffle ticket price
-            assert_eq!(
-                res.clone().raffle_info.unwrap().raffle_ticket_price,
-                AssetInfo::Coin(Coin::new(100, "ustars".to_string()))
-            );
-            // verify initial # of tickets
-            assert_eq!(res.clone().raffle_info.unwrap().number_of_tickets, 0);
-            // verify no randomness
-            assert_eq!(res.clone().raffle_info.unwrap().randomness, None);
-            // verify no winner
-            assert_eq!(res.clone().raffle_info.unwrap().winner, None);
-            // verify not cancelled
-            assert_eq!(res.clone().raffle_info.unwrap().is_cancelled, false);
-            // verify raffle delayed start
-            assert_eq!(
-                res.clone()
-                    .raffle_info
-                    .unwrap()
-                    .raffle_options
-                    .raffle_start_timestamp,
-                Timestamp::from_nanos(1647032600000000000)
-            );
-            // verify max default max participant
-            assert_eq!(
-                res.clone()
-                    .raffle_info
-                    .unwrap()
-                    .raffle_options
-                    .max_participant_number,
-                Some(3)
-            );
-            // verify max_ticket_per_address
-            assert_eq!(
-                res.clone()
-                    .raffle_info
-                    .unwrap()
-                    .raffle_options
-                    .max_ticket_per_address,
-                Some(1)
-            );
-            // verify duration
-            assert_eq!(
-                res.clone()
-                    .raffle_info
-                    .unwrap()
-                    .raffle_options
-                    .raffle_duration,
-                20
-            );
-            //verify raffle timeout
-            assert_eq!(
-                res.clone()
-                    .raffle_info
-                    .unwrap()
-                    .raffle_options
-                    .raffle_timeout,
-                420
+                res.clone().raffle_info.unwrap(),
+                RaffleInfo {
+                    owner: Addr::unchecked(OWNER_ADDR),
+                    assets: vec![
+                        AssetInfo::Sg721Token(Sg721Token {
+                            address: SG721_CONTRACT.to_string(),
+                            token_id: "41".to_string(),
+                        }),
+                        AssetInfo::Sg721Token(Sg721Token {
+                            address: SG721_CONTRACT.to_string(),
+                            token_id: "56".to_string(),
+                        })
+                    ],
+                    raffle_ticket_price: AssetInfo::Coin(Coin::new(100, "ustars".to_string())),
+                    number_of_tickets: 0,
+                    randomness: None,
+                    winner: None,
+                    is_cancelled: false,
+                    raffle_options: RaffleOptions {
+                        raffle_start_timestamp: Timestamp::from_nanos(1647032600000000000),
+                        raffle_duration: 20,
+                        raffle_timeout: 420,
+                        comment: None,
+                        max_participant_number: Some(3),
+                        max_ticket_per_address: Some(1),
+                        raffle_preview: 0,
+                    }
+                }
             );
 
             // move forward in time
@@ -525,15 +474,15 @@ mod tests {
             assert_eq!(res.raffle_info.unwrap().winner, None);
 
             // assert the tokens being raffled are sent back to owner if no tickets are purchased,
-            // even if someone else calls the contract to claim tokens 
+            // even if someone else calls the contract to claim tokens
             let _claim_ticket = app
-            .execute_contract(
-                Addr::unchecked("wallet-1".to_string()),
-                raffle_contract_addr.clone(),
-                &ExecuteMsg::DetermineWinner { raffle_id: 0 },
-                &[],
-            )
-            .unwrap();
+                .execute_contract(
+                    Addr::unchecked("wallet-1".to_string()),
+                    raffle_contract_addr.clone(),
+                    &ExecuteMsg::DetermineWinner { raffle_id: 0 },
+                    &[],
+                )
+                .unwrap();
 
             let res: cw721::OwnerOfResponse = app
                 .wrap()
@@ -547,7 +496,6 @@ mod tests {
                 .unwrap();
             println!("{:#?}", res);
             assert_eq!(res.owner, Addr::unchecked(OWNER_ADDR));
-
         }
     }
 }

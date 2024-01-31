@@ -1,25 +1,25 @@
 use crate::{
+    contract::Response,
     error::ContractError,
     state::{
-        get_raffle_state, RaffleInfo, RaffleState, CONFIG,
-        NOIS_AMOUNT, RAFFLE_INFO, RAFFLE_TICKETS,
+        get_raffle_state, RaffleInfo, RaffleState, CONFIG, NOIS_AMOUNT, RAFFLE_INFO, RAFFLE_TICKETS,
     },
 };
 use cosmwasm_std::{
-    coin, coins, to_json_binary, Addr, BankMsg, Coin, Deps, Empty, Env, StdError, StdResult,
-    Storage, Uint128, WasmMsg,
+    coin, coins, to_json_binary, Addr, BankMsg, Coin, Deps, Empty, Env, HexBinary, StdError,
+    StdResult, Storage, Timestamp, Uint128, WasmMsg,
 };
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
 use nois::{int_in_range, ProxyExecuteMsg};
 use sg721::ExecuteMsg as Sg721ExecuteMsg;
-use sg_std::{CosmosMsg, Response};
+use sg_std::CosmosMsg;
 use utils::state::{into_cosmos_msg, AssetInfo};
 
 pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, ContractError> {
     let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id.clone())?;
     let config = CONFIG.load(deps.storage)?;
-    let id = raffle_id.to_string();
+    let id: String = raffle_id.to_string();
     let nois_fee: Coin = coin(NOIS_AMOUNT, config.nois_proxy_denom);
 
     if raffle_info.randomness.is_some() {
@@ -98,16 +98,10 @@ pub fn get_raffle_winner(
     }
 
     // We initiate the random number generator
-    if raffle_info.randomness == None {
-        return Err(ContractError::ContractBug {});
-    }
+    let randomness: [u8; 32] = HexBinary::to_array(&raffle_info.randomness.unwrap())?;
 
     // We pick a winner id
-    let winner_id = int_in_range(
-        raffle_info.randomness.expect("expect a value here"),
-        0,
-        raffle_info.number_of_tickets,
-    );
+    let winner_id = int_in_range(randomness.into(), 0, raffle_info.number_of_tickets);
     let winner = RAFFLE_TICKETS.load(deps.storage, (raffle_id, winner_id))?;
 
     Ok(winner)

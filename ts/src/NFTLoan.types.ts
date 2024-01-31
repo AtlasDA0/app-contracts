@@ -5,7 +5,7 @@
 */
 
 export type ExecuteMsg = {
-  deposit_collaterals: {
+  list_collaterals: {
     comment?: string | null;
     loan_preview?: AssetInfo | null;
     terms?: LoanTerms | null;

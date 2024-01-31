@@ -1,13 +1,13 @@
 use cosmwasm_std::{
-    ensure_eq, from_json, Addr, BankMsg, Decimal, DepsMut, Empty, Env, MessageInfo, StdError,
-    StdResult, Uint128,
+    coin, ensure_eq, from_json, to_json_binary, Addr, BankMsg, Coin, Decimal, DepsMut, Empty, Env,
+    MessageInfo, StdError, StdResult, Uint128, WasmMsg,
 };
 use cw721::{Cw721ExecuteMsg, Cw721ReceiveMsg};
 use cw721_base::Extension;
-use nois::NoisCallback;
+use nois::{NoisCallback, ProxyExecuteMsg};
 use sg721::ExecuteMsg as Sg721ExecuteMsg;
 use sg_std::{CosmosMsg, StargazeMsgWrapper};
-use utils::state::{into_cosmos_msg, AssetInfo, Cw721Coin, Sg721Token};
+use utils::state::{into_cosmos_msg, AssetInfo, Cw721Coin, Sg721Token, MAX_COMMENT_SIZE};
 
 use crate::{
     error::ContractError,
@@ -15,7 +15,8 @@ use crate::{
     query::{is_nft_owner, is_sg721_owner},
     state::{
         get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState, CONFIG,
-        MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, RAFFLE_INFO, RAFFLE_TICKETS, USER_TICKETS,
+        MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, NOIS_AMOUNT, RAFFLE_INFO, RAFFLE_TICKETS,
+        USER_TICKETS,
     },
     utils::{
         can_buy_ticket, get_nois_randomness, get_raffle_owner_finished_messages,
@@ -46,6 +47,16 @@ pub fn execute_create_raffle(
         return Err(ContractError::InvalidAmount(
             "too many tokens in fee payment".to_string(),
         ));
+    }
+    // Limit the size of proposals.
+    // without this check it is possible to create
+    //  a proposal that can not bequeried.
+    let comment_size = cosmwasm_std::to_json_vec(&raffle_options.comment)?.len() as u64;
+    if comment_size > MAX_COMMENT_SIZE {
+        return Err(ContractError::CommentTooLarge {
+            size: comment_size,
+            max: MAX_COMMENT_SIZE,
+        });
     }
 
     let fee = info
@@ -119,12 +130,31 @@ pub fn execute_create_raffle(
         owner.clone().unwrap_or_else(|| info.sender.clone()),
         all_assets,
         raffle_ticket_price,
-        raffle_options,
+        raffle_options.clone(),
     )?;
+
+    let nois_fee: Coin = coin(NOIS_AMOUNT, config.nois_proxy_denom);
+
+    let nois_msg: WasmMsg = WasmMsg::Execute {
+        contract_addr: config.nois_proxy_addr.into_string(),
+        // GetNextRandomness requests the randomness from the proxy after the expected raffle duration
+        // The job id is needed to know what randomness we are referring to upon reception in the callback.
+        msg: to_json_binary(&ProxyExecuteMsg::GetRandomnessAfter {
+            after: raffle_options
+                .raffle_start_timestamp
+                .unwrap()
+                .plus_seconds(raffle_options.clone().raffle_duration.unwrap_or_default())
+                .plus_seconds(6),
+            job_id: "raffle-".to_string() + raffle_id.to_string().as_str(),
+        })?,
+
+        funds: vec![nois_fee], // Pay from the contract
+    };
 
     Ok(Response::new()
         .add_message(transfer_fee)
         .add_messages(transfer_messages)
+        .add_message(nois_msg)
         .add_attribute("action", "create_raffle")
         .add_attribute("raffle_id", raffle_id.to_string())
         .add_attribute("owner", owner.unwrap_or_else(|| info.sender.clone())))
@@ -482,7 +512,7 @@ pub fn execute_receive_nois(
     if raffle_info.randomness != None {
         return Err(ContractError::RandomnessAlreadyProvided {});
     } else {
-        raffle_info.randomness = Some(randomness);
+        raffle_info.randomness = Some(randomness.into());
     };
     RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 

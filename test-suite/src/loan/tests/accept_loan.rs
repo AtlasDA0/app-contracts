@@ -240,7 +240,7 @@ mod tests {
             .execute_contract(
                 Addr::unchecked(OWNER_ADDR),
                 nft_loan_addr.clone(),
-                &ExecuteMsg::DepositCollaterals {
+                &ExecuteMsg::ListCollaterals {
                     tokens: vec![
                         AssetInfo::Sg721Token(Sg721Token {
                             address: SG721_CONTRACT.to_string(),

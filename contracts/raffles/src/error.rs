@@ -159,4 +159,7 @@ pub enum ContractError {
 
     #[error("This parameter name was not found, you can't change it !")]
     ParameterNotFound {},
+
+    #[error("The raffle comment is ({size}) bytes, must be <=  ({max}) bytes")]
+    CommentTooLarge{ size: u64, max: u64 },
 }

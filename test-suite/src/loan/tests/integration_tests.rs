@@ -215,7 +215,7 @@ mod tests {
             )
             .unwrap();
 
-        println!("{:#?}", mint61);
+        // println!("{:#?}", mint61);
 
             // token id 41
             let _grant_approval = app
@@ -282,7 +282,7 @@ mod tests {
                 .execute_contract(
                     Addr::unchecked(OWNER_ADDR),
                     nft_loan_addr.clone(),
-                    &ExecuteMsg::DepositCollaterals {
+                    &ExecuteMsg::ListCollaterals {
                         tokens: vec![AssetInfo::Sg721Token(Sg721Token {
                             address: SG721_CONTRACT.to_string(),
                             token_id: "41".to_string(),
@@ -379,7 +379,7 @@ mod tests {
             .execute_contract(
                 Addr::unchecked(OWNER_ADDR),
                 nft_loan_addr.clone(),
-                &ExecuteMsg::DepositCollaterals {
+                &ExecuteMsg::ListCollaterals {
                     tokens: vec![AssetInfo::Sg721Token(Sg721Token {
                         address: SG721_CONTRACT.to_string(),
                         token_id: "61".to_string(),
@@ -408,7 +408,7 @@ mod tests {
                 .execute_contract(
                     Addr::unchecked(OWNER_ADDR),
                     nft_loan_addr.clone(),
-                    &ExecuteMsg::DepositCollaterals {
+                    &ExecuteMsg::ListCollaterals {
                         tokens: vec![AssetInfo::Sg721Token(Sg721Token {
                             address: SG721_CONTRACT.to_string(),
                             token_id: "41".to_string(),
@@ -437,7 +437,7 @@ mod tests {
         .execute_contract(
             Addr::unchecked(OFFERER_ADDR),
             nft_loan_addr.clone(),
-            &ExecuteMsg::DepositCollaterals {
+            &ExecuteMsg::ListCollaterals {
                 tokens: vec![
                     AssetInfo::Sg721Token(Sg721Token {
                         address: SG721_CONTRACT.to_string(),
@@ -604,7 +604,7 @@ mod tests {
 
 
             // // good withdraw collateral
-            let withdraw61 = app
+            let _withdraw61 = app
                 .execute_contract(
                     Addr::unchecked(OWNER_ADDR.to_string()),
                     nft_loan_addr.clone(),
@@ -612,7 +612,7 @@ mod tests {
                     &[],
                 )
                 .unwrap();
-            println!("{:#?}", withdraw61);
+            // println!("{:#?}", withdraw61);
 
             // good make offfer
             let _good_make_offer = app

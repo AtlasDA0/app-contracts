@@ -3,6 +3,9 @@ use cosmwasm_std::{Coin, Uint128, coin, StdResult, to_json_binary, WasmMsg};
 use serde::Serialize;
 use sg_std::CosmosMsg;
 
+/// Default limit for proposal pagination.
+pub const DEFAULT_LIMIT: u64 = 30;
+pub const MAX_COMMENT_SIZE: u64 = 20_000;
 
 // ASSETS
 #[cw_serde]

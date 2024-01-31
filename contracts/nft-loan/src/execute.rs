@@ -21,16 +21,17 @@ use crate::{
     },
 };
 
-/// Signals the deposit of multiple collaterals in the same loan.
+/// Signals the listing of multiple collaterals in the same loan.
 /// This is the first entry point of the loan flow.
-/// Users signal they want a loan against their collaterals for other users to accept their terms in exchange of interest paid at the end of the loan duration
+/// Users signal they want a loan against their collaterals for other users to accept their terms,
+/// in exchange of interest paid at the end of the loan duration
 /// Their collateral is not deposited at this stage as this system is non-custodial.
 /// Users lock their assets only when the deal is made (`accept_loan` or `accept_offer` functions)
 /// The borrower (the person that deposits collaterals) can specify terms at which they wish to borrow funds against their collaterals.
 /// If terms are specified, fund lenders can accept the loan directly.
 /// If not, lenders can propose terms than may be accepted by the borrower in return to start the loan
-/// This deposit function allows CW721 and CW1155 tokens to be deposited
-pub fn deposit_collaterals(
+/// This deposit function allows CW721 and SG721 tokens to be listed
+pub fn list_collaterals(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
@@ -626,7 +627,7 @@ pub fn repay_borrowed_funds(
     let fee_depositor_payback = info.funds[0].amount - lender_payback;
 
     let mut res = Response::new();
-    // We get the funds back to the lender
+    // lender is paid back 
     if lender_payback.u128() > 0u128 {
         res = res.add_message(BankMsg::Send {
             to_address: offer_info.lender.to_string(),

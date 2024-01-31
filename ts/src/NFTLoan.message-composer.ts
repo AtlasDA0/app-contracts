@@ -146,7 +146,7 @@ export class NFTLoanMessageComposer implements NFTLoanMessage {
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          deposit_collaterals: {
+          list_collaterals: {
             comment,
             loan_preview: loanPreview,
             terms,

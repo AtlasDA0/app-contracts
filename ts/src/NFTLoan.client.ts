@@ -327,7 +327,7 @@ export class NFTLoanClient extends NFTLoanQueryClient implements NFTLoanInterfac
     tokens: AssetInfo[];
   }, fee: number | StdFee | "auto" = "auto", memo?: string, funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
-      deposit_collaterals: {
+      list_collaterals: {
         comment,
         loan_preview: loanPreview,
         terms,

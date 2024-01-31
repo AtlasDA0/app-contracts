@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Decimal, StdError, StdResult, Coin, Timestamp, Env, Storage,  Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal, Env, HexBinary, StdError, StdResult, Storage, Timestamp, Uint128};
 
 use cw_storage_plus::{Item, Map};
 use utils::state::AssetInfo;
@@ -88,7 +88,7 @@ pub struct RaffleInfo {
     pub assets: Vec<AssetInfo>,
     pub raffle_ticket_price: AssetInfo,
     pub number_of_tickets: u32,
-    pub randomness: Option<[u8; 32]>,
+    pub randomness: Option<HexBinary>,
     pub winner: Option<Addr>,
     pub is_cancelled: bool,
     pub raffle_options: RaffleOptions,

@@ -10,7 +10,7 @@ use sg_std::StargazeMsgWrapper;
 
 use crate::error::ContractError;
 use crate::execute::{
-    accept_loan, accept_offer, cancel_offer, deposit_collaterals, make_offer, modify_collaterals,
+    accept_loan, accept_offer, cancel_offer, list_collaterals, make_offer, modify_collaterals,
     refuse_offer, repay_borrowed_funds, withdraw_collateral, withdraw_defaulted_loan,
     withdraw_refused_offer,
 };
@@ -78,12 +78,12 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::DepositCollaterals {
+        ExecuteMsg::ListCollaterals {
             tokens,
             terms,
             comment,
             loan_preview,
-        } => deposit_collaterals(deps, env, info, tokens, terms, comment, loan_preview),
+        } => list_collaterals(deps, env, info, tokens, terms, comment, loan_preview),
         ExecuteMsg::ModifyCollaterals {
             loan_id,
             terms,

@@ -35,7 +35,7 @@ impl InstantiateMsg {
 #[cw_serde]
 pub enum ExecuteMsg {
     //// We support both Cw721 and Cw1155
-    DepositCollaterals {
+    ListCollaterals {
         tokens: Vec<AssetInfo>,
         terms: Option<LoanTerms>,
         comment: Option<String>,
