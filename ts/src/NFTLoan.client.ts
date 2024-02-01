@@ -194,7 +194,7 @@ export class NFTLoanQueryClient implements NFTLoanReadOnlyInterface {
 export interface NFTLoanInterface extends NFTLoanReadOnlyInterface {
   contractAddress: string;
   sender: string;
-  depositCollaterals: ({
+  listCollaterals: ({
     comment,
     loanPreview,
     terms,
@@ -299,7 +299,7 @@ export class NFTLoanClient extends NFTLoanQueryClient implements NFTLoanInterfac
     this.client = client;
     this.sender = sender;
     this.contractAddress = contractAddress;
-    this.depositCollaterals = this.depositCollaterals.bind(this);
+    this.listCollaterals = this.listCollaterals.bind(this);
     this.modifyCollaterals = this.modifyCollaterals.bind(this);
     this.withdrawCollaterals = this.withdrawCollaterals.bind(this);
     this.makeOffer = this.makeOffer.bind(this);
@@ -315,7 +315,7 @@ export class NFTLoanClient extends NFTLoanQueryClient implements NFTLoanInterfac
     this.setFeeRate = this.setFeeRate.bind(this);
   }
 
-  depositCollaterals = async ({
+  listCollaterals = async ({
     comment,
     loanPreview,
     terms,

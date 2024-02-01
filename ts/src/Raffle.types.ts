@@ -166,7 +166,7 @@ export interface RaffleInfo {
   owner: Addr;
   raffle_options: RaffleOptions;
   raffle_ticket_price: AssetInfo;
-  randomness?: [number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number, number] | null;
+  randomness?: HexBinary | null;
   winner?: Addr | null;
 }
 export interface RaffleOptions {

@@ -11,7 +11,7 @@ import { ExecuteMsg, AssetInfo, Uint128, Decimal, Cw721Coin, Sg721Token, Coin, L
 export interface NFTLoanMessage {
   contractAddress: string;
   sender: string;
-  depositCollaterals: ({
+  listCollaterals: ({
     comment,
     loanPreview,
     terms,
@@ -113,7 +113,7 @@ export class NFTLoanMessageComposer implements NFTLoanMessage {
   constructor(sender: string, contractAddress: string) {
     this.sender = sender;
     this.contractAddress = contractAddress;
-    this.depositCollaterals = this.depositCollaterals.bind(this);
+    this.listCollaterals = this.listCollaterals.bind(this);
     this.modifyCollaterals = this.modifyCollaterals.bind(this);
     this.withdrawCollaterals = this.withdrawCollaterals.bind(this);
     this.makeOffer = this.makeOffer.bind(this);
@@ -129,7 +129,7 @@ export class NFTLoanMessageComposer implements NFTLoanMessage {
     this.setFeeRate = this.setFeeRate.bind(this);
   }
 
-  depositCollaterals = ({
+  listCollaterals = ({
     comment,
     loanPreview,
     terms,

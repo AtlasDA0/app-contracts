@@ -103,6 +103,10 @@
       },
       "additionalProperties": false
     },
+    "HexBinary": {
+      "description": "This is a wrapper around Vec<u8> to add hex de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is similar to `cosmwasm_std::Binary` but uses hex. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
+      "type": "string"
+    },
     "RaffleInfo": {
       "type": "object",
       "required": [
@@ -138,17 +142,14 @@
           "$ref": "#/definitions/AssetInfo"
         },
         "randomness": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "integer",
-            "format": "uint8",
-            "minimum": 0.0
-          },
-          "maxItems": 32,
-          "minItems": 32
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HexBinary"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "winner": {
           "anyOf": [
