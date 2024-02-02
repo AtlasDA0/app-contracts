@@ -9,7 +9,7 @@ use crate::state::{BorrowerInfo, CollateralInfo, Config, LoanTerms, OfferInfo};
 pub struct InstantiateMsg {
     pub name: String,
     pub owner: Option<String>,
-    pub fee_distributor: String,
+    pub treasury_addr: String,
     pub fee_rate: Decimal,
     pub deposit_fee_denom: Vec<String>,
     pub deposit_fee_amount: u128,
@@ -89,8 +89,8 @@ pub enum ExecuteMsg {
     SetOwner {
         owner: String,
     },
-    SetFeeDistributor {
-        fee_depositor: String,
+    SetFeeDestination {
+        treasury_addr: String,
     },
     SetFeeRate {
         fee_rate: Decimal,

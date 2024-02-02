@@ -7,11 +7,11 @@ use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
 use sg721::ExecuteMsg as Sg721ExecuteMsg;
 use sg_std::{CosmosMsg, Response};
-use utils::state::{into_cosmos_msg, AssetInfo, Cw721Coin, Sg721Token};
+use utils::state::{into_cosmos_msg, is_valid_comment, AssetInfo, Cw721Coin, Sg721Token};
 
 use crate::{
     error::{self, ContractError},
-    query::{is_nft_owner, is_sg721_owner, is_approved_cw721, is_approved_sg721},
+    query::{is_approved_cw721, is_approved_sg721, is_nft_owner, is_sg721_owner},
     state::{
         can_repay_loan, get_active_loan, get_offer, is_active_lender, is_collateral_withdrawable,
         is_lender, is_loan_acceptable, is_loan_counterable, is_loan_defaulted, is_loan_modifiable,
@@ -64,7 +64,7 @@ pub fn list_collaterals(
                 env.clone(),
                 borrower.clone(),
                 address.clone(),
-                token_id.clone()
+                token_id.clone(),
             )
         }
         AssetInfo::Sg721Token(Sg721Token { address, token_id }) => {
@@ -81,7 +81,7 @@ pub fn list_collaterals(
                 env.clone(),
                 borrower.clone(),
                 address.clone(),
-                token_id.clone()
+                token_id.clone(),
             )
         }
         _ => Err(ContractError::SenderNotOwner {}),
@@ -101,9 +101,9 @@ pub fn list_collaterals(
     if fee != Uint128::from(config.deposit_fee_amount) {
         return Err(ContractError::NoDepositFeeProvided {});
     }
-    // transfer fee to fee_distributor
+    // transfer fee to treasury_addr
     let transfer_fee: CosmosMsg = BankMsg::Send {
-        to_address: config.fee_distributor.to_string(),
+        to_address: config.treasury_addr.to_string(),
         amount: info.funds,
     }
     .into();
@@ -125,6 +125,13 @@ pub fn list_collaterals(
         if !tokens.iter().any(|r| *r == preview) {
             return Err(ContractError::AssetNotInLoan {});
         }
+    }
+
+    // checks comment size
+    if !is_valid_comment(&comment.clone().unwrap_or_default()) {
+        return Err(ContractError::Std(StdError::generic_err(
+            "Comment too long. max = (20000 UTF-8 bytes)",
+        )));
     }
 
     // Finally we save an collateral info object
@@ -163,6 +170,7 @@ pub fn modify_collaterals(
         deps.storage,
         (borrower.clone(), loan_id),
         |collateral| match collateral {
+            // will panic if msg sender is not calling a loan_id it owns
             None => return Err(ContractError::LoanNotFound {}),
             Some(mut collateral) => {
                 is_loan_modifiable(&collateral)?;
@@ -171,6 +179,11 @@ pub fn modify_collaterals(
                     collateral.terms = terms;
                 }
                 if comment.is_some() {
+                    if !is_valid_comment(&comment.clone().unwrap_or_default()) {
+                        return Err(ContractError::Std(StdError::generic_err(
+                            "Comment too long. max = (20000 UTF-8 bytes)",
+                        )));
+                    }
                     collateral.comment = comment;
                 }
                 // Then we verify we can set the asset as preview
@@ -193,9 +206,10 @@ pub fn modify_collaterals(
         .add_attribute("loan_id", loan_id.to_string()))
 }
 
-/// Withdraw an NFT collateral (cancel a loan collateral)
+/// Withdraw an loan collateral listing (cancel a loan collateral)
 /// This simply cancels the potential loan.
 /// The collateral is not given back as there is not deposited collateral when creating a new loan
+/// TODO: remove approval from all collaterals
 pub fn withdraw_collateral(
     deps: DepsMut,
     _env: Env,
@@ -206,7 +220,6 @@ pub fn withdraw_collateral(
     let borrower = info.sender.clone();
     let mut collateral = COLLATERAL_INFO.load(deps.storage, (borrower.clone(), loan_id))?;
     is_collateral_withdrawable(&collateral)?;
-
 
     // We update the internal state, the loan proposal is no longer valid
     collateral.state = LoanState::Inactive;
@@ -234,6 +247,13 @@ pub fn accept_loan(
     let borrower_addr = deps.api.addr_validate(&borrower)?;
     let collateral = COLLATERAL_INFO.load(deps.storage, (borrower_addr.clone(), loan_id))?;
 
+    // checks comment size
+    if !is_valid_comment(&comment.clone().unwrap_or_default()) {
+        return Err(ContractError::Std(StdError::generic_err(
+            "Comment too long. max = (20000 UTF-8 bytes)",
+        )));
+    }
+
     // We start by making an offer with exactly the same terms as the depositor specified
     let terms: LoanTerms = collateral.terms.ok_or(ContractError::NoTermsSpecified {})?;
     let (global_offer_id, _offer_id) = _make_offer_raw(
@@ -252,7 +272,7 @@ pub fn accept_loan(
     Ok(res.add_attribute("action_type", "accept_loan"))
 }
 
-// Internal function used to work the internal to create an offer
+// Internal function to create raffle
 // It verifies an offer can be made for the current loan
 // It verifies the sent funds match the principle indicated in the terms
 // And then saves the new offer in the internal storage
@@ -312,31 +332,29 @@ fn _accept_offer_raw(
     env: Env,
     global_offer_id: String,
 ) -> Result<Response, ContractError> {
-    let mut offer_info = get_offer(deps.storage, &global_offer_id)?;
+    let mut offer = get_offer(deps.storage, &global_offer_id)?;
 
-    let borrower = offer_info.borrower.clone();
-    let loan_id = offer_info.loan_id;
+    let borrower = offer.borrower.clone();
+    let loan_id = offer.loan_id;
     let mut collateral = COLLATERAL_INFO.load(deps.storage, (borrower.clone(), loan_id))?;
     is_loan_acceptable(&collateral)?;
 
     // We verify the offer is still valid
-    if offer_info.state == OfferState::Published {
+    if offer.state == OfferState::Published {
         // We can start the loan now !
         collateral.state = LoanState::Started;
         collateral.start_block = Some(env.block.height);
         collateral.active_offer = Some(global_offer_id.clone());
-        offer_info.state = OfferState::Accepted;
+        offer.state = OfferState::Accepted;
 
         COLLATERAL_INFO.save(deps.storage, (borrower.clone(), loan_id), &collateral)?;
-        save_offer(deps.storage, &global_offer_id, offer_info.clone())?;
+        save_offer(deps.storage, &global_offer_id, offer.clone())?;
     } else {
-        return Err(ContractError::WrongOfferState {
-            state: offer_info.state,
-        });
+        return Err(ContractError::WrongOfferState { state: offer.state });
     };
 
     // We transfer the funds directly when the offer is accepted
-    let fund_messages = _withdraw_offer_unsafe(borrower.clone(), &offer_info)?;
+    let fund_messages = _withdraw_offer_unsafe(borrower.clone(), &offer)?;
 
     // We transfer the nfts directly from the owner's wallets when the offer is accepted
     let asset_messages: Vec<CosmosMsg> = collateral
@@ -388,13 +406,10 @@ fn _accept_offer_raw(
         .add_message(fund_messages)
         .add_messages(asset_messages)
         .add_attribute("action", "start_loan")
-        .add_attribute("denom_borrowed", offer_info.terms.principle.denom)
-        .add_attribute(
-            "amount_borrowed",
-            offer_info.terms.principle.amount.to_string(),
-        )
+        .add_attribute("denom_borrowed", offer.terms.principle.denom)
+        .add_attribute("amount_borrowed", offer.terms.principle.amount.to_string())
         .add_attribute("borrower", borrower)
-        .add_attribute("lender", offer_info.lender)
+        .add_attribute("lender", offer.lender)
         .add_attribute("loan_id", loan_id.to_string())
         .add_attribute("global_offer_id", global_offer_id))
 }
@@ -449,6 +464,13 @@ pub fn make_offer(
     // We query the loan info
 
     let borrower = deps.api.addr_validate(&borrower)?;
+
+    // checks comment size
+    if !is_valid_comment(&comment.clone().unwrap_or_default()) {
+        return Err(ContractError::Std(StdError::generic_err(
+            "Comment too long. max = (20000 UTF-8 bytes)",
+        )));
+    }
     let (global_offer_id, _offer_id) = _make_offer_raw(
         deps.storage,
         env,
@@ -550,9 +572,6 @@ pub fn refuse_offer(
 
 /// Withdraw the funds from a refused offer
 /// In case the borrower refuses your offer, you need to manually withdraw your funds
-/// This is actually done in order for you to know where your funds are and keep control of your transfers
-/// And to make sure the borrower is secure when calling the refuse function.
-/// We may integrate that in the refuse offer function in the future
 pub fn withdraw_refused_offer(
     deps: DepsMut,
     _env: Env,
@@ -623,11 +642,11 @@ pub fn repay_borrowed_funds(
     let lender_payback =
         offer_info.terms.principle.amount + interests * (Decimal::one() - config.fee_rate);
 
-    // And the funds to send to the fee_depositor contract
-    let fee_depositor_payback = info.funds[0].amount - lender_payback;
+    // calculate the funds to send to the treasury
+    let treasury_payback = info.funds[0].amount - lender_payback;
 
     let mut res = Response::new();
-    // lender is paid back 
+    // lender is paid back
     if lender_payback.u128() > 0u128 {
         res = res.add_message(BankMsg::Send {
             to_address: offer_info.lender.to_string(),
@@ -635,7 +654,7 @@ pub fn repay_borrowed_funds(
         })
     }
 
-    // And the collateral back to the borrower*
+    // add the msg to withdraw_loan collateral back to the borrower*
     res = res.add_messages(_withdraw_loan(
         collateral,
         env.contract.address,
@@ -643,13 +662,13 @@ pub fn repay_borrowed_funds(
     )?);
 
     // And we pay the fee to the treasury
-    if fee_depositor_payback.u128() > 0u128 {
+    if treasury_payback.u128() > 0u128 {
         res = res.add_message(BankMsg::Send {
-            to_address: config.fee_distributor.to_string(),
-            amount: coins(fee_depositor_payback.u128(), info.funds[0].denom.clone()),
+            to_address: config.treasury_addr.to_string(),
+            amount: coins(treasury_payback.u128(), info.funds[0].denom.clone()),
         });
     }
-
+    // attributes
     Ok(res
         .add_attribute("action", "repay_loan")
         .add_attribute("borrower", borrower)

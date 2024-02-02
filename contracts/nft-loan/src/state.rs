@@ -22,7 +22,7 @@ pub struct Config {
     /// The admin of the smart contract
     pub owner: Addr,
     /// The address which all generated fees are sent to
-    pub fee_distributor: Addr,
+    pub treasury_addr: Addr,
     /// A % used to calculate how much of a loan interest is
     /// sent to the fee_distributor
     pub fee_rate: Decimal,

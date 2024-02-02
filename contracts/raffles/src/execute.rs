@@ -1,13 +1,16 @@
 use cosmwasm_std::{
-    coin, ensure_eq, from_json, to_json_binary, Addr, BankMsg, Coin, Decimal, DepsMut, Empty, Env,
-    MessageInfo, StdError, StdResult, Uint128, WasmMsg,
+    coin, ensure, ensure_eq, from_json, to_json_binary, Addr, BankMsg, Coin, Decimal, DepsMut,
+    Empty, Env, MessageInfo, StdError, StdResult, Uint128, WasmMsg,
 };
 use cw721::{Cw721ExecuteMsg, Cw721ReceiveMsg};
 use cw721_base::Extension;
 use nois::{NoisCallback, ProxyExecuteMsg};
 use sg721::ExecuteMsg as Sg721ExecuteMsg;
 use sg_std::{CosmosMsg, StargazeMsgWrapper};
-use utils::state::{into_cosmos_msg, AssetInfo, Cw721Coin, Sg721Token, MAX_COMMENT_SIZE};
+use utils::state::{
+    into_cosmos_msg, is_valid_comment, AssetInfo, Cw721Coin, Sg721Token, MAX_COMMENT_SIZE,
+    RANDOM_BEACON_MAX_REQUEST_TIME_IN_THE_FUTURE,
+};
 
 use crate::{
     error::ContractError,
@@ -48,17 +51,8 @@ pub fn execute_create_raffle(
             "too many tokens in fee payment".to_string(),
         ));
     }
-    // Limit the size of proposals.
-    // without this check it is possible to create
-    //  a proposal that can not bequeried.
-    let comment_size = cosmwasm_std::to_json_vec(&raffle_options.comment)?.len() as u64;
-    if comment_size > MAX_COMMENT_SIZE {
-        return Err(ContractError::CommentTooLarge {
-            size: comment_size,
-            max: MAX_COMMENT_SIZE,
-        });
-    }
 
+    // looks for the fee token sent in the msg.
     let fee = info
         .funds
         .iter()
@@ -66,10 +60,19 @@ pub fn execute_create_raffle(
         .map(|c| Uint128::from(c.amount))
         .unwrap_or_else(|| Uint128::zero());
 
+    // if the fee is not equal to the raffle creation fee set, return err.
     if fee != config.creation_fee_amount {
         return Err(ContractError::InvalidRaffleFee {});
     }
 
+    // checks comment size
+    if !is_valid_comment(&raffle_options.comment.clone().unwrap_or_default()) {
+        return Err(ContractError::Std(StdError::generic_err(
+            "Comment too long. max = (20000 UTF-8 bytes)",
+        )));
+    }
+
+    // transfer fee to the contract fee address set.
     let transfer_fee: CosmosMsg = BankMsg::Send {
         to_address: config.fee_addr.to_string(),
         amount: info.funds,
@@ -94,7 +97,7 @@ pub fn execute_create_raffle(
                     token.address.to_string(),
                     token.token_id.to_string(),
                 )?;
-
+                // Transfer the nft from raffle creator to the raffle contract.
                 let message = Cw721ExecuteMsg::TransferNft {
                     recipient: env.contract.address.clone().into(),
                     token_id: token.token_id.clone(),
@@ -103,13 +106,14 @@ pub fn execute_create_raffle(
                 into_cosmos_msg(message, token.address.clone(), None)
             }
             AssetInfo::Sg721Token(token) => {
+                // verify ownership
                 is_sg721_owner(
                     deps.as_ref(),
                     info.sender.clone(),
                     token.address.to_string(),
                     token.token_id.to_string(),
                 )?;
-
+                // Transfer message
                 let message = Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
                     recipient: env.contract.address.clone().into(),
                     token_id: token.token_id.clone(),
@@ -122,34 +126,50 @@ pub fn execute_create_raffle(
             )),
         })
         .collect::<Result<Vec<CosmosMsg>, StdError>>()?;
+
     // Then we create the internal raffle structure
     let owner = owner.map(|x| deps.api.addr_validate(&x)).transpose()?;
     let raffle_id = _create_raffle(
         deps,
-        env,
+        env.clone(),
         owner.clone().unwrap_or_else(|| info.sender.clone()),
         all_assets,
         raffle_ticket_price,
         raffle_options.clone(),
     )?;
 
+    // defines the fee token to send to nois-proxy
     let nois_fee: Coin = coin(NOIS_AMOUNT, config.nois_proxy_denom);
 
+    let raffle_lifecycle = raffle_options
+        .raffle_start_timestamp
+        .unwrap()
+        .plus_seconds(raffle_options.clone().raffle_duration.unwrap_or_default())
+        .plus_seconds(6);
+
+    // GetNextRandomness requests the randomness from the proxy after the expected raffle duration
+    // The job id is needed to know what randomness we are referring to upon reception in the callback.
     let nois_msg: WasmMsg = WasmMsg::Execute {
         contract_addr: config.nois_proxy_addr.into_string(),
-        // GetNextRandomness requests the randomness from the proxy after the expected raffle duration
-        // The job id is needed to know what randomness we are referring to upon reception in the callback.
         msg: to_json_binary(&ProxyExecuteMsg::GetRandomnessAfter {
-            after: raffle_options
-                .raffle_start_timestamp
-                .unwrap()
-                .plus_seconds(raffle_options.clone().raffle_duration.unwrap_or_default())
-                .plus_seconds(6),
+            after: raffle_lifecycle,
             job_id: "raffle-".to_string() + raffle_id.to_string().as_str(),
         })?,
 
         funds: vec![nois_fee], // Pay from the contract
     };
+
+    // verifies raffle lifecycle length (3 months)
+    let max_allowed_beacon_time = env
+        .block
+        .time
+        .plus_seconds(RANDOM_BEACON_MAX_REQUEST_TIME_IN_THE_FUTURE);
+    ensure!(
+        max_allowed_beacon_time > raffle_lifecycle,
+        ContractError::RandomAfterIsTooMuchInTheFuture {
+            max_allowed_beacon_time
+        }
+    );
 
     Ok(Response::new()
         .add_message(transfer_fee)
@@ -256,6 +276,13 @@ pub fn execute_modify_raffle(
     // We then verify there are not tickets bought
     if raffle_info.number_of_tickets != 0 {
         return Err(ContractError::RaffleAlreadyStarted {});
+    }
+
+    // checks comment size
+    if !is_valid_comment(&raffle_info.raffle_options.comment.clone().unwrap_or_default()) {
+        return Err(ContractError::Std(StdError::generic_err(
+            "Comment too long. max = (20000 UTF-8 bytes)",
+        )));
     }
 
     // Then modify the raffle characteristics
@@ -574,7 +601,7 @@ pub fn execute_update_randomness(
     let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
     let raffle_state = get_raffle_state(env, raffle_info);
     if raffle_state != RaffleState::Closed {
-        return Err(ContractError::WrongStateForRandmness {
+        return Err(ContractError::WrongStateForRandomness {
             status: raffle_state,
         });
     }

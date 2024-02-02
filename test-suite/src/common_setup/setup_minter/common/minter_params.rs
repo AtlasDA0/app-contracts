@@ -1,0 +1,1 @@
+// common minter params

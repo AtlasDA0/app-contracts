@@ -44,7 +44,7 @@ pub fn instantiate(
         owner: deps
             .api
             .addr_validate(&msg.owner.unwrap_or_else(|| info.sender.to_string()))?,
-        fee_distributor: deps.api.addr_validate(&msg.fee_distributor)?,
+            treasury_addr: deps.api.addr_validate(&msg.treasury_addr)?,
         fee_rate: msg.fee_rate,
         global_offer_index: 0,
         deposit_fee_denom: msg.deposit_fee_denom,
@@ -131,8 +131,8 @@ pub fn execute(
 
         // Internal Contract Logic
         ExecuteMsg::SetOwner { owner } => set_owner(deps, env, info, owner),
-        ExecuteMsg::SetFeeDistributor { fee_depositor } => {
-            set_fee_distributor(deps, env, info, fee_depositor)
+        ExecuteMsg::SetFeeDestination { treasury_addr } => {
+            set_fee_distributor(deps, env, info, treasury_addr)
         }
 
         ExecuteMsg::SetFeeRate { fee_rate } => set_fee_rate(deps, env, info, fee_rate),
@@ -200,18 +200,18 @@ pub fn set_fee_distributor(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
-    new_distributor: String,
+    treasury_addr: String,
 ) -> Result<Response, ContractError> {
     let mut config = CONFIG.load(deps.storage)?;
     ensure_eq!(info.sender, config.owner, ContractError::Unauthorized {});
-
-    config.fee_distributor = deps.api.addr_validate(&new_distributor)?;
+    // 
+    config.treasury_addr = deps.api.addr_validate(&treasury_addr)?;
     CONFIG.save(deps.storage, &config)?;
 
     Ok(Response::default()
         .add_attribute("action", "changed-contract-parameter")
         .add_attribute("parameter", "fee_distributor")
-        .add_attribute("value", new_distributor))
+        .add_attribute("value", treasury_addr))
 }
 
 /// Owner only function

@@ -1,11 +1,15 @@
+use std::string;
+
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Coin, Uint128, coin, StdResult, to_json_binary, WasmMsg};
+use cosmwasm_std::{coin, to_json_binary, Coin, StdResult, Uint128, WasmMsg};
 use serde::Serialize;
 use sg_std::CosmosMsg;
 
 /// Default limit for proposal pagination.
 pub const DEFAULT_LIMIT: u64 = 30;
 pub const MAX_COMMENT_SIZE: u64 = 20_000;
+
+pub const RANDOM_BEACON_MAX_REQUEST_TIME_IN_THE_FUTURE: u64 = 7890000;
 
 // ASSETS
 #[cw_serde]
@@ -21,7 +25,7 @@ pub struct Cw721Coin {
 }
 
 #[cw_serde]
-pub enum AssetInfo<> {
+pub enum AssetInfo {
     Cw721Coin(Cw721Coin),
     Sg721Token(Sg721Token),
     Coin(Coin),
@@ -56,6 +60,14 @@ impl AssetInfo {
 pub fn is_valid_name(name: &str) -> bool {
     let bytes = name.as_bytes();
     if bytes.len() < 3 || bytes.len() > 50 {
+        return false;
+    }
+    true
+}
+
+pub fn is_valid_comment(name: &str) -> bool {
+    let bytes = name.as_bytes();
+    if  bytes.len() > 20000 {
         return false;
     }
     true

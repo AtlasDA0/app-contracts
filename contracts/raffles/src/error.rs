@@ -137,7 +137,7 @@ pub enum ContractError {
     RandomnessNotAccepted { current_round: u64 },
 
     #[error("This raffle is not ready to accept new randomness. Only Closed raffles can be decided upon. Current status : {status:?}")]
-    WrongStateForRandmness { status: RaffleState },
+    WrongStateForRandomness { status: RaffleState },
 
     #[error("This raffle is not ready to be claimed.  Current status : {status:?}")]
     WrongStateForClaim { status: RaffleState },

@@ -1,0 +1,1 @@
+// mock vending minter params 

@@ -20,7 +20,7 @@ mod tests {
     const VENDING_MINTER: &str = "contract2";
     const SG721_CONTRACT: &str = "contract3";
 
-    pub fn proper_instantiate() -> (StargazeApp, Addr, Addr) {
+    pub fn proper_instantiate_raffles_with_limits() -> (StargazeApp, Addr, Addr) {
         let mut app = custom_mock_app();
         let chainid = app.block_info().chain_id.clone();
         app.set_block(BlockInfo {
@@ -120,7 +120,7 @@ mod tests {
         #[test]
         fn can_init() {
             // create testing app
-            let (mut app, raffle_contract_addr, factory_addr) = proper_instantiate();
+            let (mut app, raffle_contract_addr, factory_addr) = proper_instantiate_raffles_with_limits();
 
             let query_config: raffles::msg::ConfigResponse = app
                 .wrap()
@@ -358,6 +358,7 @@ mod tests {
                 )
                 .unwrap();
 
+            // verify contract response
             assert_eq!(
                 res.clone().raffle_info.unwrap(),
                 RaffleInfo {
@@ -396,7 +397,7 @@ mod tests {
                 chain_id: chainid.clone(),
             });
 
-            // ensure max tickets per address
+            // ensure error if max tickets per address set is reached
             let bad_ticket_purchase = app
                 .execute_contract(
                     Addr::unchecked("wallet-1"),
@@ -418,6 +419,7 @@ mod tests {
                 }
                 .to_string(),
             );
+
             // ensure raffle duration
             // move forward in time
             app.set_block(BlockInfo {
@@ -425,6 +427,8 @@ mod tests {
                 time: current_time.clone().plus_seconds(1000),
                 chain_id: chainid.clone(),
             });
+
+            // ensure raffle ends correctly
             let bad_ticket_purchase = app
                 .execute_contract(
                     Addr::unchecked("wallet-1"),
@@ -474,7 +478,7 @@ mod tests {
             assert_eq!(res.raffle_info.unwrap().winner, None);
 
             // assert the tokens being raffled are sent back to owner if no tickets are purchased,
-            // even if someone else calls the contract to claim tokens
+            // even if someone else calls the contract to determine winner tokens
             let _claim_ticket = app
                 .execute_contract(
                     Addr::unchecked("wallet-1".to_string()),

@@ -125,7 +125,7 @@ mod tests {
                 &InstantiateMsg {
                     name: "loan-with-insights".to_string(),
                     owner: Some(Addr::unchecked(OWNER_ADDR).to_string()),
-                    fee_distributor: Addr::unchecked(OWNER_ADDR).to_string(),
+                    treasury_addr: Addr::unchecked(OWNER_ADDR).to_string(),
                     fee_rate: Decimal::percent(5),
                     deposit_fee_denom: vec!["usstars".to_string(), NATIVE_DENOM.to_string()],
                     deposit_fee_amount: 50,
