@@ -1,5 +1,3 @@
-use std::string;
-
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{coin, to_json_binary, Coin, StdResult, Uint128, WasmMsg};
 use serde::Serialize;

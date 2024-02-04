@@ -13,7 +13,7 @@ use crate::execute::{
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse};
 use crate::query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count};
 use crate::state::{
-    get_raffle_state, load_raffle, Config, CONFIG, MINIMUM_CREATION_FEE_AMOUNT,
+    get_raffle_state, load_raffle, Config, CONFIG, STATIC_RAFFLE_CREATION_FEE,
     MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT,
 };
 use cw2::set_contract_version;
@@ -34,7 +34,7 @@ pub fn instantiate(
 
     let creation_fee_amount = match msg.creation_fee_amount {
         Some(int) => int,
-        None => MINIMUM_CREATION_FEE_AMOUNT.into(),
+        None => STATIC_RAFFLE_CREATION_FEE.into(),
     };
 
     let creation_fee_denom = match msg.creation_fee_denom {

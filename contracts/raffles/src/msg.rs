@@ -1,23 +1,35 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Decimal, HexBinary, StdError, StdResult, Uint128};
 use nois::NoisCallback;
-use utils::state::AssetInfo;
+use utils::state::{is_valid_name, AssetInfo};
 
 use crate::state::{RaffleInfo, RaffleOptionsMsg, RaffleState};
 
 #[cw_serde]
 pub struct InstantiateMsg {
+    // Name of the raffle contract
     pub name: String,
+    // Address of the nois_proxy
     pub nois_proxy_addr: String,
+    // Expected token to be sent by contract for nois
     pub nois_proxy_denom: String,
+    // Expected amount of token sent by contract for nois
     pub nois_proxy_amount: Uint128,
+    // Static raffle creation fee token 
     pub creation_fee_denom: Option<Vec<String>>,
+    // Static raffle creation fee amount
     pub creation_fee_amount: Option<Uint128>,
+    // Admin of Contract
     pub owner: Option<String>,
+    // Destination of Fee Streams
     pub fee_addr: Option<String>,
+    // Minimum lifecycle length of raffle 
     pub minimum_raffle_duration: Option<u64>,
+    // Minimum cooldown from raffle end to determine winner 
     pub minimum_raffle_timeout: Option<u64>,
+    // Maximum participant limit for a raffle
     pub max_participant_number: Option<u32>,
+    // % fee of raffle ticket sales to fee_addr
     pub raffle_fee: Option<Decimal>,
 }
 
@@ -31,14 +43,6 @@ impl InstantiateMsg {
         }
         Ok(())
     }
-}
-
-fn is_valid_name(name: &str) -> bool {
-    let bytes = name.as_bytes();
-    if bytes.len() < 3 || bytes.len() > 50 {
-        return false;
-    }
-    true
 }
 
 #[cw_serde]
@@ -90,8 +94,6 @@ pub enum ExecuteMsg {
     UpdateRandomness {
         raffle_id: u64,
     },
-    // updates the nois_proxy contract
-    // UpdateNoisProxy {},
 }
 
 #[cw_serde]

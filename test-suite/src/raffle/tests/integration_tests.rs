@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Empty, HexBinary, Timestamp, Uint128};
+    use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Empty, HexBinary, Uint128};
     use cw721::OwnerOfResponse;
     use cw_multi_test::{BankSudo, Executor, SudoMsg};
     use nois::NoisCallback;
@@ -14,14 +14,8 @@ mod tests {
     use utils::state::{AssetInfo, Sg721Token};
     use vending_factory::msg::VendingMinterCreateMsg;
 
-    use sg_multi_test::StargazeApp;
-    use vending_factory::state::{ParamsExtension, VendingMinterParams};
-
     use crate::common_setup::{
-        contract_boxes::{
-            contract_raffles, contract_sg721_base, contract_vending_factory,
-            contract_vending_minter, custom_mock_app,
-        },
+        contract_boxes::contract_raffles,
         helpers::assert_error,
         setup_minter::common::constants::{
             CREATION_FEE_AMNT, NOIS_PROXY_ADDR, RAFFLE_NAME, SG721_CONTRACT, VENDING_MINTER,
@@ -31,87 +25,9 @@ mod tests {
 
     const OWNER_ADDR: &str = "fee";
 
-    pub fn proper_instantiate() -> (StargazeApp, Addr, Addr) {
-        let mut app = custom_mock_app();
-        let chainid = app.block_info().chain_id.clone();
-        app.set_block(BlockInfo {
-            height: 10000,
-            time: Timestamp::from_nanos(1647032400000000000),
-            chain_id: chainid,
-        });
-        let raffle_code_id = app.store_code(contract_raffles());
-        let factory_id = app.store_code(contract_vending_factory());
-        let minter_id = app.store_code(contract_vending_minter());
-        let sg721_id = app.store_code(contract_sg721_base());
-
-        let factory_addr = app
-            .instantiate_contract(
-                factory_id,
-                Addr::unchecked(OWNER_ADDR),
-                &vending_factory::msg::InstantiateMsg {
-                    params: VendingMinterParams {
-                        code_id: minter_id.clone(),
-                        allowed_sg721_code_ids: vec![sg721_id.clone()],
-                        frozen: false,
-                        creation_fee: Coin {
-                            denom: "ustars".to_string(),
-                            amount: Uint128::new(100000u128),
-                        },
-                        min_mint_price: Coin {
-                            denom: "ustars".to_string(),
-                            amount: Uint128::new(100000u128),
-                        },
-                        mint_fee_bps: 10,
-                        max_trading_offset_secs: 0,
-                        extension: ParamsExtension {
-                            max_token_limit: 1000,
-                            max_per_address_limit: 20,
-                            airdrop_mint_price: Coin {
-                                denom: "ustars".to_string(),
-                                amount: Uint128::new(100000u128),
-                            },
-                            airdrop_mint_fee_bps: 10,
-                            shuffle_fee: Coin {
-                                denom: "ustars".to_string(),
-                                amount: Uint128::new(100000u128),
-                            },
-                        },
-                    },
-                },
-                &[],
-                "factory",
-                Some(OWNER_ADDR.to_string()),
-            )
-            .unwrap();
-
-        let raffle_contract_addr = app
-            .instantiate_contract(
-                raffle_code_id,
-                Addr::unchecked(OWNER_ADDR),
-                &InstantiateMsg {
-                    name: RAFFLE_NAME.to_string(),
-                    nois_proxy_addr: NOIS_PROXY_ADDR.to_string(),
-                    nois_proxy_denom: NATIVE_DENOM.to_string(),
-                    nois_proxy_amount: NOIS_AMOUNT.into(),
-                    creation_fee_denom: Some(vec![NATIVE_DENOM.to_string(), "usstars".to_string()]),
-                    creation_fee_amount: Some(CREATION_FEE_AMNT.into()),
-                    owner: Some(OWNER_ADDR.to_string()),
-                    fee_addr: Some(OWNER_ADDR.to_owned()),
-                    minimum_raffle_duration: None,
-                    minimum_raffle_timeout: None,
-                    max_participant_number: None,
-                    raffle_fee: None,
-                },
-                &[],
-                "raffle",
-                Some(Addr::unchecked(OWNER_ADDR).to_string()),
-            )
-            .unwrap();
-
-        (app, raffle_contract_addr, factory_addr)
-    }
-
     mod init {
+        use crate::common_setup::{helpers::setup_block_time, setup_raffle::proper_instantiate};
+
         use super::*;
         #[test]
         fn can_init() {
@@ -253,36 +169,6 @@ mod tests {
             // create nois_proxy
 
             // let good_nois_proxy
-
-            // randomness is too far in future
-            // let _good_create_raffle = app
-            //     .execute_contract(
-            //         Addr::unchecked(OWNER_ADDR),
-            //         raffle_addr.clone(),
-            //         &raffles::msg::ExecuteMsg::CreateRaffle {
-            //             owner: Some(OWNER_ADDR.to_string()),
-            //             assets: vec![AssetInfo::Sg721Token(Sg721Token {
-            //                 address: SG721_CONTRACT.to_string(),
-            //                 token_id: "41".to_string(),
-            //             })],
-            //             raffle_options: RaffleOptionsMsg {
-            //                 raffle_start_timestamp: Some(current_time.clone()),
-            //                 raffle_duration: None,
-            //                 raffle_timeout: None,
-            //                 comment: None,
-            //                 max_participant_number: None,
-            //                 max_ticket_per_address: None,
-            //                 raffle_preview: None,
-            //             },
-            //             raffle_ticket_price: AssetInfo::Coin(Coin {
-            //                 denom: "ustars".to_string(),
-            //                 amount: Uint128::new(100u128),
-            //             }),
-            //         },
-            //         &[coin(50, "ustars")],
-            //     )
-            //     .unwrap();
-            // println!("{:#?}", _good_create_raffle);
 
             // create a raffle
             let _good_create_raffle = app
@@ -578,11 +464,12 @@ mod tests {
             assert_eq!(res, 16);
 
             // move forward in time
-            app.set_block(BlockInfo {
-                height: current_block.clone() + 100,
-                time: current_time.clone().plus_seconds(130),
-                chain_id: chainid.clone(),
-            });
+            setup_block_time(
+                &mut app,
+                current_time.clone().plus_seconds(130).nanos(),
+                Some(current_block.clone() + 100),
+                &chainid.clone(),
+            );
 
             // try to claim ticket before randomness is requested
             let claim_but_no_randomness_yet = app
@@ -593,6 +480,7 @@ mod tests {
                     &[],
                 )
                 .unwrap_err();
+
             // println!("{:#?}", claim_but_no_randomness_yet);
             assert_error(
                 Err(claim_but_no_randomness_yet),

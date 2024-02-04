@@ -1,4 +1,4 @@
-use cosmwasm_std::{Addr, BlockInfo, Coin, Decimal, Timestamp, Uint128};
+use cosmwasm_std::{Addr, Coin, Uint128};
 use cw_multi_test::Executor;
 
 use raffles::msg::InstantiateMsg;
@@ -15,16 +15,14 @@ use crate::common_setup::{
     setup_minter::common::constants::{CREATION_FEE_AMNT, NOIS_PROXY_ADDR, RAFFLE_NAME},
 };
 
+use super::helpers::setup_block_time;
+
 const OWNER_ADDR: &str = "fee";
 
-pub fn proper_raffle_instantiate() -> (StargazeApp, Addr, Addr) {
+pub fn proper_instantiate() -> (StargazeApp, Addr, Addr) {
     let mut app = custom_mock_app();
     let chainid = app.block_info().chain_id.clone();
-    app.set_block(BlockInfo {
-        height: 10000,
-        time: Timestamp::from_nanos(1647032400000000000),
-        chain_id: chainid,
-    });
+    setup_block_time(&mut app, 1647032400000000000, Some(10000), &chainid);
 
     let raffle_code_id = app.store_code(contract_raffles());
     let factory_id = app.store_code(contract_vending_factory());

@@ -1,13 +1,13 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin, Decimal, Env, HexBinary, StdError, StdResult, Storage, Timestamp, Uint128};
+use cosmwasm_std::{ensure, Addr, Coin, Decimal, Env, HexBinary, StdError, StdResult, Storage, Timestamp, Uint128};
 
 use cw_storage_plus::{Item, Map};
 use utils::state::AssetInfo;
 
 pub const ATLAS_DAO_STARGAZE_TREASURY: &str = "stars1jyg4j6t4kdptgsx6q55mu0f434zqcfppkx6ww9gs7p4x7clgfrjq29sgmc";
-pub const MINIMUM_CREATION_FEE_AMOUNT: u128 = 69;
+pub const STATIC_RAFFLE_CREATION_FEE: u128 = 100; 
 pub const NOIS_AMOUNT: u128 = 500000;
-pub const MINIMUM_RAFFLE_DURATION: u64 = 1;
+pub const MINIMUM_RAFFLE_DURATION: u64 = 1; // minimum raffle duration, in blocks
 pub const MINIMUM_RAFFLE_TIMEOUT: u64 = 120; // The raffle timeout is a least 2 minutes
 pub const DECIMAL_FRACTIONAL: u128 = 1_000_00;
 
@@ -45,21 +45,19 @@ pub struct Config {
 impl Config{
     pub fn validate_fee(&self) -> Result<(), StdError>{
         // Check the fee distribution
-        if self.raffle_fee >= Decimal::one(){
-            return Err(StdError::generic_err(
-                "The Total Fee rate should be lower than 1"
-            ))
-        }
+        // if self.raffle_fee >= Decimal::one(){
+        //     return Err(StdError::generic_err(
+        //         "The Total Fee rate should be lower than 1"
+        //     ))
+        // }
+        // Ok(());
+        ensure!(
+            self.raffle_fee <= Decimal::one(),
+            StdError::generic_err("The Total Fee rate should be lower than 1")
+        );
         Ok(())
-        // ensure!(
-        //     self.raffle_fee <= Decimal::one(),
-        //     StdError::generic_err("The Total Fee rate should be lower than 1")
-        // );
-        // Ok(())
     }
 }
-
-
 
 #[cw_serde]
 pub struct NoisProxy {
@@ -93,7 +91,6 @@ pub struct RaffleInfo {
     pub is_cancelled: bool,
     pub raffle_options: RaffleOptions,
 }
-
 
 #[cw_serde]
 pub enum RaffleState {

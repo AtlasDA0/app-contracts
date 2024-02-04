@@ -247,7 +247,7 @@ pub fn accept_loan(
     let borrower_addr = deps.api.addr_validate(&borrower)?;
     let collateral = COLLATERAL_INFO.load(deps.storage, (borrower_addr.clone(), loan_id))?;
 
-    // checks comment size
+    // limits comment size
     if !is_valid_comment(&comment.clone().unwrap_or_default()) {
         return Err(ContractError::Std(StdError::generic_err(
             "Comment too long. max = (20000 UTF-8 bytes)",
@@ -639,10 +639,8 @@ pub fn repay_borrowed_funds(
     COLLATERAL_INFO.save(deps.storage, (borrower.clone(), loan_id), &collateral)?;
 
     // We prepare the funds to send back to the lender
-    let lender_payback =
-        offer_info.terms.principle.amount + interests * (Decimal::one() - config.fee_rate);
-
-    // calculate the funds to send to the treasury
+    // % of interest expected back
+    let lender_payback = interests * (Decimal::one() - config.fee_rate);
     let treasury_payback = info.funds[0].amount - lender_payback;
 
     let mut res = Response::new();
@@ -650,7 +648,10 @@ pub fn repay_borrowed_funds(
     if lender_payback.u128() > 0u128 {
         res = res.add_message(BankMsg::Send {
             to_address: offer_info.lender.to_string(),
-            amount: coins(lender_payback.u128(), info.funds[0].denom.clone()),
+            amount: coins(
+                lender_payback.u128(),
+                info.funds[0].denom.clone(),
+            ),
         })
     }
 

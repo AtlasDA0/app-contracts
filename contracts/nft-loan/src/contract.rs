@@ -33,7 +33,6 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-
     ensure!(
         msg.fee_rate > Decimal::zero() && msg.fee_rate <= Decimal::one(),
         ContractError::InvalidFeeRate {}
@@ -44,7 +43,7 @@ pub fn instantiate(
         owner: deps
             .api
             .addr_validate(&msg.owner.unwrap_or_else(|| info.sender.to_string()))?,
-            treasury_addr: deps.api.addr_validate(&msg.treasury_addr)?,
+        treasury_addr: deps.api.addr_validate(&msg.treasury_addr)?,
         fee_rate: msg.fee_rate,
         global_offer_index: 0,
         deposit_fee_denom: msg.deposit_fee_denom,
@@ -93,7 +92,6 @@ pub fn execute(
         ExecuteMsg::WithdrawCollaterals { loan_id } => {
             withdraw_collateral(deps, env, info, loan_id)
         }
-
         ExecuteMsg::AcceptLoan {
             borrower,
             loan_id,
@@ -109,19 +107,15 @@ pub fn execute(
             terms,
             comment,
         } => make_offer(deps, env, info, borrower, loan_id, terms, comment),
-
         ExecuteMsg::CancelOffer { global_offer_id } => {
             cancel_offer(deps, env, info, global_offer_id)
         }
-
         ExecuteMsg::RefuseOffer { global_offer_id } => {
             refuse_offer(deps, env, info, global_offer_id)
         }
-
         ExecuteMsg::WithdrawRefusedOffer { global_offer_id } => {
             withdraw_refused_offer(deps, env, info, global_offer_id)
         }
-
         ExecuteMsg::RepayBorrowedFunds { loan_id } => {
             repay_borrowed_funds(deps, env, info, loan_id)
         }
@@ -183,11 +177,8 @@ pub fn set_owner(
     let mut config = CONFIG.load(deps.storage)?;
     ensure_eq!(info.sender, config.owner, ContractError::Unauthorized {});
     let new_admin = deps.api.addr_validate(&new_owner)?;
-
     config.owner = new_admin;
-
     CONFIG.save(deps.storage, &config)?;
-
     Ok(Response::default()
         .add_attribute("action", "new owner")
         .add_attribute("new owner", new_owner))
@@ -195,7 +186,6 @@ pub fn set_owner(
 
 /// Owner only function
 /// Sets a new fee-distributor contract
-/// This contract distributes fees back to the projects (and Illiquidly DAO gets to keep a small amount too)
 pub fn set_fee_distributor(
     deps: DepsMut,
     _env: Env,
@@ -204,10 +194,8 @@ pub fn set_fee_distributor(
 ) -> Result<Response, ContractError> {
     let mut config = CONFIG.load(deps.storage)?;
     ensure_eq!(info.sender, config.owner, ContractError::Unauthorized {});
-    // 
     config.treasury_addr = deps.api.addr_validate(&treasury_addr)?;
     CONFIG.save(deps.storage, &config)?;
-
     Ok(Response::default()
         .add_attribute("action", "changed-contract-parameter")
         .add_attribute("parameter", "fee_distributor")
@@ -226,14 +214,12 @@ pub fn set_fee_rate(
 ) -> Result<Response, ContractError> {
     let mut config = CONFIG.load(deps.storage)?;
     ensure_eq!(info.sender, config.owner, ContractError::Unauthorized {});
-
     // Check the fee distribution
     if new_fee_rate >= Decimal::one() {
         return Err(ContractError::NotAcceptable {});
     }
     config.fee_rate = new_fee_rate;
     CONFIG.save(deps.storage, &config)?;
-
     Ok(Response::new()
         .add_attribute("action", "changed-contract-parameter")
         .add_attribute("parameter", "fee_rate")

@@ -8,7 +8,7 @@ use nois::{NoisCallback, ProxyExecuteMsg};
 use sg721::ExecuteMsg as Sg721ExecuteMsg;
 use sg_std::{CosmosMsg, StargazeMsgWrapper};
 use utils::state::{
-    into_cosmos_msg, is_valid_comment, AssetInfo, Cw721Coin, Sg721Token, MAX_COMMENT_SIZE,
+    into_cosmos_msg, is_valid_comment, AssetInfo, Cw721Coin, Sg721Token,
     RANDOM_BEACON_MAX_REQUEST_TIME_IN_THE_FUTURE,
 };
 
@@ -279,7 +279,13 @@ pub fn execute_modify_raffle(
     }
 
     // checks comment size
-    if !is_valid_comment(&raffle_info.raffle_options.comment.clone().unwrap_or_default()) {
+    if !is_valid_comment(
+        &raffle_info
+            .raffle_options
+            .comment
+            .clone()
+            .unwrap_or_default(),
+    ) {
         return Err(ContractError::Std(StdError::generic_err(
             "Comment too long. max = (20000 UTF-8 bytes)",
         )));
@@ -568,14 +574,19 @@ pub fn execute_determine_winner(
     if raffle_info.number_of_tickets == 0u32 {
         raffle_info.winner = Some(raffle_info.owner.clone());
     } else {
-        // We get the winner of the raffle and save it to the contract. The raffle is now claimed !
+        // We calculate the winner of the raffle and save it to the contract. The raffle is now claimed !
         let winner = get_raffle_winner(deps.as_ref(), env.clone(), raffle_id, raffle_info.clone())?;
         raffle_info.winner = Some(winner);
     }
     RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 
-    // We send the assets to the winner
-    let winner_transfer_messages = get_raffle_winner_messages(env.clone(), raffle_info.clone())?;
+    // We send the assets to the winner, and fees to the treasury
+    let winner_transfer_messages = get_raffle_winner_messages(
+        deps.as_ref(),
+        env.clone(),
+        raffle_info.clone(),
+        raffle_id.clone(),
+    )?;
     let funds_transfer_messages =
         get_raffle_owner_finished_messages(deps.storage, env, raffle_info.clone())?;
 

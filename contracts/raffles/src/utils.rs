@@ -7,7 +7,7 @@ use crate::{
 };
 use cosmwasm_std::{
     coin, coins, to_json_binary, Addr, BankMsg, Coin, Deps, Empty, Env, HexBinary, StdError,
-    StdResult, Storage, Timestamp, Uint128, WasmMsg,
+    StdResult, Storage, Uint128, WasmMsg,
 };
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
@@ -22,10 +22,12 @@ pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, Contr
     let id: String = raffle_id.to_string();
     let nois_fee: Coin = coin(NOIS_AMOUNT, config.nois_proxy_denom);
 
+    // cannot provide new randomness once value is provided
     if raffle_info.randomness.is_some() {
         return Err(ContractError::RandomnessAlreadyProvided {});
     }
 
+    // request randomness
     let response = Response::new().add_message(WasmMsg::Execute {
         contract_addr: config.nois_proxy_addr.into_string(),
         // GetNextRandomness requests the randomness from the proxy
@@ -47,11 +49,14 @@ pub fn get_raffle_owner_finished_messages(
 ) -> Result<Vec<CosmosMsg>, ContractError> {
     let config = CONFIG.load(storage)?;
 
-    // We start by splitting the fees between owner, treasury and radomness provider
+    // We start by splitting the fees between owner & treasury
     let total_paid = match raffle_info.raffle_ticket_price.clone() {
+        // only native coins accepted for raffle fees currently
         AssetInfo::Coin(coin) => coin.amount,
         _ => return Err(ContractError::WrongFundsType {}),
     } * Uint128::from(raffle_info.number_of_tickets);
+
+    // use raffle_fee % to calculate treasury distribution
     let treasury_amount = total_paid * config.raffle_fee;
     let owner_amount = total_paid - treasury_amount;
 
@@ -91,6 +96,7 @@ pub fn get_raffle_winner(
     raffle_id: u64,
     raffle_info: RaffleInfo,
 ) -> Result<Addr, ContractError> {
+    // if randomness not has been provided then we expect an error
     if raffle_info.randomness.is_none() {
         return Err(ContractError::WrongStateForClaim {
             status: get_raffle_state(env, raffle_info),
@@ -178,7 +184,17 @@ pub fn can_buy_ticket(env: Env, raffle_info: RaffleInfo) -> Result<(), ContractE
 // RAFFLE WINNER
 
 /// Util to get the winner messages to return when claiming a Raffle (returns the raffled asset)
-pub fn get_raffle_winner_messages(env: Env, raffle_info: RaffleInfo) -> StdResult<Vec<CosmosMsg>> {
-    let winner: Addr = raffle_info.winner.clone().unwrap();
+pub fn get_raffle_winner_messages(
+    deps: Deps,
+    env: Env,
+    raffle_info: RaffleInfo,
+    raffle_id: u64,
+) -> StdResult<Vec<CosmosMsg>> {
+    if raffle_info.winner.clone() == None {
+        // refetch raffle winner with randomness
+        get_raffle_winner(deps, env.clone(), raffle_id, raffle_info.clone()).unwrap();
+    }
+    let winner = raffle_info.winner.clone().unwrap();
+    // generate state modifications for
     _get_raffle_end_asset_messages(env, raffle_info, winner.to_string())
 }
