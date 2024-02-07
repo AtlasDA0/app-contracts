@@ -34,8 +34,7 @@ export interface RaffleMessage {
     minimumRaffleTimeout,
     name,
     noisProxyAddr,
-    noisProxyAmount,
-    noisProxyDenom,
+    noisProxyCoin,
     owner,
     raffleFee
   }: {
@@ -45,8 +44,7 @@ export interface RaffleMessage {
     minimumRaffleTimeout?: number;
     name?: string;
     noisProxyAddr?: string;
-    noisProxyAmount?: Uint128;
-    noisProxyDenom?: string;
+    noisProxyCoin?: Coin;
     owner?: string;
     raffleFee?: Decimal;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
@@ -171,8 +169,7 @@ export class RaffleMessageComposer implements RaffleMessage {
     minimumRaffleTimeout,
     name,
     noisProxyAddr,
-    noisProxyAmount,
-    noisProxyDenom,
+    noisProxyCoin,
     owner,
     raffleFee
   }: {
@@ -182,8 +179,7 @@ export class RaffleMessageComposer implements RaffleMessage {
     minimumRaffleTimeout?: number;
     name?: string;
     noisProxyAddr?: string;
-    noisProxyAmount?: Uint128;
-    noisProxyDenom?: string;
+    noisProxyCoin?: Coin;
     owner?: string;
     raffleFee?: Decimal;
   }, funds?: Coin[]): MsgExecuteContractEncodeObject => {
@@ -200,8 +196,7 @@ export class RaffleMessageComposer implements RaffleMessage {
             minimum_raffle_timeout: minimumRaffleTimeout,
             name,
             nois_proxy_addr: noisProxyAddr,
-            nois_proxy_amount: noisProxyAmount,
-            nois_proxy_denom: noisProxyDenom,
+            nois_proxy_coin: noisProxyCoin,
             owner,
             raffle_fee: raffleFee
           }

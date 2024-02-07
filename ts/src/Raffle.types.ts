@@ -23,8 +23,7 @@ export type ExecuteMsg = {
     minimum_raffle_timeout?: number | null;
     name?: string | null;
     nois_proxy_addr?: string | null;
-    nois_proxy_amount?: Uint128 | null;
-    nois_proxy_denom?: string | null;
+    nois_proxy_coin?: Coin | null;
     owner?: string | null;
     raffle_fee?: Decimal | null;
   };
@@ -112,8 +111,7 @@ export interface InstantiateMsg {
   minimum_raffle_timeout?: number | null;
   name: string;
   nois_proxy_addr: string;
-  nois_proxy_amount: Uint128;
-  nois_proxy_denom: string;
+  nois_proxy_coin: Coin;
   owner?: string | null;
   raffle_fee?: Decimal | null;
 }
@@ -186,8 +184,7 @@ export interface ConfigResponse {
   minimum_raffle_timeout: number;
   name: string;
   nois_proxy_addr: Addr;
-  nois_proxy_amount: Uint128;
-  nois_proxy_denom: string;
+  nois_proxy_coin: Coin;
   owner: Addr;
   raffle_fee: Decimal;
 }

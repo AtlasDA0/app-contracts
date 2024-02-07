@@ -146,8 +146,7 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
     minimumRaffleTimeout,
     name,
     noisProxyAddr,
-    noisProxyAmount,
-    noisProxyDenom,
+    noisProxyCoin,
     owner,
     raffleFee
   }: {
@@ -157,8 +156,7 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
     minimumRaffleTimeout?: number;
     name?: string;
     noisProxyAddr?: string;
-    noisProxyAmount?: Uint128;
-    noisProxyDenom?: string;
+    noisProxyCoin?: Coin;
     owner?: string;
     raffleFee?: Decimal;
   }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
@@ -270,8 +268,7 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
     minimumRaffleTimeout,
     name,
     noisProxyAddr,
-    noisProxyAmount,
-    noisProxyDenom,
+    noisProxyCoin,
     owner,
     raffleFee
   }: {
@@ -281,8 +278,7 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
     minimumRaffleTimeout?: number;
     name?: string;
     noisProxyAddr?: string;
-    noisProxyAmount?: Uint128;
-    noisProxyDenom?: string;
+    noisProxyCoin?: Coin;
     owner?: string;
     raffleFee?: Decimal;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, funds?: Coin[]): Promise<ExecuteResult> => {
@@ -294,8 +290,7 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
         minimum_raffle_timeout: minimumRaffleTimeout,
         name,
         nois_proxy_addr: noisProxyAddr,
-        nois_proxy_amount: noisProxyAmount,
-        nois_proxy_denom: noisProxyDenom,
+        nois_proxy_coin: noisProxyCoin,
         owner,
         raffle_fee: raffleFee
       }

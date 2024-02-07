@@ -106,7 +106,7 @@ export interface LoanTerms {
 }
 export interface InstantiateMsg {
   fee_rate: Decimal;
-  listing_fee_coins: Coin[];
+  listing_fee_coins?: Coin[] | null;
   name: string;
   owner?: string | null;
   treasury_addr: string;
