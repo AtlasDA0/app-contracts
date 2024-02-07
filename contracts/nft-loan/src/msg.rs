@@ -1,5 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Decimal, StdError, StdResult};
+use cosmwasm_std::{Coin, Decimal, StdError, StdResult};
 
 use utils::state::{is_valid_name, AssetInfo};
 
@@ -11,8 +11,7 @@ pub struct InstantiateMsg {
     pub owner: Option<String>,
     pub treasury_addr: String,
     pub fee_rate: Decimal,
-    pub deposit_fee_denom: Vec<String>,
-    pub deposit_fee_amount: u128,
+    pub listing_fee_coins: Option<Vec<Coin>>,
 }
 
 impl InstantiateMsg {
@@ -95,6 +94,9 @@ pub enum ExecuteMsg {
     SetFeeRate {
         fee_rate: Decimal,
     },
+    SetListingCoins {
+        listing_fee_coins: Vec<Coin>,
+    }
 }
 
 #[cw_serde]

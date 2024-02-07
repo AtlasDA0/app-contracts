@@ -5,10 +5,12 @@
 ## Instantiate Contract
 ```json
 {
-    "deposit_fee_amount": "0",
-    "deposit_fee_denom": ["ustars", "usstars"],
-    "fee_distributor": "stars1...",
+    "treasury_addr": "stars1...",
     "fee_rate": "0.5",
+    "listing_fee_coins": [
+        {"amount": "420", "denom":"ustars"},
+        {"amount": "69", "denom":"uatom"}
+        ],
     "name": "atlas-dao-nft-loan",
     "owner": "stars1..."
 } 

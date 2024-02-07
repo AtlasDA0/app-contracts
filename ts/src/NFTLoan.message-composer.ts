@@ -95,15 +95,20 @@ export interface NFTLoanMessage {
   }: {
     owner: string;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
-  setFeeDistributor: ({
-    feeDepositor
+  setFeeDestination: ({
+    treasuryAddr
   }: {
-    feeDepositor: string;
+    treasuryAddr: string;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
   setFeeRate: ({
     feeRate
   }: {
     feeRate: Decimal;
+  }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  setListingCoins: ({
+    listingFeeCoins
+  }: {
+    listingFeeCoins: Coin[];
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
 }
 export class NFTLoanMessageComposer implements NFTLoanMessage {
@@ -125,8 +130,9 @@ export class NFTLoanMessageComposer implements NFTLoanMessage {
     this.repayBorrowedFunds = this.repayBorrowedFunds.bind(this);
     this.withdrawDefaultedLoan = this.withdrawDefaultedLoan.bind(this);
     this.setOwner = this.setOwner.bind(this);
-    this.setFeeDistributor = this.setFeeDistributor.bind(this);
+    this.setFeeDestination = this.setFeeDestination.bind(this);
     this.setFeeRate = this.setFeeRate.bind(this);
+    this.setListingCoins = this.setListingCoins.bind(this);
   }
 
   listCollaterals = ({
@@ -393,10 +399,10 @@ export class NFTLoanMessageComposer implements NFTLoanMessage {
       })
     };
   };
-  setFeeDistributor = ({
-    feeDepositor
+  setFeeDestination = ({
+    treasuryAddr
   }: {
-    feeDepositor: string;
+    treasuryAddr: string;
   }, funds?: Coin[]): MsgExecuteContractEncodeObject => {
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
@@ -404,8 +410,8 @@ export class NFTLoanMessageComposer implements NFTLoanMessage {
         sender: this.sender,
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
-          set_fee_distributor: {
-            fee_depositor: feeDepositor
+          set_fee_destination: {
+            treasury_addr: treasuryAddr
           }
         })),
         funds
@@ -425,6 +431,25 @@ export class NFTLoanMessageComposer implements NFTLoanMessage {
         msg: toUtf8(JSON.stringify({
           set_fee_rate: {
             fee_rate: feeRate
+          }
+        })),
+        funds
+      })
+    };
+  };
+  setListingCoins = ({
+    listingFeeCoins
+  }: {
+    listingFeeCoins: Coin[];
+  }, funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          set_listing_coins: {
+            listing_fee_coins: listingFeeCoins
           }
         })),
         funds

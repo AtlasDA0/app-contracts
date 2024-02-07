@@ -1,16 +1,44 @@
-use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Decimal, Timestamp, Uint128};
-use cw_multi_test::{BankSudo, Executor, SudoMsg};
-use nft_loans::msg::InstantiateMsg as LoanInstantiateMsg;
-use sg_multi_test::StargazeApp;
-use sg_std::NATIVE_DENOM;
-use vending_factory::state::{ParamsExtension, VendingMinterParams};
 use crate::common_setup::contract_boxes::{
     contract_nft_loans, contract_sg721_base, contract_vending_factory, contract_vending_minter,
     custom_mock_app,
 };
+use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Decimal, Timestamp, Uint128};
+use cw_multi_test::{BankSudo, Executor, SudoMsg};
+use nft_loans::msg::InstantiateMsg as LoanInstantiateMsg;
+use sg2::msg::CollectionParams;
+use sg721::CollectionInfo;
+use sg_multi_test::StargazeApp;
+use sg_std::NATIVE_DENOM;
+use vending_factory::state::{ParamsExtension, VendingMinterParams};
+
+use super::{
+    msg::{LoanCodeIds, LoanSetupParams},
+    setup_minter::{self, vending_minter::setup::setup_minter_contract},
+};
 const OWNER_ADDR: &str = "fee";
 const TREASURY_ADDR: &str = "collector";
 const OFFERER_ADDR: &str = "offerer";
+
+pub fn loan_template_code_ids(router: &mut StargazeApp) -> LoanCodeIds {
+    let minter_code_id = router.store_code(contract_vending_minter());
+    println!("minter_code_id: {minter_code_id}");
+
+    let factory_code_id = router.store_code(contract_vending_factory());
+    println!("factory_code_id: {factory_code_id}");
+
+    let sg721_code_id = router.store_code(contract_sg721_base());
+    println!("sg721_code_id: {sg721_code_id}");
+
+    let loan_code_id = router.store_code(contract_nft_loans());
+    println!("loan_code_id: {loan_code_id}");
+
+    LoanCodeIds {
+        minter_code_id,
+        factory_code_id,
+        sg721_code_id,
+        loan_code_id,
+    }
+}
 
 pub fn proper_loan_instantiate() -> (StargazeApp, Addr, Addr) {
     // setup mock blockchain environment
@@ -31,6 +59,14 @@ pub fn proper_loan_instantiate() -> (StargazeApp, Addr, Addr) {
         }
     }))
     .unwrap();
+    // fund test account
+    app.sudo(SudoMsg::Bank({
+        BankSudo::Mint {
+            to_address: OWNER_ADDR.to_string(),
+            amount: vec![coin(100000000000u128, "uscrt".to_string())],
+        }
+    }))
+    .unwrap();
     app.sudo(SudoMsg::Bank({
         BankSudo::Mint {
             to_address: OFFERER_ADDR.to_string(),
@@ -40,20 +76,17 @@ pub fn proper_loan_instantiate() -> (StargazeApp, Addr, Addr) {
     .unwrap();
 
     // store wasm code for nft, minter , nft-loan
-    let loan_code_id = app.store_code(contract_nft_loans());
-    let factory_id = app.store_code(contract_vending_factory());
-    let minter_id = app.store_code(contract_vending_minter());
-    let sg721_id = app.store_code(contract_sg721_base());
+    let code_ids = loan_template_code_ids(&mut app);
 
     // setup nft minter
     let factory_addr = app
         .instantiate_contract(
-            factory_id,
+            code_ids.factory_code_id,
             Addr::unchecked(OWNER_ADDR),
             &vending_factory::msg::InstantiateMsg {
                 params: VendingMinterParams {
-                    code_id: minter_id.clone(),
-                    allowed_sg721_code_ids: vec![sg721_id.clone()],
+                    code_id: code_ids.minter_code_id,
+                    allowed_sg721_code_ids: vec![code_ids.sg721_code_id],
                     frozen: false,
                     creation_fee: Coin {
                         denom: NATIVE_DENOM.to_string(),
@@ -88,15 +121,15 @@ pub fn proper_loan_instantiate() -> (StargazeApp, Addr, Addr) {
     // create nft-loan contract
     let nft_loan_addr = app
         .instantiate_contract(
-            loan_code_id,
+            code_ids.loan_code_id,
             Addr::unchecked(OWNER_ADDR),
             &LoanInstantiateMsg {
                 name: "loan-with-insights".to_string(),
                 owner: Some(Addr::unchecked(OWNER_ADDR).to_string()),
                 treasury_addr: Addr::unchecked(TREASURY_ADDR).to_string(),
                 fee_rate: Decimal::percent(5),
-                deposit_fee_denom: vec!["usstars".to_string(), NATIVE_DENOM.to_string()],
-                deposit_fee_amount: 50,
+                listing_fee_coins: vec![coin(55, NATIVE_DENOM.to_string()), coin(45, "usstars")]
+                    .into(),
             },
             &[],
             "loans",

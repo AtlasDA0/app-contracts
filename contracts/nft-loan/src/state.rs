@@ -8,6 +8,8 @@ use crate::error::ContractError;
 pub const CONFIG: Item<Config> = Item::new("config");
 pub const COLLATERAL_INFO: Map<(Addr, u64), CollateralInfo> = Map::new("collateral_info");
 pub const BORROWER_INFO: Map<&Addr, BorrowerInfo> = Map::new("borrower_info");
+pub const STATIC_LOAN_LISTING_FEE: u128 = 10; 
+
 
 #[cw_serde]
 pub struct OwnerStruct {
@@ -26,12 +28,10 @@ pub struct Config {
     /// A % used to calculate how much of a loan interest is
     /// sent to the fee_distributor
     pub fee_rate: Decimal,
+    pub listing_fee_coins: Vec<Coin>,
     /// Tracks the number of offers made across all loans
     pub global_offer_index: u64,
-    /// The expected token denomination being sent when starting a loan workflow
-    pub deposit_fee_denom: Vec<String>,
-    /// The expected token amount when starting a loan workflow
-    pub deposit_fee_amount: u128,
+
 }
 
 #[cw_serde]
@@ -44,7 +44,7 @@ pub struct CollateralInfo {
     pub active_offer: Option<String>,
     pub start_block: Option<u64>,
     pub comment: Option<String>,
-    pub loan_preview: Option<AssetInfo>, // The preview can only be a CW1155 or a CW721 token.
+    pub loan_preview: Option<AssetInfo>, // The preview can only be a SG721 or a CW721 token.
 }
 
 impl Default for CollateralInfo {

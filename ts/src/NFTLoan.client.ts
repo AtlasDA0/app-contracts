@@ -278,15 +278,20 @@ export interface NFTLoanInterface extends NFTLoanReadOnlyInterface {
   }: {
     owner: string;
   }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
-  setFeeDistributor: ({
-    feeDepositor
+  setFeeDestination: ({
+    treasuryAddr
   }: {
-    feeDepositor: string;
+    treasuryAddr: string;
   }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
   setFeeRate: ({
     feeRate
   }: {
     feeRate: Decimal;
+  }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
+  setListingCoins: ({
+    listingFeeCoins
+  }: {
+    listingFeeCoins: Coin[];
   }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class NFTLoanClient extends NFTLoanQueryClient implements NFTLoanInterface {
@@ -311,8 +316,9 @@ export class NFTLoanClient extends NFTLoanQueryClient implements NFTLoanInterfac
     this.repayBorrowedFunds = this.repayBorrowedFunds.bind(this);
     this.withdrawDefaultedLoan = this.withdrawDefaultedLoan.bind(this);
     this.setOwner = this.setOwner.bind(this);
-    this.setFeeDistributor = this.setFeeDistributor.bind(this);
+    this.setFeeDestination = this.setFeeDestination.bind(this);
     this.setFeeRate = this.setFeeRate.bind(this);
+    this.setListingCoins = this.setListingCoins.bind(this);
   }
 
   listCollaterals = async ({
@@ -483,14 +489,14 @@ export class NFTLoanClient extends NFTLoanQueryClient implements NFTLoanInterfac
       }
     }, fee, memo, funds);
   };
-  setFeeDistributor = async ({
-    feeDepositor
+  setFeeDestination = async ({
+    treasuryAddr
   }: {
-    feeDepositor: string;
+    treasuryAddr: string;
   }, fee: number | StdFee | "auto" = "auto", memo?: string, funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
-      set_fee_distributor: {
-        fee_depositor: feeDepositor
+      set_fee_destination: {
+        treasury_addr: treasuryAddr
       }
     }, fee, memo, funds);
   };
@@ -502,6 +508,17 @@ export class NFTLoanClient extends NFTLoanQueryClient implements NFTLoanInterfac
     return await this.client.execute(this.sender, this.contractAddress, {
       set_fee_rate: {
         fee_rate: feeRate
+      }
+    }, fee, memo, funds);
+  };
+  setListingCoins = async ({
+    listingFeeCoins
+  }: {
+    listingFeeCoins: Coin[];
+  }, fee: number | StdFee | "auto" = "auto", memo?: string, funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      set_listing_coins: {
+        listing_fee_coins: listingFeeCoins
       }
     }, fee, memo, funds);
   };

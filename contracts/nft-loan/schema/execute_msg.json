@@ -356,16 +356,16 @@
     {
       "type": "object",
       "required": [
-        "set_fee_distributor"
+        "set_fee_destination"
       ],
       "properties": {
-        "set_fee_distributor": {
+        "set_fee_destination": {
           "type": "object",
           "required": [
-            "fee_depositor"
+            "treasury_addr"
           ],
           "properties": {
-            "fee_depositor": {
+            "treasury_addr": {
               "type": "string"
             }
           },
@@ -388,6 +388,30 @@
           "properties": {
             "fee_rate": {
               "$ref": "#/definitions/Decimal"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_listing_coins"
+      ],
+      "properties": {
+        "set_listing_coins": {
+          "type": "object",
+          "required": [
+            "listing_fee_coins"
+          ],
+          "properties": {
+            "listing_fee_coins": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Coin"
+              }
             }
           },
           "additionalProperties": false

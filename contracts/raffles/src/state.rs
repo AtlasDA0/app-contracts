@@ -26,10 +26,6 @@ pub struct Config {
     pub minimum_raffle_duration: u64, 
     /// The minimum interval, in seconds, during which users can provide entropy to the contract.
     pub minimum_raffle_timeout: u64, 
-    /// The accepted token denominations to create a new raffle. 
-    pub creation_fee_denom: Vec<String>,
-    /// The static fee amount to create a new raffle.
-    pub creation_fee_amount: Uint128,
     /// A % cut of all raffle fee's generated to go to the fee_addr
     pub raffle_fee: Decimal, 
     /// locks the contract from new raffles being created
@@ -39,18 +35,12 @@ pub struct Config {
     /// The expected fee token denomination of the nois_proxy contract
     pub nois_proxy_denom: String,
     /// The expected fee token amount of the nois_proxy contract
-    pub nois_proxy_amount: Uint128
+    pub nois_proxy_amount: Uint128,
+    pub creation_coins: Vec<Coin>,
 }
 
 impl Config{
     pub fn validate_fee(&self) -> Result<(), StdError>{
-        // Check the fee distribution
-        // if self.raffle_fee >= Decimal::one(){
-        //     return Err(StdError::generic_err(
-        //         "The Total Fee rate should be lower than 1"
-        //     ))
-        // }
-        // Ok(());
         ensure!(
             self.raffle_fee <= Decimal::one(),
             StdError::generic_err("The Total Fee rate should be lower than 1")

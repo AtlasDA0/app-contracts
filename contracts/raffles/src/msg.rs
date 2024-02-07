@@ -1,5 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Decimal, HexBinary, StdError, StdResult, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal, HexBinary, StdError, StdResult, Uint128};
 use nois::NoisCallback;
 use utils::state::{is_valid_name, AssetInfo};
 
@@ -15,22 +15,20 @@ pub struct InstantiateMsg {
     pub nois_proxy_denom: String,
     // Expected amount of token sent by contract for nois
     pub nois_proxy_amount: Uint128,
-    // Static raffle creation fee token 
-    pub creation_fee_denom: Option<Vec<String>>,
-    // Static raffle creation fee amount
-    pub creation_fee_amount: Option<Uint128>,
     // Admin of Contract
     pub owner: Option<String>,
     // Destination of Fee Streams
     pub fee_addr: Option<String>,
-    // Minimum lifecycle length of raffle 
+    // Minimum lifecycle length of raffle
     pub minimum_raffle_duration: Option<u64>,
-    // Minimum cooldown from raffle end to determine winner 
+    // Minimum cooldown from raffle end to determine winner
     pub minimum_raffle_timeout: Option<u64>,
     // Maximum participant limit for a raffle
     pub max_participant_number: Option<u32>,
     // % fee of raffle ticket sales to fee_addr
     pub raffle_fee: Option<Decimal>,
+
+    pub creation_coins: Option<Vec<Coin>>,
 }
 
 impl InstantiateMsg {
@@ -62,12 +60,13 @@ pub enum ExecuteMsg {
         fee_addr: Option<String>,
         minimum_raffle_duration: Option<u64>,
         minimum_raffle_timeout: Option<u64>,
-        creation_fee_denom: Option<Vec<String>>,
-        creation_fee_amount: Option<Uint128>,
+        // creation_fee_denom: Option<Vec<String>>,
+        // creation_fee_amount: Option<Uint128>,
         raffle_fee: Option<Decimal>,
         nois_proxy_addr: Option<String>,
         nois_proxy_denom: Option<String>,
         nois_proxy_amount: Option<Uint128>,
+        creation_coins: Option<Vec<Coin>>,
     },
     ModifyRaffle {
         raffle_id: u64,
@@ -135,13 +134,12 @@ pub struct ConfigResponse {
     pub last_raffle_id: u64,
     pub minimum_raffle_duration: u64, // The minimum interval in which users can buy raffle tickets
     pub minimum_raffle_timeout: u64, // The minimum interval during which users can provide entropy to the contract
-    pub creation_fee_amount: Uint128,
-    pub creation_fee_denom: Vec<String>,
     pub raffle_fee: Decimal, // The percentage of the resulting ticket-tokens that will go to the treasury
     pub lock: bool,          // Wether the contract can accept new raffles
     pub nois_proxy_addr: Addr,
     pub nois_proxy_denom: String,
     pub nois_proxy_amount: Uint128,
+    pub creation_coins: Vec<Coin>,
 }
 
 #[cw_serde]

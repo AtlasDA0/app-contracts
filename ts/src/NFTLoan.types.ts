@@ -65,12 +65,16 @@ export type ExecuteMsg = {
     owner: string;
   };
 } | {
-  set_fee_distributor: {
-    fee_depositor: string;
+  set_fee_destination: {
+    treasury_addr: string;
   };
 } | {
   set_fee_rate: {
     fee_rate: Decimal;
+  };
+} | {
+  set_listing_coins: {
+    listing_fee_coins: Coin[];
   };
 };
 export type AssetInfo = {
@@ -101,12 +105,11 @@ export interface LoanTerms {
   principle: Coin;
 }
 export interface InstantiateMsg {
-  deposit_fee_amount: number;
-  deposit_fee_denom: string[];
-  fee_distributor: string;
   fee_rate: Decimal;
+  listing_fee_coins: Coin[];
   name: string;
   owner?: string | null;
+  treasury_addr: string;
 }
 export type QueryMsg = {
   config: {};

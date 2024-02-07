@@ -72,23 +72,13 @@
         "update_config": {
           "type": "object",
           "properties": {
-            "creation_fee_amount": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/Uint128"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "creation_fee_denom": {
+            "creation_coins": {
               "type": [
                 "array",
                 "null"
               ],
               "items": {
-                "type": "string"
+                "$ref": "#/definitions/Coin"
               }
             },
             "fee_addr": {

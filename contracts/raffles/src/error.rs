@@ -113,8 +113,10 @@ pub enum ContractError {
     #[error("Please include at least one asset when creating a raffle")]
     NoAssets {},
 
-    #[error("The sent assets ({assets_received:?}) don't match the required assets ({assets_wanted:?}) for this raffle")]
+    // TODO: update to calculate value
+    #[error("The sent assets ({assets_received:?})  don't match the required assets ({assets_wanted:?}) multiplied ({ticket_count:?}) for this raffle")]
     PaymentNotSufficient {
+        ticket_count: u32,
         assets_wanted: AssetInfo,
         assets_received: AssetInfo,
     },

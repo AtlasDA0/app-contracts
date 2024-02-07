@@ -163,6 +163,7 @@ pub fn is_raffle_owner(
 
 /// Computes the ticket cost for multiple tickets bought together
 pub fn ticket_cost(raffle_info: RaffleInfo, ticket_count: u32) -> Result<AssetInfo, ContractError> {
+    // enforces only Coin is a ticket cost currently.
     Ok(match raffle_info.raffle_ticket_price {
         AssetInfo::Coin(x) => AssetInfo::Coin(Coin {
             denom: x.denom,

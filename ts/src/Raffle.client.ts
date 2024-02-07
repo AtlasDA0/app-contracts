@@ -140,8 +140,7 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
     raffleId: number;
   }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
   updateConfig: ({
-    creationFeeAmount,
-    creationFeeDenom,
+    creationCoins,
     feeAddr,
     minimumRaffleDuration,
     minimumRaffleTimeout,
@@ -152,8 +151,7 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
     owner,
     raffleFee
   }: {
-    creationFeeAmount?: Uint128;
-    creationFeeDenom?: string[];
+    creationCoins?: Coin[];
     feeAddr?: string;
     minimumRaffleDuration?: number;
     minimumRaffleTimeout?: number;
@@ -266,8 +264,7 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
     }, fee, memo, funds);
   };
   updateConfig = async ({
-    creationFeeAmount,
-    creationFeeDenom,
+    creationCoins,
     feeAddr,
     minimumRaffleDuration,
     minimumRaffleTimeout,
@@ -278,8 +275,7 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
     owner,
     raffleFee
   }: {
-    creationFeeAmount?: Uint128;
-    creationFeeDenom?: string[];
+    creationCoins?: Coin[];
     feeAddr?: string;
     minimumRaffleDuration?: number;
     minimumRaffleTimeout?: number;
@@ -292,8 +288,7 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
   }, fee: number | StdFee | "auto" = "auto", memo?: string, funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       update_config: {
-        creation_fee_amount: creationFeeAmount,
-        creation_fee_denom: creationFeeDenom,
+        creation_coins: creationCoins,
         fee_addr: feeAddr,
         minimum_raffle_duration: minimumRaffleDuration,
         minimum_raffle_timeout: minimumRaffleTimeout,

@@ -4,6 +4,7 @@ use cosmwasm_std::{
 };
 use cw721::{Cw721ExecuteMsg, Cw721ReceiveMsg};
 use cw721_base::Extension;
+
 use nois::{NoisCallback, ProxyExecuteMsg};
 use sg721::ExecuteMsg as Sg721ExecuteMsg;
 use sg_std::{CosmosMsg, StargazeMsgWrapper};
@@ -46,22 +47,21 @@ pub fn execute_create_raffle(
         return Err(ContractError::ContractIsLocked {});
     }
 
-    if info.funds.len() > 1 {
-        return Err(ContractError::InvalidAmount(
-            "too many tokens in fee payment".to_string(),
-        ));
-    }
+    // TODO:
+    // if multiple info.funds are sent, check that they are both equal to
+    // the static fee and the AssetInfo in all_assets
 
     // looks for the fee token sent in the msg.
     let fee = info
         .funds
         .iter()
-        .find(|c| config.creation_fee_denom.contains(&c.denom))
-        .map(|c| Uint128::from(c.amount))
-        .unwrap_or_else(|| Uint128::zero());
+        .find(|c| config.creation_coins.contains(c))
+        .map(|c| Coin::from(c.clone()))
+        .unwrap_or_default();
 
-    // if the fee is not equal to the raffle creation fee set, return err.
-    if fee != config.creation_fee_amount {
+    // if the fee is not equal to one of the raffle fee coins set
+    // return an invalid raffle fee error
+    if !config.creation_coins.contains(&fee) {
         return Err(ContractError::InvalidRaffleFee {});
     }
 
@@ -138,7 +138,7 @@ pub fn execute_create_raffle(
         raffle_options.clone(),
     )?;
 
-    // defines the fee token to send to nois-proxy
+    // defines the fee token to send to nois-proxy, by the smart contracts
     let nois_fee: Coin = coin(NOIS_AMOUNT, config.nois_proxy_denom);
 
     let raffle_lifecycle = raffle_options
@@ -149,15 +149,15 @@ pub fn execute_create_raffle(
 
     // GetNextRandomness requests the randomness from the proxy after the expected raffle duration
     // The job id is needed to know what randomness we are referring to upon reception in the callback.
-    let nois_msg: WasmMsg = WasmMsg::Execute {
-        contract_addr: config.nois_proxy_addr.into_string(),
-        msg: to_json_binary(&ProxyExecuteMsg::GetRandomnessAfter {
-            after: raffle_lifecycle,
-            job_id: "raffle-".to_string() + raffle_id.to_string().as_str(),
-        })?,
+    // let nois_msg: WasmMsg = WasmMsg::Execute {
+    //     contract_addr: config.nois_proxy_addr.into_string(),
+    //     msg: to_json_binary(&ProxyExecuteMsg::GetRandomnessAfter {
+    //         after: raffle_lifecycle,
+    //         job_id: "raffle-".to_string() + raffle_id.to_string().as_str(),
+    //     })?,
 
-        funds: vec![nois_fee], // Pay from the contract
-    };
+    //     funds: vec![nois_fee], // Pay from the contract
+    // };
 
     // verifies raffle lifecycle length (3 months)
     let max_allowed_beacon_time = env
@@ -174,7 +174,7 @@ pub fn execute_create_raffle(
     Ok(Response::new()
         .add_message(transfer_fee)
         .add_messages(transfer_messages)
-        .add_message(nois_msg)
+        // .add_message(nois_msg)
         .add_attribute("action", "create_raffle")
         .add_attribute("raffle_id", raffle_id.to_string())
         .add_attribute("owner", owner.unwrap_or_else(|| info.sender.clone())))
@@ -351,6 +351,7 @@ pub fn execute_buy_tickets(
             {
                 return Err(ContractError::AssetMismatch {});
             }
+
             vec![]
         }
         _ => return Err(ContractError::WrongAssetType {}),
@@ -389,8 +390,10 @@ pub fn _buy_tickets(
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
 
     // We first check the sent assets match the raffle assets
+    // TODO: print correct assets_wanted value
     if ticket_cost(raffle_info.clone(), ticket_count)? != assets {
         return Err(ContractError::PaymentNotSufficient {
+            ticket_count,
             assets_wanted: raffle_info.raffle_ticket_price,
             assets_received: assets,
         });
@@ -630,14 +633,13 @@ pub fn execute_update_config(
     fee_addr: Option<String>,
     minimum_raffle_duration: Option<u64>,
     minimum_raffle_timeout: Option<u64>,
-    creation_fee_denom: Option<Vec<String>>,
-    creation_fee_amount: Option<Uint128>,
     raffle_fee: Option<Decimal>,
     nois_proxy_addr: Option<String>,
     nois_proxy_denom: Option<String>,
     nois_proxy_amount: Option<Uint128>,
+    creation_coins: Option<Vec<Coin>>,
 ) -> Result<Response, ContractError> {
-    let config = CONFIG.load(deps.storage)?;
+    let mut config = CONFIG.load(deps.storage)?;
     // ensure msg sender is admin
     ensure_eq!(info.sender, config.owner, ContractError::Unauthorized);
     let name = config.name;
@@ -673,13 +675,18 @@ pub fn execute_update_config(
         Some(npa) => npa,
         None => config.nois_proxy_amount,
     };
-    let creation_fee_denom = match creation_fee_denom {
-        Some(crf) => crf,
-        None => config.creation_fee_denom,
-    };
-    let creation_fee_amount = match creation_fee_amount {
-        Some(crf) => crf,
-        None => config.creation_fee_amount,
+    // let creation_fee_denom = match creation_fee_denom {
+    //     Some(crf) => crf,
+    //     None => config.creation_fee_denom,
+    // };
+    // let creation_fee_amount = match creation_fee_amount {
+    //     Some(crf) => crf,
+    //     None => config.creation_fee_amount,
+    // };
+
+    let creation_coins = match creation_coins {
+        Some(crc) => crc,
+        None => config.creation_coins,
     };
     // we have a seperate function to lock a raffle, so we skip here
     let lock = config.lock;
@@ -695,13 +702,14 @@ pub fn execute_update_config(
             last_raffle_id,
             minimum_raffle_duration,
             minimum_raffle_timeout,
-            creation_fee_amount,
-            creation_fee_denom,
+            // creation_fee_amount,
+            // creation_fee_denom,
             raffle_fee,
             lock,
             nois_proxy_addr,
             nois_proxy_denom,
             nois_proxy_amount,
+            creation_coins,
         },
     )?;
 

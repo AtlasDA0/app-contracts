@@ -127,8 +127,10 @@ mod tests {
                     owner: Some(Addr::unchecked(OWNER_ADDR).to_string()),
                     treasury_addr: Addr::unchecked(OWNER_ADDR).to_string(),
                     fee_rate: Decimal::percent(5),
-                    deposit_fee_denom: vec!["usstars".to_string(), NATIVE_DENOM.to_string()],
-                    deposit_fee_amount: 50,
+                    listing_fee_coins: vec![
+                        coin(55, NATIVE_DENOM.to_string()),
+                        coin(45, "usstars".to_string()),
+                    ].into(),
                 },
                 &[],
                 "loans",
@@ -264,7 +266,7 @@ mod tests {
                 },
                 &[Coin {
                     denom: NATIVE_DENOM.to_string(),
-                    amount: Uint128::new(50u128),
+                    amount: Uint128::new(55u128),
                 }],
             )
             .unwrap();

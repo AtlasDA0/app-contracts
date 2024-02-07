@@ -17,8 +17,7 @@ export type ExecuteMsg = {
   };
 } | {
   update_config: {
-    creation_fee_amount?: Uint128 | null;
-    creation_fee_denom?: string[] | null;
+    creation_coins?: Coin[] | null;
     fee_addr?: string | null;
     minimum_raffle_duration?: number | null;
     minimum_raffle_timeout?: number | null;
@@ -106,8 +105,7 @@ export interface NoisCallback {
   randomness: HexBinary;
 }
 export interface InstantiateMsg {
-  creation_fee_amount?: Uint128 | null;
-  creation_fee_denom?: string[] | null;
+  creation_coins?: Coin[] | null;
   fee_addr?: string | null;
   max_participant_number?: number | null;
   minimum_raffle_duration?: number | null;
@@ -180,8 +178,7 @@ export interface RaffleOptions {
 }
 export type ArrayOfString = string[];
 export interface ConfigResponse {
-  creation_fee_amount: Uint128;
-  creation_fee_denom: string[];
+  creation_coins: Coin[];
   fee_addr: Addr;
   last_raffle_id: number;
   lock: boolean;

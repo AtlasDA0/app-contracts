@@ -28,8 +28,7 @@ export interface RaffleMessage {
     raffleId: number;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
   updateConfig: ({
-    creationFeeAmount,
-    creationFeeDenom,
+    creationCoins,
     feeAddr,
     minimumRaffleDuration,
     minimumRaffleTimeout,
@@ -40,8 +39,7 @@ export interface RaffleMessage {
     owner,
     raffleFee
   }: {
-    creationFeeAmount?: Uint128;
-    creationFeeDenom?: string[];
+    creationCoins?: Coin[];
     feeAddr?: string;
     minimumRaffleDuration?: number;
     minimumRaffleTimeout?: number;
@@ -167,8 +165,7 @@ export class RaffleMessageComposer implements RaffleMessage {
     };
   };
   updateConfig = ({
-    creationFeeAmount,
-    creationFeeDenom,
+    creationCoins,
     feeAddr,
     minimumRaffleDuration,
     minimumRaffleTimeout,
@@ -179,8 +176,7 @@ export class RaffleMessageComposer implements RaffleMessage {
     owner,
     raffleFee
   }: {
-    creationFeeAmount?: Uint128;
-    creationFeeDenom?: string[];
+    creationCoins?: Coin[];
     feeAddr?: string;
     minimumRaffleDuration?: number;
     minimumRaffleTimeout?: number;
@@ -198,8 +194,7 @@ export class RaffleMessageComposer implements RaffleMessage {
         contract: this.contractAddress,
         msg: toUtf8(JSON.stringify({
           update_config: {
-            creation_fee_amount: creationFeeAmount,
-            creation_fee_denom: creationFeeDenom,
+            creation_coins: creationCoins,
             fee_addr: feeAddr,
             minimum_raffle_duration: minimumRaffleDuration,
             minimum_raffle_timeout: minimumRaffleTimeout,

@@ -33,8 +33,7 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         nois_proxy_addr: config.nois_proxy_addr,
         nois_proxy_denom: config.nois_proxy_denom,
         nois_proxy_amount: config.nois_proxy_amount,
-        creation_fee_amount: config.creation_fee_amount,
-        creation_fee_denom: config.creation_fee_denom,
+        creation_coins: config.creation_coins,
     })
 }
 

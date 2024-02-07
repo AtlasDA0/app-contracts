@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    coins, Addr, BankMsg, Decimal, DepsMut, Empty, Env, MessageInfo, StdError, StdResult, Storage,
-    Uint128,
+    coins, Addr, BankMsg, Coin, Decimal, DepsMut, Empty, Env, MessageInfo, StdError, StdResult,
+    Storage,
 };
 
 use cw721::Cw721ExecuteMsg;
@@ -87,24 +87,24 @@ pub fn list_collaterals(
         _ => Err(ContractError::SenderNotOwner {}),
     })?;
 
-    if info.funds.len() > 1 {
-        return Err(ContractError::InvalidAmount {});
-    }
+    // if info.funds.len() > 1 {
+    //     return Err(ContractError::InvalidAmount {});
+    // };
 
     let fee = info
         .funds
         .iter()
-        .find(|c| config.deposit_fee_denom.contains(&c.denom))
-        .map(|c| Uint128::from(c.amount))
-        .unwrap_or_else(|| Uint128::zero());
+        .find(|c| config.listing_fee_coins.contains(&c))
+        .map(|c| Coin::from(c.clone()))
+        .unwrap_or_default();
 
-    if fee != Uint128::from(config.deposit_fee_amount) {
-        return Err(ContractError::NoDepositFeeProvided {});
+    if !config.listing_fee_coins.contains(&fee) {
+        return Err(ContractError::DepositFeeError {});
     }
     // transfer fee to treasury_addr
     let transfer_fee: CosmosMsg = BankMsg::Send {
         to_address: config.treasury_addr.to_string(),
-        amount: info.funds,
+        amount: vec![fee], // only the fee required
     }
     .into();
 
@@ -134,7 +134,7 @@ pub fn list_collaterals(
         )));
     }
 
-    // Finally we save an collateral info object
+    // Finally we save a collateral info object
     COLLATERAL_INFO.save(
         deps.storage,
         (borrower.clone(), loan_id),
@@ -148,6 +148,7 @@ pub fn list_collaterals(
         },
     )?;
 
+    // response attributes
     Ok(Response::new()
         .add_message(transfer_fee)
         .add_attribute("action", "deposit_collateral")
@@ -648,10 +649,7 @@ pub fn repay_borrowed_funds(
     if lender_payback.u128() > 0u128 {
         res = res.add_message(BankMsg::Send {
             to_address: offer_info.lender.to_string(),
-            amount: coins(
-                lender_payback.u128(),
-                info.funds[0].denom.clone(),
-            ),
+            amount: coins(lender_payback.u128(), info.funds[0].denom.clone()),
         })
     }
 
