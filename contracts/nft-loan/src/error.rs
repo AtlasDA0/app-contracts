@@ -88,4 +88,7 @@ pub enum ContractError {
 
     #[error("There is an issue with the approval of the tokens. please approve this contract to interact with your nfts & try again!")]
     TokenApprovalIssue {},
+
+    #[error("Invalid Name")]
+    InvalidName {},
 }

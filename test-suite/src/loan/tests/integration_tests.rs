@@ -23,7 +23,7 @@ mod tests {
     use crate::{
         common_setup::{
             contract_boxes::custom_mock_app,
-            helpers::assert_error,
+            helpers::{assert_error, generate_bytes_string},
             setup_loan::proper_loan_instantiate,
             setup_minter::{
                 common::{
@@ -50,6 +50,7 @@ mod tests {
             funds_amount: MINT_PRICE,
             admin_account: Addr::unchecked(OWNER_ADDR),
             fee_rate: LOAN_INTEREST_TAX,
+            name: LOAN_NAME.into(),
         };
         instantate_contract(params).unwrap();
     }
@@ -62,11 +63,29 @@ mod tests {
             funds_amount: MINT_PRICE,
             admin_account: Addr::unchecked(OWNER_ADDR),
             fee_rate: LOAN_INTEREST_TAX + Decimal::percent(60),
+            name: LOAN_NAME.into(),
         };
         let res = instantate_contract(params).unwrap_err();
         assert_eq!(
             res.root_cause().to_string(),
             "The fee_rate you provided is not greater than 0, or less than 1"
+        );
+    }
+
+    #[test]
+    fn test_instantiate_too_large_name() {
+        let mut app = custom_mock_app();
+        let params = InstantiateParams {
+            app: &mut app,
+            funds_amount: MINT_PRICE,
+            admin_account: Addr::unchecked(OWNER_ADDR),
+            fee_rate: LOAN_INTEREST_TAX,
+            name: "80808080808080808080808080808080808080808080808080808080808080808080808080808080808088080808080808080808080808080808080808080808080808080808080808080808080808080808080808".to_string(),
+        };
+        let res = instantate_contract(params).unwrap_err();
+        assert_eq!(
+            res.root_cause().to_string(),
+            "Invalid Name"
         );
     }
 
@@ -78,6 +97,7 @@ mod tests {
             funds_amount: MINT_PRICE,
             admin_account: Addr::unchecked(OWNER_ADDR),
             fee_rate: LOAN_INTEREST_TAX,
+            name: LOAN_NAME.into(),
         };
         let nft_loan_addr = instantate_contract(params).unwrap();
 
@@ -103,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_updating_contract_coverage() {
-        let (mut app, nft_loan_addr, factory_addr) = proper_loan_instantiate();
+        let (mut app, nft_loan_addr, _) = proper_loan_instantiate();
 
         let error_updating_listing_coins = app
             .execute_contract(

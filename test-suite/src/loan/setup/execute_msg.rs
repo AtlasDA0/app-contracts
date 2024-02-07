@@ -15,6 +15,7 @@ pub fn instantate_contract(params: InstantiateParams) -> Result<cosmwasm_std::Ad
     let admin_account = params.admin_account;
     let funds_amount = params.funds_amount;
     let fee_rate = params.fee_rate;
+    let name = params.name;
 
     params
         .app
@@ -29,7 +30,7 @@ pub fn instantate_contract(params: InstantiateParams) -> Result<cosmwasm_std::Ad
     let loan_code_id = params.app.store_code(contract_nft_loans());
 
     let msg: InstantiateMsg = InstantiateMsg {
-        name: LOAN_NAME.into(),
+        name: name,
         owner: Some(OWNER_ADDR.into()),
         treasury_addr: ATLAS_DAO_STARGAZE_TREASURY.into(),
         fee_rate,

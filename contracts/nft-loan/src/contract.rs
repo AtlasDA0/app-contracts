@@ -7,6 +7,7 @@ use cosmwasm_std::{
 
 use cw2::set_contract_version;
 use sg_std::{StargazeMsgWrapper, NATIVE_DENOM};
+use utils::state::is_valid_name;
 
 use crate::error::ContractError;
 use crate::execute::{
@@ -33,10 +34,15 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    // valid interest fee
     ensure!(
         msg.fee_rate > Decimal::zero() && msg.fee_rate <= Decimal::one(),
         ContractError::InvalidFeeRate {}
     );
+    // valid name
+    if !is_valid_name(&msg.name) {
+        return Err(ContractError::InvalidName{})
+    }
 
     // define the accepted fee coins
     let listing_fee = match msg.listing_fee_coins {
@@ -48,7 +54,7 @@ pub fn instantiate(
         name: msg.name,
         owner: deps
             .api
-            .addr_validate(&msg.owner.unwrap_or_else(|| info.sender.to_string()))?,
+            .addr_validate(&msg.owner.unwrap_or_else(|| info.sender.to_string()))?, // msg sender is owner if no value provided
         treasury_addr: deps.api.addr_validate(&msg.treasury_addr)?,
         fee_rate: msg.fee_rate,
         global_offer_index: 0,
