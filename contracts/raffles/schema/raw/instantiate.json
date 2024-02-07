@@ -5,8 +5,7 @@
   "required": [
     "name",
     "nois_proxy_addr",
-    "nois_proxy_amount",
-    "nois_proxy_denom"
+    "nois_proxy_coin"
   ],
   "properties": {
     "creation_coins": {
@@ -54,11 +53,8 @@
     "nois_proxy_addr": {
       "type": "string"
     },
-    "nois_proxy_amount": {
-      "$ref": "#/definitions/Uint128"
-    },
-    "nois_proxy_denom": {
-      "type": "string"
+    "nois_proxy_coin": {
+      "$ref": "#/definitions/Coin"
     },
     "owner": {
       "type": [

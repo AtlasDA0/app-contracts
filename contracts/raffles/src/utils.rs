@@ -20,7 +20,7 @@ pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, Contr
     let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id.clone())?;
     let config = CONFIG.load(deps.storage)?;
     let id: String = raffle_id.to_string();
-    let nois_fee: Coin = coin(NOIS_AMOUNT, config.nois_proxy_denom);
+    let nois_fee: Coin = config.nois_proxy_coin;
 
     // cannot provide new randomness once value is provided
     if raffle_info.randomness.is_some() {

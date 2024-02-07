@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{ensure, Addr, Coin, Decimal, Env, HexBinary, StdError, StdResult, Storage, Timestamp, Uint128};
+use cosmwasm_std::{ensure, Addr, Coin, Decimal, Env, HexBinary, StdError, StdResult, Storage, Timestamp};
 
 use cw_storage_plus::{Item, Map};
 use utils::state::AssetInfo;
@@ -33,9 +33,7 @@ pub struct Config {
     /// The nois_proxy contract address
     pub nois_proxy_addr: Addr,
     /// The expected fee token denomination of the nois_proxy contract
-    pub nois_proxy_denom: String,
-    /// The expected fee token amount of the nois_proxy contract
-    pub nois_proxy_amount: Uint128,
+    pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,
 }
 

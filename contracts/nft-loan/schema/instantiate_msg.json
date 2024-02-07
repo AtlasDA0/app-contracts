@@ -4,7 +4,6 @@
   "type": "object",
   "required": [
     "fee_rate",
-    "listing_fee_coins",
     "name",
     "treasury_addr"
   ],
@@ -13,7 +12,10 @@
       "$ref": "#/definitions/Decimal"
     },
     "listing_fee_coins": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "items": {
         "$ref": "#/definitions/Coin"
       }

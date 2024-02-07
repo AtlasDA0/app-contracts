@@ -268,8 +268,7 @@ mod tests {
                     &InstantiateMsg {
                         name: RAFFLE_NAME.to_string(),
                         nois_proxy_addr: "".to_string(),
-                        nois_proxy_denom: NATIVE_DENOM.to_string(),
-                        nois_proxy_amount: NOIS_AMOUNT.into(),
+                        nois_proxy_coin: coin(NOIS_AMOUNT.into(), NATIVE_DENOM.to_string()),
                         owner: Some(OWNER_ADDR.to_string()),
                         fee_addr: Some(OWNER_ADDR.to_owned()),
                         minimum_raffle_duration: None,

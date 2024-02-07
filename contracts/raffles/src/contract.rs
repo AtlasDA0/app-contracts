@@ -58,8 +58,7 @@ pub fn instantiate(
         raffle_fee: msg.raffle_fee.unwrap_or(Decimal::zero()),
         lock: false,
         nois_proxy_addr,
-        nois_proxy_denom: msg.nois_proxy_denom,
-        nois_proxy_amount: msg.nois_proxy_amount,
+        nois_proxy_coin: msg.nois_proxy_coin,
         creation_coins,
     };
 
@@ -100,8 +99,7 @@ pub fn execute(
             minimum_raffle_timeout,
             raffle_fee,
             nois_proxy_addr,
-            nois_proxy_denom,
-            nois_proxy_amount,
+            nois_proxy_coin,
             creation_coins,
         } => execute_update_config(
             deps,
@@ -114,8 +112,7 @@ pub fn execute(
             minimum_raffle_timeout,
             raffle_fee,
             nois_proxy_addr,
-            nois_proxy_denom,
-            nois_proxy_amount,
+            nois_proxy_coin,
             creation_coins,
         ),
         ExecuteMsg::CreateRaffle {

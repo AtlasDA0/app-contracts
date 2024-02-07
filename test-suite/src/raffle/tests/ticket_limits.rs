@@ -80,8 +80,7 @@ mod tests {
                 &InstantiateMsg {
                     name: NAME.to_string(),
                     nois_proxy_addr: NOIS_PROXY_ADDR.to_string(),
-                    nois_proxy_denom: NATIVE_DENOM.to_string(),
-                    nois_proxy_amount: NOIS_AMOUNT.into(),
+                    nois_proxy_coin: coin(NOIS_AMOUNT.into(), NATIVE_DENOM.to_string()),
                     owner: Some(OWNER_ADDR.to_string()),
                     fee_addr: Some(OWNER_ADDR.to_owned()),
                     minimum_raffle_duration: Some(20),
@@ -91,7 +90,8 @@ mod tests {
                     creation_coins: vec![
                         coin(CREATION_FEE_AMNT.into(), NATIVE_DENOM.to_string()),
                         coin(CREATION_FEE_AMNT.into(), "usstars".to_string()),
-                    ].into(),
+                    ]
+                    .into(),
                 },
                 &[],
                 "raffle",
@@ -146,8 +146,7 @@ mod tests {
                     raffle_fee: Decimal::percent(50),
                     lock: false,
                     nois_proxy_addr: Addr::unchecked("nois"),
-                    nois_proxy_denom: "ustars".to_string(),
-                    nois_proxy_amount: Uint128::new(50),
+                    nois_proxy_coin: coin(50, NATIVE_DENOM),
                     creation_coins: vec![
                         coin(CREATION_FEE_AMNT, NATIVE_DENOM.to_string()),
                         coin(CREATION_FEE_AMNT, "usstars".to_string())

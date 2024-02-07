@@ -2,8 +2,8 @@ use cosmwasm_std::{
     to_json_binary, Addr, Api, Deps, Env, Order, QueryRequest, StdError, StdResult, WasmQuery,
 };
 use cw721::{Cw721QueryMsg, OwnerOfResponse};
-use sg721_base::QueryMsg as Sg721QueryMsg;
 use cw_storage_plus::Bound;
+use sg721_base::QueryMsg as Sg721QueryMsg;
 use utils::state::AssetInfo;
 
 use crate::{
@@ -31,9 +31,8 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         raffle_fee: config.raffle_fee,
         lock: config.lock,
         nois_proxy_addr: config.nois_proxy_addr,
-        nois_proxy_denom: config.nois_proxy_denom,
-        nois_proxy_amount: config.nois_proxy_amount,
         creation_coins: config.creation_coins,
+        nois_proxy_coin: config.nois_proxy_coin,
     })
 }
 
@@ -227,7 +226,9 @@ pub fn is_nft_owner(
         }))?;
 
     if owner_response.owner != sender {
-        return Err(StdError::generic_err("message sender is not owner of tokens being raffled"));
+        return Err(StdError::generic_err(
+            "message sender is not owner of tokens being raffled",
+        ));
     }
     Ok(())
 }
@@ -248,7 +249,9 @@ pub fn is_sg721_owner(
         }))?;
 
     if owner_response.owner != sender {
-        return Err(StdError::generic_err("message sender is not owner of tokens being raffled"));
+        return Err(StdError::generic_err(
+            "message sender is not owner of tokens being raffled",
+        ));
     }
     Ok(())
 }

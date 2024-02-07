@@ -139,7 +139,7 @@ pub fn execute_create_raffle(
     )?;
 
     // defines the fee token to send to nois-proxy, by the smart contracts
-    let nois_fee: Coin = coin(NOIS_AMOUNT, config.nois_proxy_denom);
+    let nois_fee: Coin = config.nois_proxy_coin;
 
     let raffle_lifecycle = raffle_options
         .raffle_start_timestamp
@@ -635,8 +635,7 @@ pub fn execute_update_config(
     minimum_raffle_timeout: Option<u64>,
     raffle_fee: Option<Decimal>,
     nois_proxy_addr: Option<String>,
-    nois_proxy_denom: Option<String>,
-    nois_proxy_amount: Option<Uint128>,
+    nois_proxy_coin: Option<Coin>,
     creation_coins: Option<Vec<Coin>>,
 ) -> Result<Response, ContractError> {
     let mut config = CONFIG.load(deps.storage)?;
@@ -667,22 +666,10 @@ pub fn execute_update_config(
         Some(prx) => deps.api.addr_validate(&prx)?,
         None => config.nois_proxy_addr,
     };
-    let nois_proxy_denom = match nois_proxy_denom {
-        Some(npr) => npr,
-        None => config.nois_proxy_denom,
+    let nois_proxy_coin = match nois_proxy_coin {
+        Some(npc) => npc,
+        None => config.nois_proxy_coin,
     };
-    let nois_proxy_amount = match nois_proxy_amount {
-        Some(npa) => npa,
-        None => config.nois_proxy_amount,
-    };
-    // let creation_fee_denom = match creation_fee_denom {
-    //     Some(crf) => crf,
-    //     None => config.creation_fee_denom,
-    // };
-    // let creation_fee_amount = match creation_fee_amount {
-    //     Some(crf) => crf,
-    //     None => config.creation_fee_amount,
-    // };
 
     let creation_coins = match creation_coins {
         Some(crc) => crc,
@@ -702,13 +689,10 @@ pub fn execute_update_config(
             last_raffle_id,
             minimum_raffle_duration,
             minimum_raffle_timeout,
-            // creation_fee_amount,
-            // creation_fee_denom,
             raffle_fee,
             lock,
             nois_proxy_addr,
-            nois_proxy_denom,
-            nois_proxy_amount,
+            nois_proxy_coin,
             creation_coins,
         },
     )?;

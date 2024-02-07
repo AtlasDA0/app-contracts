@@ -11,8 +11,7 @@
     "minimum_raffle_timeout",
     "name",
     "nois_proxy_addr",
-    "nois_proxy_amount",
-    "nois_proxy_denom",
+    "nois_proxy_coin",
     "owner",
     "raffle_fee"
   ],
@@ -50,11 +49,8 @@
     "nois_proxy_addr": {
       "$ref": "#/definitions/Addr"
     },
-    "nois_proxy_amount": {
-      "$ref": "#/definitions/Uint128"
-    },
-    "nois_proxy_denom": {
-      "type": "string"
+    "nois_proxy_coin": {
+      "$ref": "#/definitions/Coin"
     },
     "owner": {
       "$ref": "#/definitions/Addr"

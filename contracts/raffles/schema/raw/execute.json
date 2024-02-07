@@ -115,20 +115,14 @@
                 "null"
               ]
             },
-            "nois_proxy_amount": {
+            "nois_proxy_coin": {
               "anyOf": [
                 {
-                  "$ref": "#/definitions/Uint128"
+                  "$ref": "#/definitions/Coin"
                 },
                 {
                   "type": "null"
                 }
-              ]
-            },
-            "nois_proxy_denom": {
-              "type": [
-                "string",
-                "null"
               ]
             },
             "owner": {

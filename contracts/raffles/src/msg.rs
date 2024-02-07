@@ -1,5 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Coin, Decimal, HexBinary, StdError, StdResult, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal, HexBinary, StdError, StdResult};
 use nois::NoisCallback;
 use utils::state::{is_valid_name, AssetInfo};
 
@@ -11,10 +11,8 @@ pub struct InstantiateMsg {
     pub name: String,
     // Address of the nois_proxy
     pub nois_proxy_addr: String,
-    // Expected token to be sent by contract for nois
-    pub nois_proxy_denom: String,
-    // Expected amount of token sent by contract for nois
-    pub nois_proxy_amount: Uint128,
+    // Coin expected for the randomness source
+    pub nois_proxy_coin: Coin,
     // Admin of Contract
     pub owner: Option<String>,
     // Destination of Fee Streams
@@ -60,12 +58,9 @@ pub enum ExecuteMsg {
         fee_addr: Option<String>,
         minimum_raffle_duration: Option<u64>,
         minimum_raffle_timeout: Option<u64>,
-        // creation_fee_denom: Option<Vec<String>>,
-        // creation_fee_amount: Option<Uint128>,
         raffle_fee: Option<Decimal>,
         nois_proxy_addr: Option<String>,
-        nois_proxy_denom: Option<String>,
-        nois_proxy_amount: Option<Uint128>,
+        nois_proxy_coin: Option<Coin>,
         creation_coins: Option<Vec<Coin>>,
     },
     ModifyRaffle {
@@ -137,8 +132,7 @@ pub struct ConfigResponse {
     pub raffle_fee: Decimal, // The percentage of the resulting ticket-tokens that will go to the treasury
     pub lock: bool,          // Wether the contract can accept new raffles
     pub nois_proxy_addr: Addr,
-    pub nois_proxy_denom: String,
-    pub nois_proxy_amount: Uint128,
+    pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,
 }
 
