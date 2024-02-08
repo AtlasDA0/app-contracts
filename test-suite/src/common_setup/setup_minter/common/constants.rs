@@ -25,7 +25,7 @@ pub const VENDING_MINTER: &str = "contract2";
 pub const SG721_CONTRACT: &str = "contract3";
 pub const NOIS_PROXY_ADDR: &str = "nois";
 pub const RAFFLE_NAME: &str = "raffle contract name";
-pub const LOAN_NAME: &str = "loan contract name";
+pub const LOAN_NAME: &str = "loan-with-insights";
 
 pub const DEV_ADDRESS: &str = "stars1abcd4kdla12mh86psg4y4h6hh05g2hmqoap350";
 pub const FOUNDATION: &str = "stars1xqz6xujjyz0r9uzn7srasle5uynmpa0zkjr5l8";

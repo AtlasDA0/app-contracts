@@ -1,5 +1,5 @@
 [package]
-name = "raffles"
+name = "sg-raffles"
 version = "0.2.0"
 authors = []
 edition = "2021"

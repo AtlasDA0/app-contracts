@@ -2,7 +2,7 @@
 mod tests {
     use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Decimal, Empty, Timestamp, Uint128};
     use cw_multi_test::{BankSudo, Executor, SudoMsg};
-    use nft_loans::{
+    use sg_nft_loans::{
         error::ContractError,
         msg::{ExecuteMsg, InstantiateMsg},
         state::{CollateralInfo, LoanState, LoanTerms},
@@ -315,7 +315,7 @@ mod tests {
             .wrap()
             .query_wasm_smart(
                 nft_loan_addr.clone(),
-                &nft_loans::msg::QueryMsg::CollateralInfo {
+                &sg_nft_loans::msg::QueryMsg::CollateralInfo {
                     borrower: OWNER_ADDR.to_string(),
                     loan_id: 0,
                 },
@@ -356,7 +356,7 @@ mod tests {
             .wrap()
             .query_wasm_smart(
                 nft_loan_addr.clone(),
-                &nft_loans::msg::QueryMsg::CollateralInfo {
+                &sg_nft_loans::msg::QueryMsg::CollateralInfo {
                     borrower: OWNER_ADDR.to_string(),
                     loan_id: 0,
                 },

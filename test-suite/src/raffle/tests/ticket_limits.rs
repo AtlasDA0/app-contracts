@@ -2,7 +2,7 @@
 mod tests {
     use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Decimal, Timestamp, Uint128};
     use cw_multi_test::Executor;
-    use raffles::msg::InstantiateMsg;
+    use sg_raffles::msg::InstantiateMsg;
     use sg_multi_test::StargazeApp;
     use sg_std::NATIVE_DENOM;
     use vending_factory::state::{ParamsExtension, VendingMinterParams};
@@ -106,7 +106,7 @@ mod tests {
         use cosmwasm_std::{coin, Coin, Empty, HexBinary, Uint128};
         use cw_multi_test::{BankSudo, SudoMsg};
         use nois::NoisCallback;
-        use raffles::{
+        use sg_raffles::{
             error::ContractError,
             msg::{ConfigResponse, ExecuteMsg},
             state::{RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState},
@@ -125,11 +125,11 @@ mod tests {
             let (mut app, raffle_contract_addr, factory_addr) =
                 proper_instantiate_raffles_with_limits();
 
-            let query_config: raffles::msg::ConfigResponse = app
+            let query_config: sg_raffles::msg::ConfigResponse = app
                 .wrap()
                 .query_wasm_smart(
                     raffle_contract_addr.clone(),
-                    &raffles::msg::QueryMsg::Config {},
+                    &sg_raffles::msg::QueryMsg::Config {},
                 )
                 .unwrap();
 
@@ -322,7 +322,7 @@ mod tests {
                 .execute_contract(
                     Addr::unchecked(OWNER_ADDR),
                     raffle_contract_addr.clone(),
-                    &raffles::msg::ExecuteMsg::CreateRaffle {
+                    &sg_raffles::msg::ExecuteMsg::CreateRaffle {
                         owner: None,
                         assets: vec![
                             AssetInfo::Sg721Token(Sg721Token {
@@ -354,11 +354,11 @@ mod tests {
                 )
                 .unwrap();
 
-            let res: raffles::msg::RaffleResponse = app
+            let res: sg_raffles::msg::RaffleResponse = app
                 .wrap()
                 .query_wasm_smart(
                     raffle_contract_addr.clone(),
-                    &raffles::msg::QueryMsg::RaffleInfo { raffle_id: 0 },
+                    &sg_raffles::msg::QueryMsg::RaffleInfo { raffle_id: 0 },
                 )
                 .unwrap();
 
@@ -470,11 +470,11 @@ mod tests {
                 .unwrap();
 
             // assert that if no raffles are bought, raffle is finished and there is no winner
-            let res: raffles::msg::RaffleResponse = app
+            let res: sg_raffles::msg::RaffleResponse = app
                 .wrap()
                 .query_wasm_smart(
                     raffle_contract_addr.clone(),
-                    &raffles::msg::QueryMsg::RaffleInfo { raffle_id: 0 },
+                    &sg_raffles::msg::QueryMsg::RaffleInfo { raffle_id: 0 },
                 )
                 .unwrap();
             // println!("{:#?}", res);

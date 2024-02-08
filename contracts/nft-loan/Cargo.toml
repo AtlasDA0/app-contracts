@@ -1,5 +1,5 @@
 [package]
-name = "nft-loans"
+name = "sg-nft-loans"
 version = "0.2.0"
 authors = ["A Hardnett | PermissionlessWeb"]
 edition = "2021"

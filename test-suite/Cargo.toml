@@ -31,6 +31,6 @@ vending-minter      = "3.3.0"
 sg2 = "3.3.0"
 nois = "0.8.0"
 
-raffles = { path = "../contracts/raffles", features=["library"] }
-nft-loans = { path = "../contracts/nft-loan" }
+sg-raffles = { path = "../contracts/raffles", features=["library"] }
+sg-nft-loans = { path = "../contracts/nft-loan" }
 utils = {path = "../packages/utils"}

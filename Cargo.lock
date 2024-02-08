@@ -34,12 +34,12 @@ dependencies = [
  "cosmwasm-std",
  "cw-multi-test",
  "cw721 0.18.0",
- "nft-loans",
  "nois",
- "raffles",
  "schemars",
  "serde",
  "sg-multi-test",
+ "sg-nft-loans",
+ "sg-raffles",
  "sg-std",
  "sg2",
  "sg721",
@@ -910,28 +910,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "523dc4f511e55ab87b694dc30d0f820d60906ef06413f93d4d7a1385599cc149"
 
 [[package]]
-name = "nft-loans"
-version = "0.2.0"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-storage-plus 1.2.0",
- "cw2 1.1.2",
- "cw721 0.18.0",
- "cw721-base 0.18.0",
- "fee-contract-export",
- "fee-distributor-export",
- "nois",
- "schemars",
- "serde",
- "sg-std",
- "sg721",
- "sg721-base",
- "thiserror",
- "utils",
-]
-
-[[package]]
 name = "nois"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1105,27 +1083,6 @@ name = "radium"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
-
-[[package]]
-name = "raffles"
-version = "0.2.0"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-storage-plus 1.2.0",
- "cw-utils 1.0.3",
- "cw2 1.1.2",
- "cw721 0.18.0",
- "cw721-base 0.18.0",
- "nois",
- "serde",
- "sg-std",
- "sg721",
- "sg721-base",
- "sha2 0.10.8",
- "thiserror",
- "utils",
-]
 
 [[package]]
 name = "rand"
@@ -1380,6 +1337,49 @@ dependencies = [
  "schemars",
  "serde",
  "sg-std",
+]
+
+[[package]]
+name = "sg-nft-loans"
+version = "0.2.0"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-storage-plus 1.2.0",
+ "cw2 1.1.2",
+ "cw721 0.18.0",
+ "cw721-base 0.18.0",
+ "fee-contract-export",
+ "fee-distributor-export",
+ "nois",
+ "schemars",
+ "serde",
+ "sg-std",
+ "sg721",
+ "sg721-base",
+ "thiserror",
+ "utils",
+]
+
+[[package]]
+name = "sg-raffles"
+version = "0.2.0"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-storage-plus 1.2.0",
+ "cw-utils 1.0.3",
+ "cw2 1.1.2",
+ "cw721 0.18.0",
+ "cw721-base 0.18.0",
+ "nois",
+ "serde",
+ "sg-std",
+ "sg721",
+ "sg721-base",
+ "sha2 0.10.8",
+ "thiserror",
+ "utils",
 ]
 
 [[package]]

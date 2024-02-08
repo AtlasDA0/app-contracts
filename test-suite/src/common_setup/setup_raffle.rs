@@ -3,8 +3,8 @@ use std::vec;
 use cosmwasm_std::{coin, coins, Addr, Coin, Uint128};
 use cw_multi_test::Executor;
 
-use raffles::msg::InstantiateMsg;
-use raffles::state::NOIS_AMOUNT;
+use sg_raffles::msg::InstantiateMsg;
+use sg_raffles::state::NOIS_AMOUNT;
 use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
 use vending_factory::state::{ParamsExtension, VendingMinterParams};

@@ -7,7 +7,7 @@ use crate::common_setup::msg::{LoanCodeIds, MinterCodeIds, MinterCollectionRespo
 use crate::common_setup::setup_minter::common::parse_response::build_collection_response;
 use cosmwasm_std::{coin, coins, to_json_binary, Addr, Decimal};
 use cw_multi_test::{AppResponse, Executor};
-use nft_loans::msg::InstantiateMsg as LoanInstantiateMsg;
+use sg_nft_loans::msg::InstantiateMsg as LoanInstantiateMsg;
 use sg2::msg::CreateMinterMsg;
 use sg2::msg::{CollectionParams, Sg2ExecuteMsg};
 use sg_std::NATIVE_DENOM;

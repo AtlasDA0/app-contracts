@@ -1,6 +1,6 @@
 use cosmwasm_schema::write_api;
 
-use raffles::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use sg_raffles::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 fn main() {
     write_api! {

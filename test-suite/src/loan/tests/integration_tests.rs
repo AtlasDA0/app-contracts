@@ -4,14 +4,14 @@ mod tests {
 
     use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, StdError, Timestamp, Uint128};
     use cw_multi_test::Executor;
-    use raffles::state::ATLAS_DAO_STARGAZE_TREASURY;
+    use sg_raffles::state::ATLAS_DAO_STARGAZE_TREASURY;
     use sg2::tests::mock_collection_params_1;
     use sg_std::{GENESIS_MINT_START_TIME, NATIVE_DENOM};
 
     use sg721::CollectionInfo;
     use vending_factory::msg::VendingMinterCreateMsg;
 
-    use nft_loans::{
+    use sg_nft_loans::{
         error::ContractError,
         msg::{
             CollateralResponse, ExecuteMsg, MultipleCollateralsResponse, OfferResponse, QueryMsg,
@@ -73,7 +73,7 @@ mod tests {
     }
 
     #[test]
-    fn test_instantiate_too_large_name() {
+    fn test_instantiate_name() {
         let mut app = custom_mock_app();
         let params = InstantiateParams {
             app: &mut app,
@@ -82,11 +82,17 @@ mod tests {
             fee_rate: LOAN_INTEREST_TAX,
             name: "80808080808080808080808080808080808080808080808080808080808080808080808080808080808088080808080808080808080808080808080808080808080808080808080808080808080808080808080808".to_string(),
         };
-        let res = instantate_contract(params).unwrap_err();
-        assert_eq!(
-            res.root_cause().to_string(),
-            "Invalid Name"
-        );
+        let res1 = instantate_contract(params).unwrap_err();
+        let params = InstantiateParams {
+            app: &mut app,
+            funds_amount: MINT_PRICE,
+            admin_account: Addr::unchecked(OWNER_ADDR),
+            fee_rate: LOAN_INTEREST_TAX,
+            name: "80".to_string(),
+        };
+        let res2 = instantate_contract(params).unwrap_err();
+        assert_eq!(res1.root_cause().to_string(), "Invalid Name");
+        assert_eq!(res2.root_cause().to_string(), "Invalid Name");
     }
 
     #[test]
@@ -103,7 +109,7 @@ mod tests {
 
         let query_config: Config = app
             .wrap()
-            .query_wasm_smart(nft_loan_addr.clone(), &nft_loans::msg::QueryMsg::Config {})
+            .query_wasm_smart(nft_loan_addr.clone(), &sg_nft_loans::msg::QueryMsg::Config {})
             .unwrap();
         assert_eq!(
             query_config,
@@ -124,12 +130,12 @@ mod tests {
     #[test]
     fn test_updating_contract_coverage() {
         let (mut app, nft_loan_addr, _) = proper_loan_instantiate();
-
+        // errors
         let error_updating_listing_coins = app
             .execute_contract(
                 Addr::unchecked("not-owner"),
                 nft_loan_addr.clone(),
-                &nft_loans::msg::ExecuteMsg::SetListingCoins {
+                &sg_nft_loans::msg::ExecuteMsg::SetListingCoins {
                     listing_fee_coins: vec![coin(4, "uflix"), coin(5, "uscrt"), coin(6, "uatom")],
                 },
                 &[],
@@ -139,7 +145,7 @@ mod tests {
             .execute_contract(
                 Addr::unchecked("not-owner"),
                 nft_loan_addr.clone(),
-                &nft_loans::msg::ExecuteMsg::SetFeeDestination {
+                &sg_nft_loans::msg::ExecuteMsg::SetFeeDestination {
                     treasury_addr: OWNER_ADDR.into(),
                 },
                 &[],
@@ -149,7 +155,7 @@ mod tests {
             .execute_contract(
                 Addr::unchecked("not-owner"),
                 nft_loan_addr.clone(),
-                &nft_loans::msg::ExecuteMsg::SetFeeRate {
+                &sg_nft_loans::msg::ExecuteMsg::SetFeeRate {
                     fee_rate: Decimal::percent(20),
                 },
                 &[],
@@ -167,9 +173,69 @@ mod tests {
         assert_error(
             Err(error_updating_fee_percent),
             ContractError::Unauthorized {}.to_string(),
+        );
+        // good responses
+        let _check_listing_coins_with_existing_coin = app
+            .execute_contract(
+                Addr::unchecked(OWNER_ADDR.to_string()),
+                nft_loan_addr.clone(),
+                &sg_nft_loans::msg::ExecuteMsg::SetListingCoins {
+                    listing_fee_coins: vec![
+                        coin(4, "uflix"),
+                        coin(5, "uscrt"),
+                        coin(6, "uatom"),
+                        coin(7, "ustars"),
+                    ],
+                },
+                &[],
+            )
+            .unwrap();
+        let _check_set_fee_rate = app
+            .execute_contract(
+                Addr::unchecked(OWNER_ADDR.to_string()),
+                nft_loan_addr.clone(),
+                &sg_nft_loans::msg::ExecuteMsg::SetFeeRate {
+                    fee_rate: Decimal::percent(10),
+                },
+                &[],
+            )
+            .unwrap();
+        let _check_set_fee_rate = app
+            .execute_contract(
+                Addr::unchecked(OWNER_ADDR.to_string()),
+                nft_loan_addr.clone(),
+                &sg_nft_loans::msg::ExecuteMsg::SetFeeDestination {
+                    treasury_addr: ATLAS_DAO_STARGAZE_TREASURY.into(),
+                },
+                &[],
+            )
+            .unwrap();
+
+        let res: Config = app
+            .wrap()
+            .query_wasm_smart(nft_loan_addr.clone(), &sg_nft_loans::msg::QueryMsg::Config {})
+            .unwrap();
+
+        // println!("{:#?}", res);
+        assert_eq!(
+            res,
+            Config {
+                name: LOAN_NAME.into(),
+                owner: Addr::unchecked(OWNER_ADDR.to_string()),
+                treasury_addr: Addr::unchecked(ATLAS_DAO_STARGAZE_TREASURY.to_string()),
+                fee_rate: Decimal::percent(10),
+                listing_fee_coins: vec![
+                    coin(4, "uflix"),
+                    coin(5, "uscrt"),
+                    coin(6, "uatom"),
+                    coin(7, "ustars"),
+                ],
+                global_offer_index: 0
+            }
         )
     }
 
+    // TODO: setup function to create nft minter, mint & approve nfts
     #[test]
     fn integration_test_loans() {
         // setup test environment
@@ -228,6 +294,7 @@ mod tests {
             .unwrap();
         // println!("{:#?}", _mint41);
 
+        // mint nft token-id 56
         let _mint56 = app
             .execute_contract(
                 Addr::unchecked(OWNER_ADDR),
@@ -240,7 +307,7 @@ mod tests {
             )
             .unwrap();
 
-        // grant approval token id 61
+        // mint nft token-id 61
         let _mint61 = app
             .execute_contract(
                 Addr::unchecked(OWNER_ADDR),
@@ -374,7 +441,7 @@ mod tests {
             .wrap()
             .query_wasm_smart(
                 nft_loan_addr.clone(),
-                &nft_loans::msg::QueryMsg::Collaterals {
+                &sg_nft_loans::msg::QueryMsg::Collaterals {
                     borrower: Addr::unchecked(OWNER_ADDR).to_string(),
                     start_after: None,
                     limit: None,
@@ -440,7 +507,7 @@ mod tests {
                 }],
             )
             .unwrap();
-        // println!("{:#?}", _deposit61);
+        println!("{:#?}", _deposit61);
 
         // no collateral listing fee provided
         let bad_deposit_collateral_no_fee = app
@@ -635,7 +702,7 @@ mod tests {
             .wrap()
             .query_wasm_smart(
                 nft_loan_addr.clone(),
-                &nft_loans::msg::QueryMsg::CollateralInfo {
+                &sg_nft_loans::msg::QueryMsg::CollateralInfo {
                     borrower: Addr::unchecked(OWNER_ADDR).to_string(),
                     loan_id: 0,
                 },
@@ -840,7 +907,7 @@ mod tests {
                 &[],
             )
             .unwrap_err();
-        println!("{:#?}", bad_accept_offer);
+        // println!("{:#?}", bad_accept_offer);
         assert_error(
             Err(bad_accept_offer),
             StdError::GenericErr {
@@ -916,7 +983,7 @@ mod tests {
             .wrap()
             .query_wasm_smart(
                 nft_loan_addr.clone(),
-                &nft_loans::msg::QueryMsg::OfferInfo {
+                &sg_nft_loans::msg::QueryMsg::OfferInfo {
                     global_offer_id: 1.to_string(),
                 },
             )
