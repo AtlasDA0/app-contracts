@@ -1,0 +1,2 @@
+# Test Suite
+the goal is to setup tests similar to [stargaze launchpad](https://github.com/public-awesome/launchpad/tree/main/test-suite). If you have any suggestions or additions, please open a new issue!

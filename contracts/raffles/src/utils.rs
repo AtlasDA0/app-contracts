@@ -20,7 +20,7 @@ pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, Contr
     let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id.clone())?;
     let config = CONFIG.load(deps.storage)?;
     let id: String = raffle_id.to_string();
-    let nois_fee: Coin = coin(NOIS_AMOUNT, config.nois_proxy_denom);
+    let nois_fee: Coin = config.nois_proxy_coin;
 
     // cannot provide new randomness once value is provided
     if raffle_info.randomness.is_some() {
@@ -163,6 +163,7 @@ pub fn is_raffle_owner(
 
 /// Computes the ticket cost for multiple tickets bought together
 pub fn ticket_cost(raffle_info: RaffleInfo, ticket_count: u32) -> Result<AssetInfo, ContractError> {
+    // enforces only Coin is a ticket cost currently.
     Ok(match raffle_info.raffle_ticket_price {
         AssetInfo::Coin(x) => AssetInfo::Coin(Coin {
             denom: x.denom,

@@ -1,4 +1,4 @@
-use cosmwasm_std::ensure;
+use cosmwasm_std::{coin, ensure, Coin};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{
     ensure_eq, entry_point, to_json_binary, Binary, Decimal, Deps, DepsMut, Empty, Env,
@@ -6,7 +6,8 @@ use cosmwasm_std::{
 };
 
 use cw2::set_contract_version;
-use sg_std::StargazeMsgWrapper;
+use sg_std::{StargazeMsgWrapper, NATIVE_DENOM};
+use utils::state::is_valid_name;
 
 use crate::error::ContractError;
 use crate::execute::{
@@ -19,7 +20,7 @@ use crate::query::{
     query_all_collaterals, query_borrower_info, query_collateral_info, query_collaterals,
     query_config, query_lender_offers, query_offer_info, query_offers,
 };
-use crate::state::{Config, CONFIG};
+use crate::state::{Config, CONFIG, STATIC_LOAN_LISTING_FEE};
 // version info for migration info
 const CONTRACT_NAME: &str = concat!("crates.io:", env!("CARGO_CRATE_NAME"));
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -33,21 +34,31 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    // valid interest fee
     ensure!(
         msg.fee_rate > Decimal::zero() && msg.fee_rate <= Decimal::one(),
         ContractError::InvalidFeeRate {}
     );
+    // valid name
+    if !is_valid_name(&msg.name) {
+        return Err(ContractError::InvalidName{})
+    }
+
+    // define the accepted fee coins
+    let listing_fee = match msg.listing_fee_coins {
+        Some(cc_msg) => cc_msg,
+        None => vec![coin(STATIC_LOAN_LISTING_FEE, NATIVE_DENOM)],
+    };
 
     let data = Config {
         name: msg.name,
         owner: deps
             .api
-            .addr_validate(&msg.owner.unwrap_or_else(|| info.sender.to_string()))?,
+            .addr_validate(&msg.owner.unwrap_or_else(|| info.sender.to_string()))?, // msg sender is owner if no value provided
         treasury_addr: deps.api.addr_validate(&msg.treasury_addr)?,
         fee_rate: msg.fee_rate,
         global_offer_index: 0,
-        deposit_fee_denom: msg.deposit_fee_denom,
-        deposit_fee_amount: msg.deposit_fee_amount,
+        listing_fee_coins: listing_fee,
     };
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -127,6 +138,9 @@ pub fn execute(
         ExecuteMsg::SetOwner { owner } => set_owner(deps, env, info, owner),
         ExecuteMsg::SetFeeDestination { treasury_addr } => {
             set_fee_distributor(deps, env, info, treasury_addr)
+        }
+        ExecuteMsg::SetListingCoins { listing_fee_coins } => {
+            set_listing_coins(deps, env, info, listing_fee_coins)
         }
 
         ExecuteMsg::SetFeeRate { fee_rate } => set_fee_rate(deps, env, info, fee_rate),
@@ -224,4 +238,24 @@ pub fn set_fee_rate(
         .add_attribute("action", "changed-contract-parameter")
         .add_attribute("parameter", "fee_rate")
         .add_attribute("value", new_fee_rate.to_string()))
+}
+
+pub fn set_listing_coins(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    listing_fee_coins: Vec<Coin>,
+) -> Result<Response, ContractError> {
+    let mut config = CONFIG.load(deps.storage)?;
+
+    ensure_eq!(info.sender, config.owner, ContractError::Unauthorized {});
+
+    config.listing_fee_coins = listing_fee_coins;
+
+    CONFIG.save(deps.storage, &config)?;
+    Ok(
+        Response::default()
+            .add_attribute("action", "changed-contract-parameter")
+            .add_attribute("parameter", "fee_distributor"), // .add_attribute("value", listing_fee_coins)
+    )
 }

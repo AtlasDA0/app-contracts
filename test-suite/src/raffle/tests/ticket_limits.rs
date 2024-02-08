@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{Addr, BlockInfo, Coin, Decimal, Timestamp, Uint128};
+    use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Decimal, Timestamp, Uint128};
     use cw_multi_test::Executor;
     use raffles::msg::InstantiateMsg;
     use sg_multi_test::StargazeApp;
@@ -80,16 +80,18 @@ mod tests {
                 &InstantiateMsg {
                     name: NAME.to_string(),
                     nois_proxy_addr: NOIS_PROXY_ADDR.to_string(),
-                    nois_proxy_denom: NATIVE_DENOM.to_string(),
-                    nois_proxy_amount: NOIS_AMOUNT.into(),
-                    creation_fee_denom: Some(vec![NATIVE_DENOM.to_string(), "usstars".to_string()]),
-                    creation_fee_amount: Some(CREATION_FEE_AMNT.into()),
+                    nois_proxy_coin: coin(NOIS_AMOUNT.into(), NATIVE_DENOM.to_string()),
                     owner: Some(OWNER_ADDR.to_string()),
                     fee_addr: Some(OWNER_ADDR.to_owned()),
                     minimum_raffle_duration: Some(20),
                     minimum_raffle_timeout: Some(420),
                     max_participant_number: Some(3),
                     raffle_fee: Some(Decimal::percent(50)),
+                    creation_coins: vec![
+                        coin(CREATION_FEE_AMNT.into(), NATIVE_DENOM.to_string()),
+                        coin(CREATION_FEE_AMNT.into(), "usstars".to_string()),
+                    ]
+                    .into(),
                 },
                 &[],
                 "raffle",
@@ -120,7 +122,8 @@ mod tests {
         #[test]
         fn can_init() {
             // create testing app
-            let (mut app, raffle_contract_addr, factory_addr) = proper_instantiate_raffles_with_limits();
+            let (mut app, raffle_contract_addr, factory_addr) =
+                proper_instantiate_raffles_with_limits();
 
             let query_config: raffles::msg::ConfigResponse = app
                 .wrap()
@@ -140,13 +143,14 @@ mod tests {
                     last_raffle_id: 0,
                     minimum_raffle_duration: 20,
                     minimum_raffle_timeout: 420,
-                    creation_fee_amount:  Uint128::new(50),
-                    creation_fee_denom:  vec!["ustars".to_string(), "usstars".to_string()],
-                    raffle_fee:  Decimal::percent(50),
+                    raffle_fee: Decimal::percent(50),
                     lock: false,
                     nois_proxy_addr: Addr::unchecked("nois"),
-                    nois_proxy_denom:  "ustars".to_string(),
-                    nois_proxy_amount: Uint128::new(50),
+                    nois_proxy_coin: coin(50, NATIVE_DENOM),
+                    creation_coins: vec![
+                        coin(CREATION_FEE_AMNT, NATIVE_DENOM.to_string()),
+                        coin(CREATION_FEE_AMNT, "usstars".to_string())
+                    ]
                 }
             );
 

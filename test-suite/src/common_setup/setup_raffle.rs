@@ -1,4 +1,6 @@
-use cosmwasm_std::{Addr, Coin, Uint128};
+use std::vec;
+
+use cosmwasm_std::{coin, coins, Addr, Coin, Uint128};
 use cw_multi_test::Executor;
 
 use raffles::msg::InstantiateMsg;
@@ -12,7 +14,7 @@ use crate::common_setup::{
         contract_raffles, contract_sg721_base, contract_vending_factory, contract_vending_minter,
         custom_mock_app,
     },
-    setup_minter::common::constants::{CREATION_FEE_AMNT, NOIS_PROXY_ADDR, RAFFLE_NAME},
+    setup_minter::common::constants::{NOIS_PROXY_ADDR, RAFFLE_NAME},
 };
 
 use super::helpers::setup_block_time;
@@ -76,16 +78,18 @@ pub fn proper_instantiate() -> (StargazeApp, Addr, Addr) {
             &InstantiateMsg {
                 name: RAFFLE_NAME.to_string(),
                 nois_proxy_addr: NOIS_PROXY_ADDR.to_string(),
-                nois_proxy_denom: NATIVE_DENOM.to_string(),
-                nois_proxy_amount: NOIS_AMOUNT.into(),
-                creation_fee_denom: Some(vec![NATIVE_DENOM.to_string(), "usstars".to_string()]),
-                creation_fee_amount: Some(CREATION_FEE_AMNT.into()),
+                nois_proxy_coin: coin(NOIS_AMOUNT.into(), NATIVE_DENOM.to_string()),
                 owner: Some(OWNER_ADDR.to_string()),
                 fee_addr: Some(OWNER_ADDR.to_owned()),
                 minimum_raffle_duration: None,
                 minimum_raffle_timeout: None,
                 max_participant_number: None,
                 raffle_fee: None,
+                creation_coins: vec![
+                    coin(4, NATIVE_DENOM.to_string()),
+                    coin(20, "usstars".to_string()),
+                ]
+                .into(),
             },
             &[],
             "raffle",

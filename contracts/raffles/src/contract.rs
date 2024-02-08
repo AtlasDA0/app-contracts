@@ -1,8 +1,8 @@
 use cosmwasm_std::{
-    entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo, QueryResponse,
-    StdResult,
+    coin, entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
+    QueryResponse, StdResult,
 };
-use sg_std::StargazeMsgWrapper;
+use sg_std::{StargazeMsgWrapper, NATIVE_DENOM};
 
 use crate::error::ContractError;
 use crate::execute::{
@@ -13,8 +13,8 @@ use crate::execute::{
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse};
 use crate::query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count};
 use crate::state::{
-    get_raffle_state, load_raffle, Config, CONFIG, STATIC_RAFFLE_CREATION_FEE,
-    MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT,
+    get_raffle_state, load_raffle, Config, CONFIG, MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT,
+    STATIC_RAFFLE_CREATION_FEE,
 };
 use cw2::set_contract_version;
 
@@ -32,14 +32,10 @@ pub fn instantiate(
         .addr_validate(&msg.nois_proxy_addr)
         .map_err(|_| ContractError::InvalidProxyAddress)?;
 
-    let creation_fee_amount = match msg.creation_fee_amount {
-        Some(int) => int,
-        None => STATIC_RAFFLE_CREATION_FEE.into(),
-    };
-
-    let creation_fee_denom = match msg.creation_fee_denom {
-        Some(cfd) => cfd,
-        None => vec!["ustars".to_string(), "usstars".to_string()],
+    // define the accepted fee coins
+    let creation_coins = match msg.creation_coins {
+        Some(cc_msg) => cc_msg,
+        None => vec![coin(STATIC_RAFFLE_CREATION_FEE, NATIVE_DENOM)],
     };
 
     let config = Config {
@@ -60,12 +56,10 @@ pub fn instantiate(
             .unwrap_or(MINIMUM_RAFFLE_TIMEOUT)
             .max(MINIMUM_RAFFLE_TIMEOUT),
         raffle_fee: msg.raffle_fee.unwrap_or(Decimal::zero()),
-        creation_fee_denom,
-        creation_fee_amount,
         lock: false,
         nois_proxy_addr,
-        nois_proxy_denom: msg.nois_proxy_denom,
-        nois_proxy_amount: msg.nois_proxy_amount,
+        nois_proxy_coin: msg.nois_proxy_coin,
+        creation_coins,
     };
 
     config.validate_fee()?;
@@ -103,12 +97,10 @@ pub fn execute(
             fee_addr,
             minimum_raffle_duration,
             minimum_raffle_timeout,
-            creation_fee_denom,
-            creation_fee_amount,
             raffle_fee,
             nois_proxy_addr,
-            nois_proxy_denom,
-            nois_proxy_amount,
+            nois_proxy_coin,
+            creation_coins,
         } => execute_update_config(
             deps,
             env,
@@ -118,12 +110,10 @@ pub fn execute(
             fee_addr,
             minimum_raffle_duration,
             minimum_raffle_timeout,
-            creation_fee_denom,
-            creation_fee_amount,
             raffle_fee,
             nois_proxy_addr,
-            nois_proxy_denom,
-            nois_proxy_amount,
+            nois_proxy_coin,
+            creation_coins,
         ),
         ExecuteMsg::CreateRaffle {
             owner,

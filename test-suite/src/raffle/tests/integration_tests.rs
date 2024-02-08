@@ -192,10 +192,10 @@ mod tests {
                         },
                         raffle_ticket_price: AssetInfo::Coin(Coin {
                             denom: "ustars".to_string(),
-                            amount: Uint128::new(100u128),
+                            amount: Uint128::new(4u128),
                         }),
                     },
-                    &[coin(50, "ustars")],
+                    &[coin(4, "ustars")],
                 )
                 .unwrap();
             // println!("{:#?}", _good_create_raffle);
@@ -268,16 +268,18 @@ mod tests {
                     &InstantiateMsg {
                         name: RAFFLE_NAME.to_string(),
                         nois_proxy_addr: "".to_string(),
-                        nois_proxy_denom: NATIVE_DENOM.to_string(),
-                        nois_proxy_amount: NOIS_AMOUNT.into(),
-                        creation_fee_denom: Some(vec![NATIVE_DENOM.to_string()]),
-                        creation_fee_amount: Some(CREATION_FEE_AMNT.into()),
+                        nois_proxy_coin: coin(NOIS_AMOUNT.into(), NATIVE_DENOM.to_string()),
                         owner: Some(OWNER_ADDR.to_string()),
                         fee_addr: Some(OWNER_ADDR.to_owned()),
                         minimum_raffle_duration: None,
                         minimum_raffle_timeout: None,
                         max_participant_number: None,
                         raffle_fee: None,
+                        creation_coins: vec![
+                            coin(CREATION_FEE_AMNT, NATIVE_DENOM.to_string()),
+                            coin(CREATION_FEE_AMNT, "usstars".to_string()),
+                        ]
+                        .into(),
                     },
                     &[],
                     "raffle",
@@ -364,12 +366,12 @@ mod tests {
                         ticket_count: 16,
                         sent_assets: AssetInfo::Coin(Coin {
                             denom: NATIVE_DENOM.to_string(),
-                            amount: Uint128::new(1600u128),
+                            amount: Uint128::new(64u128),
                         }),
                     },
                     &[Coin {
                         denom: NATIVE_DENOM.to_string(),
-                        amount: Uint128::new(1600u128),
+                        amount: Uint128::new(64u128),
                     }],
                 )
                 .unwrap();
@@ -383,12 +385,12 @@ mod tests {
                         ticket_count: 16,
                         sent_assets: AssetInfo::Coin(Coin {
                             denom: NATIVE_DENOM.to_string(),
-                            amount: Uint128::new(1600u128),
+                            amount: Uint128::new(64u128),
                         }),
                     },
                     &[Coin {
                         denom: NATIVE_DENOM.to_string(),
-                        amount: Uint128::new(1600u128),
+                        amount: Uint128::new(64u128),
                     }],
                 )
                 .unwrap();
@@ -402,12 +404,12 @@ mod tests {
                         ticket_count: 16,
                         sent_assets: AssetInfo::Coin(Coin {
                             denom: NATIVE_DENOM.to_string(),
-                            amount: Uint128::new(1600u128),
+                            amount: Uint128::new(64u128),
                         }),
                     },
                     &[Coin {
                         denom: NATIVE_DENOM.to_string(),
-                        amount: Uint128::new(1600u128),
+                        amount: Uint128::new(64u128),
                     }],
                 )
                 .unwrap();
@@ -421,12 +423,12 @@ mod tests {
                         ticket_count: 16,
                         sent_assets: AssetInfo::Coin(Coin {
                             denom: NATIVE_DENOM.to_string(),
-                            amount: Uint128::new(1600u128),
+                            amount: Uint128::new(64u128),
                         }),
                     },
                     &[Coin {
                         denom: NATIVE_DENOM.to_string(),
-                        amount: Uint128::new(1600u128),
+                        amount: Uint128::new(64u128),
                     }],
                 )
                 .unwrap();
@@ -440,12 +442,12 @@ mod tests {
                         ticket_count: 16,
                         sent_assets: AssetInfo::Coin(Coin {
                             denom: NATIVE_DENOM.to_string(),
-                            amount: Uint128::new(1600u128),
+                            amount: Uint128::new(64u128),
                         }),
                     },
                     &[Coin {
                         denom: NATIVE_DENOM.to_string(),
-                        amount: Uint128::new(1600u128),
+                        amount: Uint128::new(64u128),
                     }],
                 )
                 .unwrap();

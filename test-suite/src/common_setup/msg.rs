@@ -5,12 +5,11 @@ use sg2::msg::CollectionParams;
 use sg_multi_test::StargazeApp;
 use vending_factory::msg::VendingMinterInitMsgExtension;
 
-
-
 pub struct MinterCollectionResponse {
     pub minter: Option<Addr>,
     pub collection: Option<Addr>,
     pub factory: Option<Addr>,
+    pub loan_escrow: Option<Addr>,
     pub error: Option<Error>,
 }
 
@@ -24,7 +23,16 @@ pub struct MinterSetupParams<'a> {
     pub minter_code_id: u64,
     pub factory_code_id: u64,
     pub sg721_code_id: u64,
+    pub loan_code_id: u64,
     pub init_msg: Option<VendingMinterInitMsgExtension>,
+}
+
+pub struct LoanSetupParams<'a> {
+    pub router: &'a mut StargazeApp,
+    pub loan_code_id: u64,
+}
+pub struct RaffleSetupParams<'a> {
+    pub router: &'a mut StargazeApp,
 }
 pub struct MinterInstantiateParams {
     pub num_tokens: u32,
@@ -34,8 +42,56 @@ pub struct MinterInstantiateParams {
 }
 
 #[cw_serde]
-pub struct CodeIds {
+pub struct LoanCodeIds {
     pub minter_code_id: u64,
     pub factory_code_id: u64,
     pub sg721_code_id: u64,
+    pub loan_code_id: u64,
+}
+
+#[cw_serde]
+pub struct RaffleCodeIds {
+    pub minter_code_id: u64,
+    pub factory_code_id: u64,
+    pub sg721_code_id: u64,
+    pub raffle_code_id: u64,
+}
+
+#[cw_serde]
+pub struct MinterCodeIds {
+    pub minter_code_id: u64,
+    pub factory_code_id: u64,
+    pub sg721_code_id: u64,
+}
+
+pub struct RaffleTemplateResponse<T> {
+    pub raffle_response_vec: Vec<CreateRaffleResponse>,
+    pub router: StargazeApp,
+    pub accts: T,
+}
+
+pub struct CreateRaffleResponse {
+    pub raffle: Option<Addr>,
+    pub owner: Option<Addr>,
+    pub error: Option<Error>,
+}
+
+pub struct RaffleAccounts {
+    pub creator: Addr,
+    pub buyer: Addr,
+}
+pub struct LoanAccounts {
+    pub depositor: Addr,
+    pub lender: Addr,
+}
+
+pub struct MinterAccounts {
+    pub creator: Addr,
+    pub buyer: Addr,
+}
+
+pub struct MinterTemplateResponse<T> {
+    pub collection_response_vec: Vec<MinterCollectionResponse>,
+    pub router: StargazeApp,
+    pub accts: T,
 }

@@ -72,23 +72,13 @@
         "update_config": {
           "type": "object",
           "properties": {
-            "creation_fee_amount": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/Uint128"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "creation_fee_denom": {
+            "creation_coins": {
               "type": [
                 "array",
                 "null"
               ],
               "items": {
-                "type": "string"
+                "$ref": "#/definitions/Coin"
               }
             },
             "fee_addr": {
@@ -125,20 +115,14 @@
                 "null"
               ]
             },
-            "nois_proxy_amount": {
+            "nois_proxy_coin": {
               "anyOf": [
                 {
-                  "$ref": "#/definitions/Uint128"
+                  "$ref": "#/definitions/Coin"
                 },
                 {
                   "type": "null"
                 }
-              ]
-            },
-            "nois_proxy_denom": {
-              "type": [
-                "string",
-                "null"
               ]
             },
             "owner": {
