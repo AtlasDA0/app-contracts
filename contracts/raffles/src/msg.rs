@@ -3,7 +3,10 @@ use cosmwasm_std::{Addr, Coin, Decimal, HexBinary, StdError, StdResult};
 use nois::NoisCallback;
 use utils::state::{is_valid_name, AssetInfo};
 
-use crate::state::{RaffleInfo, RaffleOptionsMsg, RaffleState};
+#[cfg(feature = "vanilla")]
+use crate::state_vanilla::{RaffleInfo, RaffleOptionsMsg, RaffleState};
+#[cfg(feature = "sg")]
+use crate::state_sg::{RaffleInfo, RaffleOptionsMsg, RaffleState};
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -54,6 +57,7 @@ pub enum ExecuteMsg {
         assets: Vec<AssetInfo>,
         raffle_options: RaffleOptionsMsg,
         raffle_ticket_price: AssetInfo,
+        autocycle: Option<bool>,
     },
     CancelRaffle {
         raffle_id: u64,

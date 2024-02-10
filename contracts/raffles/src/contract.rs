@@ -2,24 +2,43 @@ use cosmwasm_std::{
     coin, ensure, entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
     QueryResponse, StdResult,
 };
-use sg_std::{StargazeMsgWrapper, NATIVE_DENOM};
 use utils::state::is_valid_name;
+#[cfg(feature = "vanilla")]
+use {
+    crate::{
+        execute_sg::{
+            execute_buy_tickets, execute_cancel_raffle, execute_create_raffle,
+            execute_determine_winner, execute_modify_raffle, execute_receive, execute_receive_nois,
+            execute_toggle_lock, execute_update_config, execute_update_randomness,
+        },
+        state_sg::{
+            get_raffle_state, load_raffle, Config, CONFIG, MINIMUM_RAFFLE_DURATION,
+            MINIMUM_RAFFLE_TIMEOUT, STATIC_RAFFLE_CREATION_FEE,
+        },
+    },
+    cosmwasm_std::Response,
+};
+#[cfg(feature = "sg")]
+use {
+    crate::{
+        execute_sg::{
+            execute_buy_tickets, execute_cancel_raffle, execute_create_raffle,
+            execute_determine_winner, execute_modify_raffle, execute_receive, execute_receive_nois,
+            execute_toggle_lock, execute_update_config, execute_update_randomness,
+        },
+        state_sg::{
+            get_raffle_state, load_raffle, Config, CONFIG, MINIMUM_RAFFLE_DURATION,
+            MINIMUM_RAFFLE_TIMEOUT, STATIC_RAFFLE_CREATION_FEE,
+        },
+    },
+    sg_std::{StargazeMsgWrapper, NATIVE_DENOM},
+    utils::state::Response,
+};
 
 use crate::error::ContractError;
-use crate::execute::{
-    execute_buy_tickets, execute_cancel_raffle, execute_create_raffle, execute_determine_winner,
-    execute_modify_raffle, execute_receive, execute_receive_nois, execute_toggle_lock,
-    execute_update_config, execute_update_randomness,
-};
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse};
 use crate::query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count};
-use crate::state::{
-    get_raffle_state, load_raffle, Config, CONFIG, MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT,
-    STATIC_RAFFLE_CREATION_FEE,
-};
 use cw2::set_contract_version;
-
-pub type Response = cosmwasm_std::Response<StargazeMsgWrapper>;
 
 #[entry_point]
 pub fn instantiate(
@@ -105,6 +124,7 @@ pub fn execute(
             assets,
             raffle_options,
             raffle_ticket_price,
+            autocycle,
         } => execute_create_raffle(
             deps,
             env,
@@ -113,6 +133,7 @@ pub fn execute(
             assets,
             raffle_ticket_price,
             raffle_options,
+            autocycle,
         ),
         ExecuteMsg::CancelRaffle { raffle_id } => execute_cancel_raffle(deps, env, info, raffle_id),
         ExecuteMsg::ModifyRaffle {

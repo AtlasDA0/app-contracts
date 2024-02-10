@@ -4,12 +4,12 @@ use sg_std::CosmosMsg;
 
 use crate::msg::ExecuteMsg;
 
-/// CwTemplateContract is a wrapper around Addr that provides a lot of helpers
+/// SgNftLoanContract is a wrapper around Addr that provides a lot of helpers
 /// for working with this.
 #[cw_serde]
-pub struct CwTemplateContract(pub Addr);
+pub struct SgNftLoanContract(pub Addr);
 
-impl CwTemplateContract {
+impl SgNftLoanContract {
     pub fn addr(&self) -> Addr {
         self.0.clone()
     }

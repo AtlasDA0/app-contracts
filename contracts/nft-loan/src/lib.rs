@@ -3,5 +3,9 @@ pub mod error;
 pub mod helpers;
 pub mod msg;
 pub mod state;
-pub mod execute;
+
+#[cfg(feature = "vanilla")]
+pub mod execute_vanilla;
+#[cfg(feature = "sg")]
+pub mod execute_sg;
 pub mod query;

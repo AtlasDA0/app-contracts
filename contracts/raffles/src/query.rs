@@ -6,9 +6,18 @@ use cw_storage_plus::Bound;
 use sg721_base::QueryMsg as Sg721QueryMsg;
 use utils::state::AssetInfo;
 
+#[cfg(feature = "vanilla")]
 use crate::{
     msg::{AllRafflesResponse, ConfigResponse, QueryFilters, RaffleResponse},
-    state::{
+    state_vanilla::{
+        get_raffle_state, load_raffle, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO,
+        RAFFLE_TICKETS, USER_TICKETS,
+    },
+};
+#[cfg(feature = "sg")]
+use crate::{
+    msg::{AllRafflesResponse, ConfigResponse, QueryFilters, RaffleResponse},
+    state_sg::{
         get_raffle_state, load_raffle, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO,
         RAFFLE_TICKETS, USER_TICKETS,
     },

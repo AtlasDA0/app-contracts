@@ -1,17 +1,18 @@
+#[cfg(feature = "vanilla")]
+use crate::state::into_cosmos_msg;
+
 use cosmwasm_std::{
-    coins, Addr, BankMsg, Coin, Decimal, DepsMut, Empty, Env, MessageInfo, StdError, StdResult,
-    Storage,
+    coins, Addr, BankMsg, Coin, CosmosMsg, Decimal, DepsMut, Empty, Env, MessageInfo, Response,
+    StdError, StdResult, Storage,
 };
 
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
-use sg721::ExecuteMsg as Sg721ExecuteMsg;
-use sg_std::{CosmosMsg, Response};
-use utils::state::{into_cosmos_msg, is_valid_comment, AssetInfo, Cw721Coin, Sg721Token};
+use utils::state::{is_valid_comment, AssetInfo, Cw721Coin};
 
 use crate::{
     error::{self, ContractError},
-    query::{is_approved_cw721, is_approved_sg721, is_nft_owner, is_sg721_owner},
+    query::{is_approved_cw721, is_nft_owner},
     state::{
         can_repay_loan, get_active_loan, get_offer, is_active_lender, is_collateral_withdrawable,
         is_lender, is_loan_acceptable, is_loan_counterable, is_loan_defaulted, is_loan_modifiable,
@@ -31,6 +32,7 @@ use crate::{
 /// If terms are specified, fund lenders can accept the loan directly.
 /// If not, lenders can propose terms than may be accepted by the borrower in return to start the loan
 /// This deposit function allows CW721 and SG721 tokens to be listed
+#[cfg(feature = "vanilla")]
 pub fn list_collaterals(
     deps: DepsMut,
     env: Env,
@@ -60,23 +62,6 @@ pub fn list_collaterals(
             )?;
             // asserts nft has been approved for use by loan contract
             is_approved_cw721(
-                deps.as_ref(),
-                env.clone(),
-                borrower.clone(),
-                address.clone(),
-                token_id.clone(),
-            )
-        }
-        AssetInfo::Sg721Token(Sg721Token { address, token_id }) => {
-            // asserts borrower is owner of collateral
-            is_sg721_owner(
-                deps.as_ref(),
-                borrower.clone(),
-                address.to_string(),
-                token_id.to_string(),
-            )?;
-            // asserts nft has been approved for use by loan contract
-            is_approved_sg721(
                 deps.as_ref(),
                 env.clone(),
                 borrower.clone(),
@@ -156,6 +141,7 @@ pub fn list_collaterals(
         .add_attribute("loan_id", loan_id.to_string()))
 }
 
+#[cfg(feature = "vanilla")]
 pub fn modify_collaterals(
     deps: DepsMut,
     env: Env,
@@ -211,6 +197,7 @@ pub fn modify_collaterals(
 /// This simply cancels the potential loan.
 /// The collateral is not given back as there is not deposited collateral when creating a new loan
 /// TODO: remove approval from all collaterals
+#[cfg(feature = "vanilla")]
 pub fn withdraw_collateral(
     deps: DepsMut,
     _env: Env,
@@ -236,6 +223,7 @@ pub fn withdraw_collateral(
 
 /// Accept a loan and its terms directly
 /// As soon as the lender executes this messages, the loan starts and the borrower will need to repay the loan before the term
+#[cfg(feature = "vanilla")]
 pub fn accept_loan(
     deps: DepsMut,
     env: Env,
@@ -277,6 +265,7 @@ pub fn accept_loan(
 // It verifies an offer can be made for the current loan
 // It verifies the sent funds match the principle indicated in the terms
 // And then saves the new offer in the internal storage
+#[cfg(feature = "vanilla")]
 fn _make_offer_raw(
     storage: &mut dyn Storage,
     env: Env,
@@ -328,6 +317,7 @@ fn _make_offer_raw(
 }
 
 /// Accepts an offer without any owner checks
+#[cfg(feature = "vanilla")]
 fn _accept_offer_raw(
     deps: DepsMut,
     env: Env,
@@ -382,23 +372,6 @@ fn _accept_offer_raw(
                     None,
                 )?)
             }
-            AssetInfo::Sg721Token(Sg721Token { address, token_id }) => {
-                is_sg721_owner(
-                    deps.as_ref(),
-                    borrower.clone(),
-                    address.to_string(),
-                    token_id.to_string(),
-                )?;
-
-                Ok(into_cosmos_msg(
-                    Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
-                        recipient: env.contract.address.clone().into(),
-                        token_id: token_id.to_string(),
-                    },
-                    address,
-                    None,
-                )?)
-            }
             _ => Err(ContractError::WrongAssetDeposited {}),
         })
         .collect::<Result<Vec<CosmosMsg>, ContractError>>()?;
@@ -418,6 +391,7 @@ fn _accept_offer_raw(
 /// This creates withdraw messages to withdraw the funds from an offer (to the lender of the borrower depending on the situation
 /// This function does not do any checks on the validity of the procedure
 /// Be careful when using this internal function
+#[cfg(feature = "vanilla")]
 pub fn _withdraw_offer_unsafe(
     recipient: Addr,
     offer_info: &OfferInfo,
@@ -436,6 +410,7 @@ pub fn _withdraw_offer_unsafe(
 
 /// Accept an offer someone made for your collateral
 /// As soon as the borrower executes this messages, the loan starts and the they will need to repay the loan before the term
+#[cfg(feature = "vanilla")]
 pub fn accept_offer(
     deps: DepsMut,
     env: Env,
@@ -453,6 +428,7 @@ pub fn accept_offer(
 
 /// Make an offer (offer some terms) to lend some money against someone's collateral
 /// The borrower will then be able to accept those terms if they please them
+#[cfg(feature = "vanilla")]
 pub fn make_offer(
     deps: DepsMut,
     env: Env,
@@ -493,6 +469,7 @@ pub fn make_offer(
 /// Cancel an offer you made in case the market changes or whatever
 /// The borrower won't be able to accept the loan if you cancel it
 /// You get the assets you offered back when calling this message
+#[cfg(feature = "vanilla")]
 pub fn cancel_offer(
     deps: DepsMut,
     _env: Env,
@@ -540,6 +517,7 @@ pub fn cancel_offer(
 /// We need to make sure the owner can only refuse an offer, when :
 /// 1. They are still accepting offer (LoanState::Published)
 /// 2. The offer is still published
+#[cfg(feature = "vanilla")]
 pub fn refuse_offer(
     deps: DepsMut,
     _env: Env,
@@ -573,6 +551,7 @@ pub fn refuse_offer(
 
 /// Withdraw the funds from a refused offer
 /// In case the borrower refuses your offer, you need to manually withdraw your funds
+#[cfg(feature = "vanilla")]
 pub fn withdraw_refused_offer(
     deps: DepsMut,
     _env: Env,
@@ -609,6 +588,7 @@ pub fn withdraw_refused_offer(
 /// This effectively puts an end to the loan.
 /// Loans can only be repaid before the period ends.
 /// There is not takebacks, no failesafe
+#[cfg(feature = "vanilla")]
 pub fn repay_borrowed_funds(
     deps: DepsMut,
     env: Env,
@@ -678,6 +658,7 @@ pub fn repay_borrowed_funds(
 /// Withdraw the collateral from a defaulted loan
 /// If the loan duration has exceeded, the collateral can be withdrawn by the lender
 /// This closes the loan and puts it in a defaulted state
+#[cfg(feature = "vanilla")]
 pub fn withdraw_defaulted_loan(
     deps: DepsMut,
     env: Env,
@@ -711,6 +692,7 @@ pub fn withdraw_defaulted_loan(
         .add_attribute("loan_id", loan_id.to_string()))
 }
 
+#[cfg(feature = "vanilla")]
 pub fn _withdraw_loan(
     collateral: CollateralInfo,
     sender: Addr,
@@ -723,16 +705,9 @@ pub fn _withdraw_loan(
         .collect()
 }
 
+#[cfg(feature = "vanilla")]
 pub fn _withdraw_asset(asset: &AssetInfo, _sender: Addr, recipient: Addr) -> StdResult<CosmosMsg> {
     match asset {
-        AssetInfo::Sg721Token(sg721) => into_cosmos_msg(
-            Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
-                recipient: recipient.to_string(),
-                token_id: sg721.token_id.clone(),
-            },
-            sg721.address.clone(),
-            None,
-        ),
         AssetInfo::Cw721Coin(cw721) => into_cosmos_msg(
             Cw721ExecuteMsg::TransferNft {
                 recipient: recipient.to_string(),

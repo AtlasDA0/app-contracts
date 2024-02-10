@@ -8,14 +8,16 @@ backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
 library = []
 
+default = ["sg"]
+sg = ["sg-std", "sg721", "sg721-base"]
 
 [dependencies]
-cosmwasm-std = "1.4.0"
+cosmwasm-std  = "1.4.0"
 cosmwasm-schema = "1.4.0"
 schemars = "0.8.8"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 
 # Stargaze libs
-sg-std = "^3.2"
-sg721 = "^3.3"
-sg721-base = "^3.3"
+sg-std = {version= "^3.2", optional = true }
+sg721 = {version= "^3.3", optional = true }
+sg721-base = {version= "^3.3", optional = true }

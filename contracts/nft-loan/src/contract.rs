@@ -1,20 +1,28 @@
+#[cfg(feature = "sg")]
+use crate::execute_sg::{
+    accept_loan, accept_offer, cancel_offer, list_collaterals, make_offer, modify_collaterals,
+    refuse_offer, repay_borrowed_funds, withdraw_collateral, withdraw_defaulted_loan,
+    withdraw_refused_offer,
+};
 use cosmwasm_std::{coin, ensure, Coin};
-#[cfg(not(feature = "library"))]
 use cosmwasm_std::{
     ensure_eq, entry_point, to_json_binary, Binary, Decimal, Deps, DepsMut, Empty, Env,
     MessageInfo, StdResult,
 };
-
+#[cfg(not(feature = "library"))]
 use cw2::set_contract_version;
 use sg_std::{StargazeMsgWrapper, NATIVE_DENOM};
 use utils::state::is_valid_name;
 
 use crate::error::ContractError;
-use crate::execute::{
+
+#[cfg(feature = "vanilla")]
+use crate::execute_vanilla::{
     accept_loan, accept_offer, cancel_offer, list_collaterals, make_offer, modify_collaterals,
     refuse_offer, repay_borrowed_funds, withdraw_collateral, withdraw_defaulted_loan,
     withdraw_refused_offer,
 };
+
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::query::{
     query_all_collaterals, query_borrower_info, query_collateral_info, query_collaterals,
@@ -41,7 +49,7 @@ pub fn instantiate(
     );
     // valid name
     if !is_valid_name(&msg.name) {
-        return Err(ContractError::InvalidName{})
+        return Err(ContractError::InvalidName {});
     }
 
     // define the accepted fee coins

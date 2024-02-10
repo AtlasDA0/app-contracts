@@ -3,7 +3,10 @@ use thiserror::Error;
 use cosmwasm_std::{StdError, Timestamp};
 use utils::state::AssetInfo;
 
-use crate::state::RaffleState;
+#[cfg(feature = "sg")]
+use crate::state_sg::RaffleState;
+#[cfg(feature = "vanilla")]
+use crate::state_sg::RaffleState;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {

@@ -4,20 +4,16 @@ use cosmwasm_std::{
 };
 use cw721::{Cw721ExecuteMsg, Cw721ReceiveMsg};
 use cw721_base::Extension;
-
 use nois::{NoisCallback, ProxyExecuteMsg};
 use sg721::ExecuteMsg as Sg721ExecuteMsg;
-use sg_std::{CosmosMsg, StargazeMsgWrapper};
-use utils::state::{
-    into_cosmos_msg, is_valid_comment, is_valid_name, AssetInfo, Cw721Coin, Sg721Token,
-    RANDOM_BEACON_MAX_REQUEST_TIME_IN_THE_FUTURE,
-};
+use sg_std::CosmosMsg;
 
+#[cfg(feature = "sg")]
 use crate::{
     error::ContractError,
     msg::ExecuteMsg,
     query::{is_nft_owner, is_sg721_owner},
-    state::{
+    state_sg::{
         get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState, CONFIG,
         MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, NOIS_AMOUNT, RAFFLE_INFO, RAFFLE_TICKETS,
         USER_TICKETS,
@@ -28,9 +24,10 @@ use crate::{
         ticket_cost,
     },
 };
-
-pub type Response = cosmwasm_std::Response<StargazeMsgWrapper>;
-pub type SubMsg = cosmwasm_std::SubMsg<StargazeMsgWrapper>;
+use utils::state::{
+    into_sg_msg, is_valid_comment, is_valid_name, AssetInfo, Cw721Coin, Response, Sg721Token,
+    RANDOM_BEACON_MAX_REQUEST_TIME_IN_THE_FUTURE,
+};
 
 pub fn execute_create_raffle(
     deps: DepsMut,
@@ -40,6 +37,7 @@ pub fn execute_create_raffle(
     all_assets: Vec<AssetInfo>,
     raffle_ticket_price: AssetInfo,
     raffle_options: RaffleOptionsMsg,
+    autocycle: Option<bool>,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
@@ -103,7 +101,7 @@ pub fn execute_create_raffle(
                     token_id: token.token_id.clone(),
                 };
 
-                into_cosmos_msg(message, token.address.clone(), None)
+                into_sg_msg(message, token.address.clone(), None)
             }
             AssetInfo::Sg721Token(token) => {
                 // verify ownership
@@ -119,7 +117,7 @@ pub fn execute_create_raffle(
                     token_id: token.token_id.clone(),
                 };
 
-                into_cosmos_msg(message, token.address.clone(), None)
+                into_sg_msg(message, token.address.clone(), None)
             }
             _ => Err(StdError::generic_err(
                 "Error generating transfer_messages: Vec<CosmosMsg>",
@@ -129,6 +127,8 @@ pub fn execute_create_raffle(
 
     // Then we create the internal raffle structure
     let owner = owner.map(|x| deps.api.addr_validate(&x)).transpose()?;
+    // defines the fee token to send to nois-proxy, by the smart contracts
+    let nois_fee: Coin = config.nois_proxy_coin;
     let raffle_id = _create_raffle(
         deps,
         env.clone(),
@@ -137,27 +137,27 @@ pub fn execute_create_raffle(
         raffle_ticket_price,
         raffle_options.clone(),
     )?;
-
-    // defines the fee token to send to nois-proxy, by the smart contracts
-    let nois_fee: Coin = config.nois_proxy_coin;
-
     let raffle_lifecycle = raffle_options
         .raffle_start_timestamp
         .unwrap()
         .plus_seconds(raffle_options.clone().raffle_duration.unwrap_or_default())
         .plus_seconds(6);
 
+    let res = Response::new();
+
     // GetNextRandomness requests the randomness from the proxy after the expected raffle duration
     // The job id is needed to know what randomness we are referring to upon reception in the callback.
-    // let nois_msg: WasmMsg = WasmMsg::Execute {
-    //     contract_addr: config.nois_proxy_addr.into_string(),
-    //     msg: to_json_binary(&ProxyExecuteMsg::GetRandomnessAfter {
-    //         after: raffle_lifecycle,
-    //         job_id: "raffle-".to_string() + raffle_id.to_string().as_str(),
-    //     })?,
-
-    //     funds: vec![nois_fee], // Pay from the contract
-    // };
+    if autocycle == Some(true) {
+        let nois_msg: WasmMsg = WasmMsg::Execute {
+            contract_addr: config.nois_proxy_addr.into_string(),
+            msg: to_json_binary(&ProxyExecuteMsg::GetRandomnessAfter {
+                after: raffle_lifecycle,
+                job_id: "raffle-".to_string() + raffle_id.to_string().as_str(),
+            })?,
+            funds: vec![nois_fee], // Pay from the contract
+        };
+        res.clone().add_message(nois_msg);
+    }
 
     // verifies raffle lifecycle length (3 months)
     let max_allowed_beacon_time = env
@@ -171,10 +171,9 @@ pub fn execute_create_raffle(
         }
     );
 
-    Ok(Response::new()
+    Ok(res
         .add_message(transfer_fee)
         .add_messages(transfer_messages)
-        // .add_message(nois_msg)
         .add_attribute("action", "create_raffle")
         .add_attribute("raffle_id", raffle_id.to_string())
         .add_attribute("owner", owner.unwrap_or_else(|| info.sender.clone())))
@@ -333,14 +332,14 @@ pub fn execute_buy_tickets(
                 recipient: env.contract.address.clone().into(),
                 token_id: token.token_id.clone(),
             };
-            vec![into_cosmos_msg(message, token.address.clone(), None)?]
+            vec![into_sg_msg(message, token.address.clone(), None)?]
         }
         AssetInfo::Sg721Token(token) => {
             let message = Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
                 recipient: env.contract.address.clone().into(),
                 token_id: token.token_id.clone(),
             };
-            vec![into_cosmos_msg(message, token.address.clone(), None)?]
+            vec![into_sg_msg(message, token.address.clone(), None)?]
         }
         // or verify the sent coins match the message coins
         AssetInfo::Coin(coin) => {
