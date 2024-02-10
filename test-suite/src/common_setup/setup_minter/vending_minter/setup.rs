@@ -7,9 +7,9 @@ use crate::common_setup::msg::{LoanCodeIds, MinterCodeIds, MinterCollectionRespo
 use crate::common_setup::setup_minter::common::parse_response::build_collection_response;
 use cosmwasm_std::{coin, coins, to_json_binary, Addr, Decimal};
 use cw_multi_test::{AppResponse, Executor};
-use sg_nft_loans::msg::InstantiateMsg as LoanInstantiateMsg;
 use sg2::msg::CreateMinterMsg;
 use sg2::msg::{CollectionParams, Sg2ExecuteMsg};
+use sg_nft_loans::msg::InstantiateMsg as LoanInstantiateMsg;
 use sg_std::NATIVE_DENOM;
 use vending_factory::msg::{VendingMinterInitMsgExtension, VendingUpdateParamsExtension};
 
@@ -40,18 +40,17 @@ pub fn build_init_msg(
 
 // Upload contract code and instantiate minter contract
 pub fn setup_minter_contract(setup_params: MinterSetupParams) -> MinterCollectionResponse {
-    let minter_code_id = setup_params.minter_code_id;
     let router = setup_params.router;
+
+    let minter_code_id = setup_params.minter_code_id;
     let factory_code_id = setup_params.factory_code_id;
     let sg721_code_id = setup_params.sg721_code_id;
-    let loan_code_id = setup_params.loan_code_id;
     let minter_admin = setup_params.minter_admin;
     let num_tokens = setup_params.num_tokens;
     let splits_addr = setup_params.splits_addr;
     let collection_params = setup_params.collection_params;
     let start_time = setup_params.start_time;
     let init_msg = setup_params.init_msg;
-
     let mint_denom: Option<String> = init_msg
         .as_ref()
         .map(|msg| msg.mint_price.denom.to_string());
@@ -76,36 +75,17 @@ pub fn setup_minter_contract(setup_params: MinterSetupParams) -> MinterCollectio
     let creation_fee = coins(CREATION_FEE, NATIVE_DENOM);
     let msg = Sg2ExecuteMsg::CreateMinter(msg);
 
-    let loan_escrow = router
-        .instantiate_contract(
-            loan_code_id,
-            Addr::unchecked(OWNER_ADDR),
-            &LoanInstantiateMsg {
-                name: "loan-with-insights".to_string(),
-                owner: Some(Addr::unchecked(OWNER_ADDR).to_string()),
-                treasury_addr: Addr::unchecked(TREASURY_ADDR).to_string(),
-                fee_rate: Decimal::percent(5),
-                listing_fee_coins: vec![coin(55, NATIVE_DENOM.to_string()), coin(45, "usstars")]
-                    .into(),
-            },
-            &[],
-            "loans",
-            Some(Addr::unchecked(OWNER_ADDR).to_string()),
-        )
-        .unwrap();
-
     let res = router.execute_contract(minter_admin, factory_addr.clone(), &msg, &creation_fee);
-    build_collection_response(res, factory_addr, loan_escrow)
+    build_collection_response(res, factory_addr)
 }
 
 pub fn vending_minter_code_ids(router: &mut StargazeApp) -> MinterCodeIds {
     let minter_code_id = router.store_code(contract_vending_minter());
-    println!("minter_code_id: {minter_code_id}");
-
     let factory_code_id = router.store_code(contract_vending_factory());
-    println!("factory_code_id: {factory_code_id}");
-
     let sg721_code_id = router.store_code(contract_sg721_base());
+
+    println!("minter_code_id: {minter_code_id}");
+    println!("factory_code_id: {factory_code_id}");
     println!("sg721_code_id: {sg721_code_id}");
     MinterCodeIds {
         minter_code_id,
@@ -119,9 +99,10 @@ pub fn configure_minter(
     minter_admin: Addr,
     collection_params_vec: Vec<CollectionParams>,
     minter_instantiate_params_vec: Vec<MinterInstantiateParams>,
-    code_ids: LoanCodeIds,
+    code_ids: MinterCodeIds,
 ) -> Vec<MinterCollectionResponse> {
     let mut minter_collection_info: Vec<MinterCollectionResponse> = vec![];
+
     for (index, collection_param) in collection_params_vec.iter().enumerate() {
         let setup_params: MinterSetupParams = MinterSetupParams {
             router: app,
@@ -134,7 +115,6 @@ pub fn configure_minter(
             sg721_code_id: code_ids.sg721_code_id,
             start_time: minter_instantiate_params_vec[index].start_time,
             init_msg: minter_instantiate_params_vec[index].init_msg.clone(),
-            loan_code_id: code_ids.loan_code_id,
         };
         let minter_collection_res = setup_minter_contract(setup_params);
         minter_collection_info.push(minter_collection_res);

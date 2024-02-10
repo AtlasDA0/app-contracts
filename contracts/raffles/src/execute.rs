@@ -9,7 +9,7 @@ use nois::{NoisCallback, ProxyExecuteMsg};
 use sg721::ExecuteMsg as Sg721ExecuteMsg;
 use sg_std::{CosmosMsg, StargazeMsgWrapper};
 use utils::state::{
-    into_cosmos_msg, is_valid_comment, AssetInfo, Cw721Coin, Sg721Token,
+    into_cosmos_msg, is_valid_comment, is_valid_name, AssetInfo, Cw721Coin, Sg721Token,
     RANDOM_BEACON_MAX_REQUEST_TIME_IN_THE_FUTURE,
 };
 
@@ -628,7 +628,7 @@ pub fn execute_update_config(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
-    _name: Option<String>,
+    name: Option<String>,
     owner: Option<String>,
     fee_addr: Option<String>,
     minimum_raffle_duration: Option<u64>,
@@ -641,7 +641,16 @@ pub fn execute_update_config(
     let mut config = CONFIG.load(deps.storage)?;
     // ensure msg sender is admin
     ensure_eq!(info.sender, config.owner, ContractError::Unauthorized);
-    let name = config.name;
+    let name = match name {
+        Some(n) => {
+            if is_valid_name(&n) {
+                n
+            } else {
+                config.name
+            }
+        }
+        None => config.name,
+    };
     let owner = match owner {
         Some(ow) => deps.api.addr_validate(&ow)?,
         None => config.owner,

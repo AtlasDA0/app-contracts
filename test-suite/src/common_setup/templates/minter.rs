@@ -19,7 +19,7 @@ pub fn loan_minter_template(num_tokens: u32) -> MinterTemplateResponse<MinterAcc
     let start_time = Timestamp::from_nanos(GENESIS_MINT_START_TIME);
     let collection_params = mock_collection_params_1(Some(start_time));
     let minter_params = minter_params_token(num_tokens);
-    let code_ids = loan_template_code_ids(&mut app);
+    let code_ids = vending_minter_code_ids(&mut app);
     let minter_collection_response: Vec<MinterCollectionResponse> = configure_minter(
         &mut app,
         creator.clone(),

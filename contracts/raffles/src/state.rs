@@ -2,7 +2,7 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{ensure, Addr, Coin, Decimal, Env, HexBinary, StdError, StdResult, Storage, Timestamp};
 
 use cw_storage_plus::{Item, Map};
-use utils::state::AssetInfo;
+use utils::state::{is_valid_name, AssetInfo};
 
 pub const ATLAS_DAO_STARGAZE_TREASURY: &str = "stars1jyg4j6t4kdptgsx6q55mu0f434zqcfppkx6ww9gs7p4x7clgfrjq29sgmc";
 pub const STATIC_RAFFLE_CREATION_FEE: u128 = 100; 

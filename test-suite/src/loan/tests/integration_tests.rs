@@ -1,11 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use std::ops::Add;
-
     use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, StdError, Timestamp, Uint128};
     use cw_multi_test::Executor;
     use sg_raffles::state::ATLAS_DAO_STARGAZE_TREASURY;
-    use sg2::tests::mock_collection_params_1;
     use sg_std::{GENESIS_MINT_START_TIME, NATIVE_DENOM};
 
     use sg721::CollectionInfo;
@@ -23,17 +20,13 @@ mod tests {
     use crate::{
         common_setup::{
             contract_boxes::custom_mock_app,
-            helpers::{assert_error, generate_bytes_string},
+            helpers::assert_error,
             setup_loan::proper_loan_instantiate,
-            setup_minter::{
-                common::{
-                    constants::{LOAN_INTEREST_TAX, LOAN_NAME, MINT_PRICE, MIN_COLLATERAL_LISTING},
-                    minter_params::minter_params_all,
-                },
-                vending_minter::setup::setup_minter_contract,
+            setup_minter::common::constants::{
+                LOAN_INTEREST_TAX, LOAN_NAME, MINT_PRICE, MIN_COLLATERAL_LISTING,
             },
         },
-        loan::setup::{execute_msg::instantate_contract, test_msgs::InstantiateParams},
+        loan::setup::{execute_msg::instantate_loan_contract, test_msgs::InstantiateParams},
     };
 
     const OWNER_ADDR: &str = "fee";
@@ -52,11 +45,11 @@ mod tests {
             fee_rate: LOAN_INTEREST_TAX,
             name: LOAN_NAME.into(),
         };
-        instantate_contract(params).unwrap();
+        instantate_loan_contract(params).unwrap();
     }
 
     #[test]
-    fn test_instantiate_too_high_fee_rate() {
+    fn test_instantiate_fee_rate() {
         let mut app = custom_mock_app();
         let params = InstantiateParams {
             app: &mut app,
@@ -65,7 +58,7 @@ mod tests {
             fee_rate: LOAN_INTEREST_TAX + Decimal::percent(60),
             name: LOAN_NAME.into(),
         };
-        let res = instantate_contract(params).unwrap_err();
+        let res = instantate_loan_contract(params).unwrap_err();
         assert_eq!(
             res.root_cause().to_string(),
             "The fee_rate you provided is not greater than 0, or less than 1"
@@ -82,7 +75,7 @@ mod tests {
             fee_rate: LOAN_INTEREST_TAX,
             name: "80808080808080808080808080808080808080808080808080808080808080808080808080808080808088080808080808080808080808080808080808080808080808080808080808080808080808080808080808".to_string(),
         };
-        let res1 = instantate_contract(params).unwrap_err();
+        let res1 = instantate_loan_contract(params).unwrap_err();
         let params = InstantiateParams {
             app: &mut app,
             funds_amount: MINT_PRICE,
@@ -90,7 +83,7 @@ mod tests {
             fee_rate: LOAN_INTEREST_TAX,
             name: "80".to_string(),
         };
-        let res2 = instantate_contract(params).unwrap_err();
+        let res2 = instantate_loan_contract(params).unwrap_err();
         assert_eq!(res1.root_cause().to_string(), "Invalid Name");
         assert_eq!(res2.root_cause().to_string(), "Invalid Name");
     }
@@ -105,11 +98,14 @@ mod tests {
             fee_rate: LOAN_INTEREST_TAX,
             name: LOAN_NAME.into(),
         };
-        let nft_loan_addr = instantate_contract(params).unwrap();
+        let nft_loan_addr = instantate_loan_contract(params).unwrap();
 
         let query_config: Config = app
             .wrap()
-            .query_wasm_smart(nft_loan_addr.clone(), &sg_nft_loans::msg::QueryMsg::Config {})
+            .query_wasm_smart(
+                nft_loan_addr.clone(),
+                &sg_nft_loans::msg::QueryMsg::Config {},
+            )
             .unwrap();
         assert_eq!(
             query_config,
@@ -128,8 +124,9 @@ mod tests {
     }
 
     #[test]
-    fn test_updating_contract_coverage() {
+    fn test_update_contract_coverage() {
         let (mut app, nft_loan_addr, _) = proper_loan_instantiate();
+
         // errors
         let error_updating_listing_coins = app
             .execute_contract(
@@ -213,7 +210,10 @@ mod tests {
 
         let res: Config = app
             .wrap()
-            .query_wasm_smart(nft_loan_addr.clone(), &sg_nft_loans::msg::QueryMsg::Config {})
+            .query_wasm_smart(
+                nft_loan_addr.clone(),
+                &sg_nft_loans::msg::QueryMsg::Config {},
+            )
             .unwrap();
 
         // println!("{:#?}", res);
@@ -507,9 +507,9 @@ mod tests {
                 }],
             )
             .unwrap();
-        println!("{:#?}", _deposit61);
+        // println!("{:#?}", _deposit61);
 
-        // no collateral listing fee provided
+        // confirm error if no collateral listing fee provided
         let bad_deposit_collateral_no_fee = app
             .execute_contract(
                 Addr::unchecked(OWNER_ADDR),
@@ -579,7 +579,7 @@ mod tests {
             ContractError::DepositFeeError {}.to_string(),
         );
 
-        // too much collateral listing fee provided
+        // confirm contract error on too much collateral listing fee provided.
         let bad_deposit_collateral_too_much_fee = app
             .execute_contract(
                 Addr::unchecked(OWNER_ADDR),
@@ -746,7 +746,7 @@ mod tests {
 
         // LoanNotFound error due to msg.sender not being contract admin
         assert_error(Err(bad_withdraw_collateral), StdError::NotFound {
-                    kind: "type: nft_loans::state::CollateralInfo; key: [00, 0F, 63, 6F, 6C, 6C, 61, 74, 65, 72, 61, 6C, 5F, 69, 6E, 66, 6F, 00, 09, 6E, 6F, 74, 2D, 6F, 77, 6E, 65, 72, 00, 00, 00, 00, 00, 00, 00, 00]"
+                    kind: "type: sg_nft_loans::state::CollateralInfo; key: [00, 0F, 63, 6F, 6C, 6C, 61, 74, 65, 72, 61, 6C, 5F, 69, 6E, 66, 6F, 00, 09, 6E, 6F, 74, 2D, 6F, 77, 6E, 65, 72, 00, 00, 00, 00, 00, 00, 00, 00]"
                     .to_string()}.to_string());
 
         // no funds sent in offer

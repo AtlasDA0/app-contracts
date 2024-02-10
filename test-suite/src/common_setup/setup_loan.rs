@@ -5,19 +5,14 @@ use crate::common_setup::contract_boxes::{
 use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Decimal, Timestamp, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
 use sg_nft_loans::msg::InstantiateMsg as LoanInstantiateMsg;
-use sg2::msg::CollectionParams;
-use sg721::CollectionInfo;
 use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
 use vending_factory::state::{ParamsExtension, VendingMinterParams};
 
 use super::{
     msg::{LoanCodeIds, LoanSetupParams},
-    setup_minter::{self, vending_minter::setup::setup_minter_contract},
+    setup_minter::{self, common::constants::{OFFERER_ADDR, OWNER_ADDR, TREASURY_ADDR}, vending_minter::setup::setup_minter_contract},
 };
-const OWNER_ADDR: &str = "fee";
-const TREASURY_ADDR: &str = "collector";
-const OFFERER_ADDR: &str = "offerer";
 
 pub fn loan_template_code_ids(router: &mut StargazeApp) -> LoanCodeIds {
     let minter_code_id = router.store_code(contract_vending_minter());

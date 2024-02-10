@@ -11,7 +11,9 @@ use sg_nft_loans::msg::InstantiateMsg;
 use sg_raffles::state::ATLAS_DAO_STARGAZE_TREASURY;
 use sg_std::NATIVE_DENOM;
 
-pub fn instantate_contract(params: InstantiateParams) -> Result<cosmwasm_std::Addr, anyhow_error> {
+pub fn instantate_loan_contract(
+    params: InstantiateParams,
+) -> Result<cosmwasm_std::Addr, anyhow_error> {
     let admin_account = params.admin_account;
     let funds_amount = params.funds_amount;
     let fee_rate = params.fee_rate;
@@ -37,15 +39,16 @@ pub fn instantate_contract(params: InstantiateParams) -> Result<cosmwasm_std::Ad
         listing_fee_coins: vec![
             coin(MIN_COLLATERAL_LISTING, NATIVE_DENOM),
             coin(MIN_COLLATERAL_LISTING, "usstars"),
-        ].into(),
+        ]
+        .into(),
     };
 
     params.app.instantiate_contract(
         loan_code_id,
-        Addr::unchecked(admin_account.clone()),
+        admin_account.clone(),
         &msg,
         &coins(funds_amount, NATIVE_DENOM),
-        "sg-non-custodial-loans",
-        Some(Addr::unchecked(admin_account).to_string()),
+        "sg-nft-loans-nc",
+        Some(admin_account.to_string()),
     )
 }

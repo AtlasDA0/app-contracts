@@ -9,7 +9,6 @@ pub struct MinterCollectionResponse {
     pub minter: Option<Addr>,
     pub collection: Option<Addr>,
     pub factory: Option<Addr>,
-    pub loan_escrow: Option<Addr>,
     pub error: Option<Error>,
 }
 
@@ -23,7 +22,6 @@ pub struct MinterSetupParams<'a> {
     pub minter_code_id: u64,
     pub factory_code_id: u64,
     pub sg721_code_id: u64,
-    pub loan_code_id: u64,
     pub init_msg: Option<VendingMinterInitMsgExtension>,
 }
 
@@ -85,6 +83,7 @@ pub struct LoanAccounts {
     pub lender: Addr,
 }
 
+#[cw_serde]
 pub struct MinterAccounts {
     pub creator: Addr,
     pub buyer: Addr,

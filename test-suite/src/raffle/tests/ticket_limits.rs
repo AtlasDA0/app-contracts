@@ -2,23 +2,19 @@
 mod tests {
     use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Decimal, Timestamp, Uint128};
     use cw_multi_test::Executor;
-    use sg_raffles::msg::InstantiateMsg;
     use sg_multi_test::StargazeApp;
+    use sg_raffles::{msg::InstantiateMsg, state::NOIS_AMOUNT};
     use sg_std::NATIVE_DENOM;
     use vending_factory::state::{ParamsExtension, VendingMinterParams};
-
-    use crate::common_setup::contract_boxes::{contract_raffles, custom_mock_app};
-    use crate::common_setup::contract_boxes::{
-        contract_sg721_base, contract_vending_factory, contract_vending_minter,
+    use crate::common_setup::{
+        contract_boxes::{
+            contract_raffles, contract_sg721_base, contract_vending_factory,
+            contract_vending_minter, custom_mock_app,
+        },
+        setup_minter::common::constants::{
+            CREATION_FEE_AMNT, NOIS_PROXY_ADDR, OWNER_ADDR, RAFFLE_NAME,
+        },
     };
-
-    const NOIS_PROXY_ADDR: &str = "nois";
-    const NOIS_AMOUNT: u128 = 50;
-    const OWNER_ADDR: &str = "fee";
-    const NAME: &str = "raffle param name";
-    const CREATION_FEE_AMNT: u128 = 50;
-    const VENDING_MINTER: &str = "contract2";
-    const SG721_CONTRACT: &str = "contract3";
 
     pub fn proper_instantiate_raffles_with_limits() -> (StargazeApp, Addr, Addr) {
         let mut app = custom_mock_app();
@@ -78,7 +74,7 @@ mod tests {
                 raffle_code_id,
                 Addr::unchecked(OWNER_ADDR),
                 &InstantiateMsg {
-                    name: NAME.to_string(),
+                    name: RAFFLE_NAME.to_string(),
                     nois_proxy_addr: NOIS_PROXY_ADDR.to_string(),
                     nois_proxy_coin: coin(NOIS_AMOUNT.into(), NATIVE_DENOM.to_string()),
                     owner: Some(OWNER_ADDR.to_string()),
@@ -86,7 +82,7 @@ mod tests {
                     minimum_raffle_duration: Some(20),
                     minimum_raffle_timeout: Some(420),
                     max_participant_number: Some(3),
-                    raffle_fee: Some(Decimal::percent(50)),
+                    raffle_fee: Decimal::percent(50),
                     creation_coins: vec![
                         coin(CREATION_FEE_AMNT.into(), NATIVE_DENOM.to_string()),
                         coin(CREATION_FEE_AMNT.into(), "usstars".to_string()),
@@ -106,16 +102,19 @@ mod tests {
         use cosmwasm_std::{coin, Coin, Empty, HexBinary, Uint128};
         use cw_multi_test::{BankSudo, SudoMsg};
         use nois::NoisCallback;
+        use sg721::CollectionInfo;
         use sg_raffles::{
             error::ContractError,
             msg::{ConfigResponse, ExecuteMsg},
             state::{RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState},
         };
-        use sg721::CollectionInfo;
         use utils::state::{AssetInfo, Sg721Token};
         use vending_factory::msg::VendingMinterCreateMsg;
 
-        use crate::common_setup::helpers::assert_error;
+        use crate::common_setup::{
+            helpers::assert_error,
+            setup_minter::common::constants::{SG721_CONTRACT, VENDING_MINTER},
+        };
 
         use super::*;
 
@@ -137,7 +136,7 @@ mod tests {
             assert_eq!(
                 query_config,
                 ConfigResponse {
-                    name: NAME.to_string(),
+                    name: RAFFLE_NAME.to_string(),
                     owner: Addr::unchecked("fee"),
                     fee_addr: Addr::unchecked("fee"),
                     last_raffle_id: 0,

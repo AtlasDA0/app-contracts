@@ -24,7 +24,7 @@ pub struct InstantiateMsg {
     // Maximum participant limit for a raffle
     pub max_participant_number: Option<u32>,
     // % fee of raffle ticket sales to fee_addr
-    pub raffle_fee: Option<Decimal>,
+    pub raffle_fee: Decimal,
 
     pub creation_coins: Option<Vec<Coin>>,
 }
@@ -37,6 +37,12 @@ impl InstantiateMsg {
                 "Name is not in the expected format (3-50 UTF-8 bytes)",
             ));
         }
+
+        // Check the fee distribution
+        if self.raffle_fee >= Decimal::one() {
+            return Err(StdError::generic_err("The Fee rate should be lower than 1"));
+        }
+
         Ok(())
     }
 }

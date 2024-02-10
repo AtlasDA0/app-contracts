@@ -1,44 +1,52 @@
 use std::vec;
 
-use cosmwasm_std::{coin, coins, Addr, Coin, Uint128};
-use cw_multi_test::Executor;
-
-use sg_raffles::msg::InstantiateMsg;
-use sg_raffles::state::NOIS_AMOUNT;
-use sg_multi_test::StargazeApp;
-use sg_std::NATIVE_DENOM;
-use vending_factory::state::{ParamsExtension, VendingMinterParams};
-
+use super::{
+    helpers::setup_block_time,
+    msg::{MinterCodeIds, RaffleCodeIds},
+    setup_minter::vending_minter::setup::vending_minter_code_ids,
+};
 use crate::common_setup::{
     contract_boxes::{
         contract_raffles, contract_sg721_base, contract_vending_factory, contract_vending_minter,
         custom_mock_app,
     },
-    setup_minter::common::constants::{NOIS_PROXY_ADDR, RAFFLE_NAME},
+    msg::{MinterAccounts, MinterCollectionResponse},
+    setup_accounts_and_block::setup_accounts,
+    setup_minter::{
+        common::{
+            constants::{NOIS_PROXY_ADDR, RAFFLE_NAME},
+            minter_params::minter_params_token,
+        },
+        vending_minter::setup::configure_minter,
+    },
+    templates::raffles::raffle_minter_template,
 };
-
-use super::helpers::setup_block_time;
+use cosmwasm_std::{coin, coins, Addr, Coin, Decimal, Timestamp, Uint128};
+use cw_multi_test::Executor;
+use sg2::tests::mock_collection_params_1;
+use sg_multi_test::StargazeApp;
+use sg_raffles::{msg::InstantiateMsg, state::NOIS_AMOUNT};
+use sg_std::{GENESIS_MINT_START_TIME, NATIVE_DENOM};
+use vending_factory::state::{ParamsExtension, VendingMinterParams};
 
 const OWNER_ADDR: &str = "fee";
 
-pub fn proper_instantiate() -> (StargazeApp, Addr, Addr) {
+pub fn proper_raffle_instantiate() -> (StargazeApp, Addr, Addr) {
     let mut app = custom_mock_app();
     let chainid = app.block_info().chain_id.clone();
     setup_block_time(&mut app, 1647032400000000000, Some(10000), &chainid);
 
-    let raffle_code_id = app.store_code(contract_raffles());
-    let factory_id = app.store_code(contract_vending_factory());
-    let minter_id = app.store_code(contract_vending_minter());
-    let sg721_id = app.store_code(contract_sg721_base());
+    let code_ids = raffle_template_code_ids(&mut app);
 
+    // TODO: setup_factory_template
     let factory_addr = app
         .instantiate_contract(
-            factory_id,
+            code_ids.factory_code_id,
             Addr::unchecked(OWNER_ADDR),
             &vending_factory::msg::InstantiateMsg {
                 params: VendingMinterParams {
-                    code_id: minter_id.clone(),
-                    allowed_sg721_code_ids: vec![sg721_id.clone()],
+                    code_id: code_ids.minter_code_id.clone(),
+                    allowed_sg721_code_ids: vec![code_ids.sg721_code_id.clone()],
                     frozen: false,
                     creation_fee: Coin {
                         denom: "ustars".to_string(),
@@ -73,7 +81,7 @@ pub fn proper_instantiate() -> (StargazeApp, Addr, Addr) {
 
     let raffle_contract_addr = app
         .instantiate_contract(
-            raffle_code_id,
+            code_ids.raffle_code_id,
             Addr::unchecked(OWNER_ADDR),
             &InstantiateMsg {
                 name: RAFFLE_NAME.to_string(),
@@ -84,10 +92,10 @@ pub fn proper_instantiate() -> (StargazeApp, Addr, Addr) {
                 minimum_raffle_duration: None,
                 minimum_raffle_timeout: None,
                 max_participant_number: None,
-                raffle_fee: None,
+                raffle_fee: Decimal::percent(0),
                 creation_coins: vec![
                     coin(4, NATIVE_DENOM.to_string()),
-                    coin(20, "usstars".to_string()),
+                    coin(20, "u stars".to_string()),
                 ]
                 .into(),
             },
@@ -97,5 +105,51 @@ pub fn proper_instantiate() -> (StargazeApp, Addr, Addr) {
         )
         .unwrap();
 
+    // let setup = raffle_minter_template(2);
+    // let res: MinterAccounts = setup.accts;
+
+    println!("raffle_contract_addr: {raffle_contract_addr}");
+    println!("factory_addr: {factory_addr}");
+    // println!("{:#?}", res);
+
     (app, raffle_contract_addr, factory_addr)
+}
+
+pub fn configure_raffle_assets(
+    app: &mut StargazeApp,
+    minter_admin: Addr,
+    minter_addr: Addr,
+    num_nfts: u64,
+) -> () {
+    // VENDING_MINTER is minter
+    let _mint_nft_tokens = app
+        .execute_contract(
+            minter_admin.clone(),
+            minter_addr.clone(),
+            &vending_minter::msg::ExecuteMsg::Mint {},
+            &[Coin {
+                denom: NATIVE_DENOM.to_string(),
+                amount: Uint128::new(100000u128),
+            }],
+        )
+        .unwrap();
+    // println!("{:#?}", _mint_nft_tokens);
+}
+
+pub fn raffle_template_code_ids(router: &mut StargazeApp) -> RaffleCodeIds {
+    let raffle_code_id = router.store_code(contract_raffles());
+    let factory_code_id = router.store_code(contract_vending_factory());
+    let minter_code_id = router.store_code(contract_vending_minter());
+    let sg721_code_id = router.store_code(contract_sg721_base());
+
+    println!("raffle_code_id: {raffle_code_id}");
+    println!("minter_code_id: {minter_code_id}");
+    println!("factory_code_id: {factory_code_id}");
+    println!("sg721_code_id: {sg721_code_id}");
+    RaffleCodeIds {
+        raffle_code_id,
+        minter_code_id,
+        factory_code_id,
+        sg721_code_id,
+    }
 }
