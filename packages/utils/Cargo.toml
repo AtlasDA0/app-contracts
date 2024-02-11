@@ -10,9 +10,10 @@ library = []
 
 default = ["sg"]
 sg = ["sg-std", "sg721", "sg721-base"]
+vanilla = []
 
 [dependencies]
-cosmwasm-std  = "1.4.0"
+cosmwasm-std = "1.4.0"
 cosmwasm-schema = "1.4.0"
 schemars = "0.8.8"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }

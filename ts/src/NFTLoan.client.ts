@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { ExecuteMsg, AssetInfo, Uint128, Decimal, Cw721Coin, Sg721Token, Coin, LoanTerms, InstantiateMsg, QueryMsg } from "./NFTLoan.types";
+import { ExecuteMsg, AssetInfo, Uint128, Decimal, Cw721Coin, Coin, Sg721Token, LoanTerms, InstantiateMsg, QueryMsg } from "./NFTLoan.types";
 export interface NFTLoanReadOnlyInterface {
   contractAddress: string;
   config: () => Promise<ConfigResponse>;

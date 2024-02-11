@@ -2,13 +2,13 @@
 mod tests {
     use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, StdError, Timestamp, Uint128};
     use cw_multi_test::Executor;
-    use sg_raffles::state::ATLAS_DAO_STARGAZE_TREASURY;
+    use raffles::state::ATLAS_DAO_STARGAZE_TREASURY;
     use sg_std::{GENESIS_MINT_START_TIME, NATIVE_DENOM};
 
     use sg721::CollectionInfo;
     use vending_factory::msg::VendingMinterCreateMsg;
 
-    use sg_nft_loans::{
+    use nft_loans_nc::{
         error::ContractError,
         msg::{
             CollateralResponse, ExecuteMsg, MultipleCollateralsResponse, OfferResponse, QueryMsg,
@@ -104,7 +104,7 @@ mod tests {
             .wrap()
             .query_wasm_smart(
                 nft_loan_addr.clone(),
-                &sg_nft_loans::msg::QueryMsg::Config {},
+                &nft_loans_nc::msg::QueryMsg::Config {},
             )
             .unwrap();
         assert_eq!(
@@ -132,7 +132,7 @@ mod tests {
             .execute_contract(
                 Addr::unchecked("not-owner"),
                 nft_loan_addr.clone(),
-                &sg_nft_loans::msg::ExecuteMsg::SetListingCoins {
+                &nft_loans_nc::msg::ExecuteMsg::SetListingCoins {
                     listing_fee_coins: vec![coin(4, "uflix"), coin(5, "uscrt"), coin(6, "uatom")],
                 },
                 &[],
@@ -142,7 +142,7 @@ mod tests {
             .execute_contract(
                 Addr::unchecked("not-owner"),
                 nft_loan_addr.clone(),
-                &sg_nft_loans::msg::ExecuteMsg::SetFeeDestination {
+                &nft_loans_nc::msg::ExecuteMsg::SetFeeDestination {
                     treasury_addr: OWNER_ADDR.into(),
                 },
                 &[],
@@ -152,7 +152,7 @@ mod tests {
             .execute_contract(
                 Addr::unchecked("not-owner"),
                 nft_loan_addr.clone(),
-                &sg_nft_loans::msg::ExecuteMsg::SetFeeRate {
+                &nft_loans_nc::msg::ExecuteMsg::SetFeeRate {
                     fee_rate: Decimal::percent(20),
                 },
                 &[],
@@ -176,7 +176,7 @@ mod tests {
             .execute_contract(
                 Addr::unchecked(OWNER_ADDR.to_string()),
                 nft_loan_addr.clone(),
-                &sg_nft_loans::msg::ExecuteMsg::SetListingCoins {
+                &nft_loans_nc::msg::ExecuteMsg::SetListingCoins {
                     listing_fee_coins: vec![
                         coin(4, "uflix"),
                         coin(5, "uscrt"),
@@ -191,7 +191,7 @@ mod tests {
             .execute_contract(
                 Addr::unchecked(OWNER_ADDR.to_string()),
                 nft_loan_addr.clone(),
-                &sg_nft_loans::msg::ExecuteMsg::SetFeeRate {
+                &nft_loans_nc::msg::ExecuteMsg::SetFeeRate {
                     fee_rate: Decimal::percent(10),
                 },
                 &[],
@@ -201,7 +201,7 @@ mod tests {
             .execute_contract(
                 Addr::unchecked(OWNER_ADDR.to_string()),
                 nft_loan_addr.clone(),
-                &sg_nft_loans::msg::ExecuteMsg::SetFeeDestination {
+                &nft_loans_nc::msg::ExecuteMsg::SetFeeDestination {
                     treasury_addr: ATLAS_DAO_STARGAZE_TREASURY.into(),
                 },
                 &[],
@@ -212,7 +212,7 @@ mod tests {
             .wrap()
             .query_wasm_smart(
                 nft_loan_addr.clone(),
-                &sg_nft_loans::msg::QueryMsg::Config {},
+                &nft_loans_nc::msg::QueryMsg::Config {},
             )
             .unwrap();
 
@@ -441,7 +441,7 @@ mod tests {
             .wrap()
             .query_wasm_smart(
                 nft_loan_addr.clone(),
-                &sg_nft_loans::msg::QueryMsg::Collaterals {
+                &nft_loans_nc::msg::QueryMsg::Collaterals {
                     borrower: Addr::unchecked(OWNER_ADDR).to_string(),
                     start_after: None,
                     limit: None,
@@ -702,7 +702,7 @@ mod tests {
             .wrap()
             .query_wasm_smart(
                 nft_loan_addr.clone(),
-                &sg_nft_loans::msg::QueryMsg::CollateralInfo {
+                &nft_loans_nc::msg::QueryMsg::CollateralInfo {
                     borrower: Addr::unchecked(OWNER_ADDR).to_string(),
                     loan_id: 0,
                 },
@@ -746,7 +746,7 @@ mod tests {
 
         // LoanNotFound error due to msg.sender not being contract admin
         assert_error(Err(bad_withdraw_collateral), StdError::NotFound {
-                    kind: "type: sg_nft_loans::state::CollateralInfo; key: [00, 0F, 63, 6F, 6C, 6C, 61, 74, 65, 72, 61, 6C, 5F, 69, 6E, 66, 6F, 00, 09, 6E, 6F, 74, 2D, 6F, 77, 6E, 65, 72, 00, 00, 00, 00, 00, 00, 00, 00]"
+                    kind: "type: nft_loans_nc::state::CollateralInfo; key: [00, 0F, 63, 6F, 6C, 6C, 61, 74, 65, 72, 61, 6C, 5F, 69, 6E, 66, 6F, 00, 09, 6E, 6F, 74, 2D, 6F, 77, 6E, 65, 72, 00, 00, 00, 00, 00, 00, 00, 00]"
                     .to_string()}.to_string());
 
         // no funds sent in offer
@@ -983,7 +983,7 @@ mod tests {
             .wrap()
             .query_wasm_smart(
                 nft_loan_addr.clone(),
-                &sg_nft_loans::msg::QueryMsg::OfferInfo {
+                &nft_loans_nc::msg::QueryMsg::OfferInfo {
                     global_offer_id: 1.to_string(),
                 },
             )

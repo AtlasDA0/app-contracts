@@ -7,8 +7,8 @@ use super::test_msgs::InstantiateParams;
 use anyhow::Error as anyhow_error;
 use cosmwasm_std::{coin, coins, Addr};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
-use sg_nft_loans::msg::InstantiateMsg;
-use sg_raffles::state::ATLAS_DAO_STARGAZE_TREASURY;
+use nft_loans_nc::msg::InstantiateMsg;
+use raffles::state::ATLAS_DAO_STARGAZE_TREASURY;
 use sg_std::NATIVE_DENOM;
 
 pub fn instantate_loan_contract(

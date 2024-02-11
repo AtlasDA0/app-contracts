@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { ExecuteMsg, AssetInfo, Uint128, Timestamp, Uint64, Decimal, Binary, HexBinary, Cw721Coin, Sg721Token, Coin, RaffleOptionsMsg, Cw721ReceiveMsg, NoisCallback, InstantiateMsg, QueryMsg, QueryFilters, Addr, RaffleState, AllRafflesResponse, RaffleResponse, RaffleInfo, RaffleOptions, ArrayOfString, ConfigResponse, Uint32 } from "./Raffle.types";
+import { ExecuteMsg, AssetInfo, Uint128, Timestamp, Uint64, Decimal, Binary, HexBinary, Cw721Coin, Coin, Sg721Token, RaffleOptionsMsg, Cw721ReceiveMsg, NoisCallback, InstantiateMsg, QueryMsg, QueryFilters, Addr, RaffleState, AllRafflesResponse, RaffleResponse, RaffleInfo, RaffleOptions, ArrayOfString, ConfigResponse, Uint32 } from "./Raffle.types";
 export interface RaffleReadOnlyInterface {
   contractAddress: string;
   config: () => Promise<ConfigResponse>;
@@ -125,11 +125,13 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
   sender: string;
   createRaffle: ({
     assets,
+    autocycle,
     owner,
     raffleOptions,
     raffleTicketPrice
   }: {
     assets: AssetInfo[];
+    autocycle?: boolean;
     owner?: string;
     raffleOptions: RaffleOptionsMsg;
     raffleTicketPrice: AssetInfo;
@@ -232,11 +234,13 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
 
   createRaffle = async ({
     assets,
+    autocycle,
     owner,
     raffleOptions,
     raffleTicketPrice
   }: {
     assets: AssetInfo[];
+    autocycle?: boolean;
     owner?: string;
     raffleOptions: RaffleOptionsMsg;
     raffleTicketPrice: AssetInfo;
@@ -244,6 +248,7 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
     return await this.client.execute(this.sender, this.contractAddress, {
       create_raffle: {
         assets,
+        autocycle,
         owner,
         raffle_options: raffleOptions,
         raffle_ticket_price: raffleTicketPrice

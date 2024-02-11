@@ -3,10 +3,7 @@ use thiserror::Error;
 use cosmwasm_std::{StdError, Timestamp};
 use utils::state::AssetInfo;
 
-#[cfg(feature = "sg")]
-use crate::state_sg::RaffleState;
-#[cfg(feature = "vanilla")]
-use crate::state_sg::RaffleState;
+use crate::state::RaffleState;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {
@@ -18,7 +15,7 @@ pub enum ContractError {
 
     #[error("Proxy address is not valid")]
     InvalidProxyAddress,
-    
+
     #[error("Invalid Name")]
     InvalidName {},
 
@@ -48,7 +45,7 @@ pub enum ContractError {
 
     #[error("The randomness signatur is invalid")]
     InvalidSignature {},
-    
+
     #[error("Already claimed")]
     Claimed {},
 

@@ -23,9 +23,9 @@ use crate::common_setup::{
 };
 use cosmwasm_std::{coin, coins, Addr, Coin, Decimal, Timestamp, Uint128};
 use cw_multi_test::Executor;
+use raffles::{msg::InstantiateMsg, state::NOIS_AMOUNT};
 use sg2::tests::mock_collection_params_1;
 use sg_multi_test::StargazeApp;
-use sg_raffles::{msg::InstantiateMsg, state::NOIS_AMOUNT};
 use sg_std::{GENESIS_MINT_START_TIME, NATIVE_DENOM};
 use vending_factory::state::{ParamsExtension, VendingMinterParams};
 

@@ -2,16 +2,17 @@ use cosmwasm_std::{
     coin, ensure, entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
     QueryResponse, StdResult,
 };
-use utils::state::is_valid_name;
-#[cfg(feature = "vanilla")]
+
+use utils::{state::is_valid_name, types::Response};
+#[cfg(not(feature = "sg"))]
 use {
     crate::{
-        execute_sg::{
+        execute::{
             execute_buy_tickets, execute_cancel_raffle, execute_create_raffle,
             execute_determine_winner, execute_modify_raffle, execute_receive, execute_receive_nois,
             execute_toggle_lock, execute_update_config, execute_update_randomness,
         },
-        state_sg::{
+        state::{
             get_raffle_state, load_raffle, Config, CONFIG, MINIMUM_RAFFLE_DURATION,
             MINIMUM_RAFFLE_TIMEOUT, STATIC_RAFFLE_CREATION_FEE,
         },
@@ -21,18 +22,17 @@ use {
 #[cfg(feature = "sg")]
 use {
     crate::{
-        execute_sg::{
+        execute::{
             execute_buy_tickets, execute_cancel_raffle, execute_create_raffle,
             execute_determine_winner, execute_modify_raffle, execute_receive, execute_receive_nois,
             execute_toggle_lock, execute_update_config, execute_update_randomness,
         },
-        state_sg::{
+        state::{
             get_raffle_state, load_raffle, Config, CONFIG, MINIMUM_RAFFLE_DURATION,
             MINIMUM_RAFFLE_TIMEOUT, STATIC_RAFFLE_CREATION_FEE,
         },
     },
-    sg_std::{StargazeMsgWrapper, NATIVE_DENOM},
-    utils::state::Response,
+    sg_std::NATIVE_DENOM,
 };
 
 use crate::error::ContractError;

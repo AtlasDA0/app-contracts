@@ -1,28 +1,22 @@
-#[cfg(feature = "sg")]
-use crate::execute_sg::{
-    accept_loan, accept_offer, cancel_offer, list_collaterals, make_offer, modify_collaterals,
-    refuse_offer, repay_borrowed_funds, withdraw_collateral, withdraw_defaulted_loan,
-    withdraw_refused_offer,
-};
-use cosmwasm_std::{coin, ensure, Coin};
-use cosmwasm_std::{
-    ensure_eq, entry_point, to_json_binary, Binary, Decimal, Deps, DepsMut, Empty, Env,
-    MessageInfo, StdResult,
-};
 #[cfg(not(feature = "library"))]
+use cosmwasm_std::{
+    coin, ensure, ensure_eq, entry_point, to_json_binary, Binary, Coin, Decimal, Deps, DepsMut,
+    Empty, Env, MessageInfo, StdResult,
+};
+
 use cw2::set_contract_version;
-use sg_std::{StargazeMsgWrapper, NATIVE_DENOM};
-use utils::state::is_valid_name;
+
+use utils::{
+    state::{is_valid_name, NATIVE_DENOM},
+    types::Response,
+};
 
 use crate::error::ContractError;
-
-#[cfg(feature = "vanilla")]
-use crate::execute_vanilla::{
+use crate::execute::{
     accept_loan, accept_offer, cancel_offer, list_collaterals, make_offer, modify_collaterals,
     refuse_offer, repay_borrowed_funds, withdraw_collateral, withdraw_defaulted_loan,
     withdraw_refused_offer,
 };
-
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::query::{
     query_all_collaterals, query_borrower_info, query_collateral_info, query_collaterals,
@@ -32,8 +26,6 @@ use crate::state::{Config, CONFIG, STATIC_LOAN_LISTING_FEE};
 // version info for migration info
 const CONTRACT_NAME: &str = concat!("crates.io:", env!("CARGO_CRATE_NAME"));
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-pub type Response = cosmwasm_std::Response<StargazeMsgWrapper>;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -264,6 +256,8 @@ pub fn set_listing_coins(
     Ok(
         Response::default()
             .add_attribute("action", "changed-contract-parameter")
-            .add_attribute("parameter", "fee_distributor"), // .add_attribute("value", listing_fee_coins)
+            .add_attribute("parameter", "fee_distributor"),
+        // TODO: add new value in response for bookeeping updates
+        // .add_attribute("value", listing_fee_coins)
     )
 }

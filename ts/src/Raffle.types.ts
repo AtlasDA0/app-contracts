@@ -7,6 +7,7 @@
 export type ExecuteMsg = {
   create_raffle: {
     assets: AssetInfo[];
+    autocycle?: boolean | null;
     owner?: string | null;
     raffle_options: RaffleOptionsMsg;
     raffle_ticket_price: AssetInfo;
@@ -61,9 +62,9 @@ export type ExecuteMsg = {
 export type AssetInfo = {
   cw721_coin: Cw721Coin;
 } | {
-  sg721_token: Sg721Token;
-} | {
   coin: Coin;
+} | {
+  sg721_token: Sg721Token;
 };
 export type Uint128 = string;
 export type Timestamp = Uint64;
@@ -75,14 +76,14 @@ export interface Cw721Coin {
   address: string;
   token_id: string;
 }
-export interface Sg721Token {
-  address: string;
-  token_id: string;
-}
 export interface Coin {
   amount: Uint128;
   denom: string;
   [k: string]: unknown;
+}
+export interface Sg721Token {
+  address: string;
+  token_id: string;
 }
 export interface RaffleOptionsMsg {
   comment?: string | null;
@@ -113,7 +114,7 @@ export interface InstantiateMsg {
   nois_proxy_addr: string;
   nois_proxy_coin: Coin;
   owner?: string | null;
-  raffle_fee?: Decimal | null;
+  raffle_fee: Decimal;
 }
 export type QueryMsg = {
   config: {};

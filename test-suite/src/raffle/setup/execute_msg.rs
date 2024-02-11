@@ -1,7 +1,7 @@
 use anyhow::Error as anyhow_error;
 use cosmwasm_std::{coin, coins, Addr, Decimal};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
-use sg_raffles::msg::InstantiateMsg;
+use raffles::msg::InstantiateMsg;
 use sg_std::NATIVE_DENOM;
 
 use crate::common_setup::{

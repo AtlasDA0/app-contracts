@@ -3,10 +3,10 @@ use cosmwasm_std::{Addr, Coin, Decimal, HexBinary, StdError, StdResult};
 use nois::NoisCallback;
 use utils::state::{is_valid_name, AssetInfo};
 
-#[cfg(feature = "vanilla")]
+#[cfg(not(feature = "sg"))]
 use crate::state_vanilla::{RaffleInfo, RaffleOptionsMsg, RaffleState};
 #[cfg(feature = "sg")]
-use crate::state_sg::{RaffleInfo, RaffleOptionsMsg, RaffleState};
+use crate::state::{RaffleInfo, RaffleOptionsMsg, RaffleState};
 
 #[cw_serde]
 pub struct InstantiateMsg {

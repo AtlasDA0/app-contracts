@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "cosmwasm";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { ExecuteMsg, AssetInfo, Uint128, Decimal, Cw721Coin, Sg721Token, Coin, LoanTerms, InstantiateMsg, QueryMsg } from "./NFTLoan.types";
+import { ExecuteMsg, AssetInfo, Uint128, Decimal, Cw721Coin, Coin, Sg721Token, LoanTerms, InstantiateMsg, QueryMsg } from "./NFTLoan.types";
 export interface NFTLoanMessage {
   contractAddress: string;
   sender: string;

@@ -13,7 +13,7 @@ use crate::{
     error::ContractError,
     msg::ExecuteMsg,
     query::{is_nft_owner, is_sg721_owner},
-    state_sg::{
+    state::{
         get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState, CONFIG,
         MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, NOIS_AMOUNT, RAFFLE_INFO, RAFFLE_TICKETS,
         USER_TICKETS,
@@ -24,9 +24,12 @@ use crate::{
         ticket_cost,
     },
 };
-use utils::state::{
-    into_sg_msg, is_valid_comment, is_valid_name, AssetInfo, Cw721Coin, Response, Sg721Token,
-    RANDOM_BEACON_MAX_REQUEST_TIME_IN_THE_FUTURE,
+use utils::{
+    state::{
+        into_cosmos_msg, is_valid_comment, is_valid_name, AssetInfo, Cw721Coin, Sg721Token,
+        RANDOM_BEACON_MAX_REQUEST_TIME_IN_THE_FUTURE,
+    },
+    types::Response,
 };
 
 pub fn execute_create_raffle(
@@ -101,7 +104,7 @@ pub fn execute_create_raffle(
                     token_id: token.token_id.clone(),
                 };
 
-                into_sg_msg(message, token.address.clone(), None)
+                into_cosmos_msg(message, token.address.clone(), None)
             }
             AssetInfo::Sg721Token(token) => {
                 // verify ownership
@@ -117,7 +120,7 @@ pub fn execute_create_raffle(
                     token_id: token.token_id.clone(),
                 };
 
-                into_sg_msg(message, token.address.clone(), None)
+                into_cosmos_msg(message, token.address.clone(), None)
             }
             _ => Err(StdError::generic_err(
                 "Error generating transfer_messages: Vec<CosmosMsg>",
@@ -332,14 +335,14 @@ pub fn execute_buy_tickets(
                 recipient: env.contract.address.clone().into(),
                 token_id: token.token_id.clone(),
             };
-            vec![into_sg_msg(message, token.address.clone(), None)?]
+            vec![into_cosmos_msg(message, token.address.clone(), None)?]
         }
         AssetInfo::Sg721Token(token) => {
             let message = Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
                 recipient: env.contract.address.clone().into(),
                 token_id: token.token_id.clone(),
             };
-            vec![into_sg_msg(message, token.address.clone(), None)?]
+            vec![into_cosmos_msg(message, token.address.clone(), None)?]
         }
         // or verify the sent coins match the message coins
         AssetInfo::Coin(coin) => {
