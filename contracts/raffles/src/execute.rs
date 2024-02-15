@@ -5,31 +5,33 @@ use cosmwasm_std::{
 use cw721::{Cw721ExecuteMsg, Cw721ReceiveMsg};
 use cw721_base::Extension;
 use nois::{NoisCallback, ProxyExecuteMsg};
-use sg721::ExecuteMsg as Sg721ExecuteMsg;
-use sg_std::CosmosMsg;
 
-#[cfg(feature = "sg")]
-use crate::{
-    error::ContractError,
-    msg::ExecuteMsg,
-    query::{is_nft_owner, is_sg721_owner},
-    state::{
-        get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState, CONFIG,
-        MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, NOIS_AMOUNT, RAFFLE_INFO, RAFFLE_TICKETS,
-        USER_TICKETS,
-    },
-    utils::{
-        can_buy_ticket, get_nois_randomness, get_raffle_owner_finished_messages,
-        get_raffle_owner_messages, get_raffle_winner, get_raffle_winner_messages, is_raffle_owner,
-        ticket_cost,
-    },
-};
 use utils::{
     state::{
         into_cosmos_msg, is_valid_comment, is_valid_name, AssetInfo, Cw721Coin, Sg721Token,
         RANDOM_BEACON_MAX_REQUEST_TIME_IN_THE_FUTURE,
     },
-    types::Response,
+    types::{CosmosMsg, Response},
+};
+
+#[cfg(feature = "sg")]
+use {
+    crate::{
+        error::ContractError,
+        msg::ExecuteMsg,
+        query::{is_nft_owner, is_sg721_owner},
+        state::{
+            get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState,
+            CONFIG, MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, NOIS_AMOUNT, RAFFLE_INFO,
+            RAFFLE_TICKETS, USER_TICKETS,
+        },
+        utils::{
+            can_buy_ticket, get_nois_randomness, get_raffle_owner_finished_messages,
+            get_raffle_owner_messages, get_raffle_winner, get_raffle_winner_messages,
+            is_raffle_owner, ticket_cost,
+        },
+    },
+    sg721::ExecuteMsg as Sg721ExecuteMsg,
 };
 
 pub fn execute_create_raffle(
@@ -52,7 +54,7 @@ pub fn execute_create_raffle(
     // if multiple info.funds are sent, check that they are both equal to
     // the static fee and the AssetInfo in all_assets
 
-    // looks for the fee token sent in the msg.
+    // checks if the required fee was sent.
     let fee = info
         .funds
         .iter()
@@ -72,13 +74,6 @@ pub fn execute_create_raffle(
             "Comment too long. max = (20000 UTF-8 bytes)",
         )));
     }
-
-    // transfer fee to the contract fee address set.
-    let transfer_fee: CosmosMsg = BankMsg::Send {
-        to_address: config.fee_addr.to_string(),
-        amount: info.funds,
-    }
-    .into();
 
     // make sure an asset was provided.
     if all_assets.is_empty() {
@@ -106,6 +101,7 @@ pub fn execute_create_raffle(
 
                 into_cosmos_msg(message, token.address.clone(), None)
             }
+            #[cfg(feature = "sg")]
             AssetInfo::Sg721Token(token) => {
                 // verify ownership
                 is_sg721_owner(
@@ -130,7 +126,7 @@ pub fn execute_create_raffle(
 
     // Then we create the internal raffle structure
     let owner = owner.map(|x| deps.api.addr_validate(&x)).transpose()?;
-    // defines the fee token to send to nois-proxy, by the smart contracts
+    // defines the fee token to send to nois-proxy, by the smart contract
     let nois_fee: Coin = config.nois_proxy_coin;
     let raffle_id = _create_raffle(
         deps,
@@ -148,6 +144,18 @@ pub fn execute_create_raffle(
 
     let res = Response::new();
 
+    // bypass sending fee if static raffle creation cost is 0
+    if !fee.amount.is_zero() {
+        // transfer only the calculated fee amount from the coins sent
+        let transfer_fee_msg: CosmosMsg = BankMsg::Send {
+            to_address: config.fee_addr.to_string(),
+            amount: vec![fee],
+        }
+        .into();
+        // add msg to response
+        res.clone().add_message(transfer_fee_msg);
+    };
+
     // GetNextRandomness requests the randomness from the proxy after the expected raffle duration
     // The job id is needed to know what randomness we are referring to upon reception in the callback.
     if autocycle == Some(true) {
@@ -162,20 +170,7 @@ pub fn execute_create_raffle(
         res.clone().add_message(nois_msg);
     }
 
-    // verifies raffle lifecycle length (3 months)
-    let max_allowed_beacon_time = env
-        .block
-        .time
-        .plus_seconds(RANDOM_BEACON_MAX_REQUEST_TIME_IN_THE_FUTURE);
-    ensure!(
-        max_allowed_beacon_time > raffle_lifecycle,
-        ContractError::RandomAfterIsTooMuchInTheFuture {
-            max_allowed_beacon_time
-        }
-    );
-
     Ok(res
-        .add_message(transfer_fee)
         .add_messages(transfer_messages)
         .add_attribute("action", "create_raffle")
         .add_attribute("raffle_id", raffle_id.to_string())
@@ -329,22 +324,26 @@ pub fn execute_buy_tickets(
     assets: AssetInfo,
 ) -> Result<Response, ContractError> {
     // First we physcially transfer the AssetInfo
-    let transfer_messages = match &assets {
-        AssetInfo::Cw721Coin(token) => {
-            let message = Cw721ExecuteMsg::TransferNft {
-                recipient: env.contract.address.clone().into(),
-                token_id: token.token_id.clone(),
-            };
-            vec![into_cosmos_msg(message, token.address.clone(), None)?]
-        }
-        AssetInfo::Sg721Token(token) => {
-            let message = Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
-                recipient: env.contract.address.clone().into(),
-                token_id: token.token_id.clone(),
-            };
-            vec![into_cosmos_msg(message, token.address.clone(), None)?]
-        }
-        // or verify the sent coins match the message coins
+    let transfer_messages: Vec<cosmwasm_std::CosmosMsg<sg_std::StargazeMsgWrapper>> = match &assets
+    {
+        // TODO: implement support to provide nft tokens as ticket price
+        // AssetInfo::Cw721Coin(token) => {
+        //     let message = Cw721ExecuteMsg::TransferNft {
+        //         recipient: env.contract.address.clone().into(),
+        //         token_id: token.token_id.clone(),
+        //     };
+        //     vec![into_cosmos_msg(message, token.address.clone(), None)?]
+        // }
+        // #[cfg(feature = "sg")]
+        // AssetInfo::Sg721Token(token) => {
+        //     let message = Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
+        //         recipient: env.contract.address.clone().into(),
+        //         token_id: token.token_id.clone(),
+        //     };
+        //     vec![into_cosmos_msg(message, token.address.clone(), None)?]
+        // }
+
+        // or verify the sent coins match the message coins.
         AssetInfo::Coin(coin) => {
             if coin.amount != Uint128::zero()
                 && (info.funds.len() != 1
@@ -392,13 +391,16 @@ pub fn _buy_tickets(
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
 
     // We first check the sent assets match the raffle assets
-    // TODO: print correct assets_wanted value
-    if ticket_cost(raffle_info.clone(), ticket_count)? != assets {
-        return Err(ContractError::PaymentNotSufficient {
-            ticket_count,
-            assets_wanted: raffle_info.raffle_ticket_price,
-            assets_received: assets,
-        });
+    let tc = ticket_cost(raffle_info.clone(), ticket_count)?;
+    if let AssetInfo::Coin(x) = tc.clone() {
+        if !x.amount.is_zero() && tc != assets {
+            return Err(ContractError::PaymentNotSufficient {
+                ticket_count,
+                assets_wanted: raffle_info.raffle_ticket_price,
+                // TODO: print correct assets_wanted value
+                assets_received: assets,
+            });
+        }
     }
 
     // We then check the raffle is in the right state
@@ -464,52 +466,53 @@ pub fn execute_receive(
         } => {
             // First we make sure the received Asset is the one specified in the message
             match sent_assets.clone() {
-                AssetInfo::Cw721Coin(Cw721Coin {
-                    address: _address,
-                    token_id,
-                }) => {
-                    if token_id == wrapper.token_id {
-                        // The asset is a match, we can create the raffle object and return
-                        _buy_tickets(
-                            deps,
-                            env,
-                            sender.clone(),
-                            raffle_id,
-                            ticket_count,
-                            sent_assets,
-                        )?;
+                // AssetInfo::Cw721Coin(Cw721Coin {
+                //     address: _address,
+                //     token_id,
+                // }) => {
+                //     if token_id == wrapper.token_id {
+                //         // The asset is a match, we can create the raffle object and return
+                //         _buy_tickets(
+                //             deps,
+                //             env,
+                //             sender.clone(),
+                //             raffle_id,
+                //             ticket_count,
+                //             sent_assets,
+                //         )?;
 
-                        Ok(Response::new()
-                            .add_attribute("action", "buy_ticket")
-                            .add_attribute("raffle_id", raffle_id.to_string())
-                            .add_attribute("owner", sender))
-                    } else {
-                        Err(ContractError::AssetMismatch {})
-                    }
-                }
-                AssetInfo::Sg721Token(Sg721Token {
-                    address: _address,
-                    token_id,
-                }) => {
-                    if token_id == wrapper.token_id {
-                        // The asset is a match, we can create the raffle object and return
-                        _buy_tickets(
-                            deps,
-                            env,
-                            sender.clone(),
-                            raffle_id,
-                            ticket_count,
-                            sent_assets,
-                        )?;
+                //         Ok(Response::new()
+                //             .add_attribute("action", "buy_ticket")
+                //             .add_attribute("raffle_id", raffle_id.to_string())
+                //             .add_attribute("owner", sender))
+                //     } else {
+                //         Err(ContractError::AssetMismatch {})
+                //     }
+                // }
+                // #[cfg(feature = "sg")]
+                // AssetInfo::Sg721Token(Sg721Token {
+                //     address: _address,
+                //     token_id,
+                // }) => {
+                //     if token_id == wrapper.token_id {
+                //         // The asset is a match, we can create the raffle object and return
+                //         _buy_tickets(
+                //             deps,
+                //             env,
+                //             sender.clone(),
+                //             raffle_id,
+                //             ticket_count,
+                //             sent_assets,
+                //         )?;
 
-                        Ok(Response::new()
-                            .add_attribute("action", "buy_ticket")
-                            .add_attribute("raffle_id", raffle_id.to_string())
-                            .add_attribute("owner", sender))
-                    } else {
-                        Err(ContractError::AssetMismatch {})
-                    }
-                }
+                //         Ok(Response::new()
+                //             .add_attribute("action", "buy_ticket")
+                //             .add_attribute("raffle_id", raffle_id.to_string())
+                //             .add_attribute("owner", sender))
+                //     } else {
+                //         Err(ContractError::AssetMismatch {})
+                //     }
+                // }
                 _ => Err(ContractError::AssetMismatch {}),
             }
         }
@@ -622,8 +625,8 @@ pub fn execute_update_randomness(
         });
     }
     // We assert the randomness is correct
-    get_nois_randomness(deps.as_ref(), raffle_id)
     // get randomness from nois.network
+    get_nois_randomness(deps.as_ref(), raffle_id)
 }
 
 pub fn execute_update_config(
@@ -635,6 +638,7 @@ pub fn execute_update_config(
     fee_addr: Option<String>,
     minimum_raffle_duration: Option<u64>,
     minimum_raffle_timeout: Option<u64>,
+    maximum_participant_number: Option<u32>,
     raffle_fee: Option<Decimal>,
     nois_proxy_addr: Option<String>,
     nois_proxy_coin: Option<Coin>,
@@ -670,9 +674,16 @@ pub fn execute_update_config(
         None => config.minimum_raffle_timeout,
     };
     let raffle_fee = match raffle_fee {
-        Some(rf) => rf,
+        Some(rf) => {
+            ensure!(
+                rf >= Decimal::zero() && rf <= Decimal::one(),
+                ContractError::InvalidFeeRate {}
+            );
+            rf
+        }
         None => config.raffle_fee,
     };
+
     let nois_proxy_addr = match nois_proxy_addr {
         Some(prx) => deps.api.addr_validate(&prx)?,
         None => config.nois_proxy_addr,
@@ -685,6 +696,10 @@ pub fn execute_update_config(
     let creation_coins = match creation_coins {
         Some(crc) => crc,
         None => config.creation_coins,
+    };
+    let maximum_participant_number = match maximum_participant_number {
+        Some(mpn) => mpn,
+        None => config.maximum_participant_number.unwrap(),
     };
     // we have a seperate function to lock a raffle, so we skip here
     let lock = config.lock;
@@ -705,6 +720,7 @@ pub fn execute_update_config(
             nois_proxy_addr,
             nois_proxy_coin,
             creation_coins,
+            maximum_participant_number: Some(maximum_participant_number),
         },
     )?;
 

@@ -1,7 +1,14 @@
+#[cfg(feature = "sg")]
+use {
+    crate::query::{is_approved_sg721, is_sg721_owner},
+    sg721::ExecuteMsg as Sg721ExecuteMsg,
+    utils::state::into_cosmos_msg,
+};
+
 use {
     crate::{
         error::{self, ContractError},
-        query::{is_approved_cw721, is_approved_sg721, is_nft_owner, is_sg721_owner},
+        query::{is_approved_cw721, is_nft_owner},
         state::{
             can_repay_loan, get_active_loan, get_offer, is_active_lender,
             is_collateral_withdrawable, is_lender, is_loan_acceptable, is_loan_counterable,
@@ -16,11 +23,11 @@ use {
     },
     cw721::Cw721ExecuteMsg,
     cw721_base::Extension,
-    sg_std::{CosmosMsg, Response},
-    utils::state::{is_valid_comment, AssetInfo, Cw721Coin, Sg721Token},
+    utils::{
+        state::{is_valid_comment, AssetInfo, Cw721Coin, Sg721Token},
+        types::{CosmosMsg, Response},
+    },
 };
-#[cfg(feature = "sg")]
-use {sg721::ExecuteMsg as Sg721ExecuteMsg, utils::state::into_cosmos_msg};
 
 /// Signals the listing of multiple collaterals in the same loan.
 /// This is the first entry point of the loan flow.
@@ -88,10 +95,6 @@ pub fn list_collaterals(
         }
         _ => Err(ContractError::SenderNotOwner {}),
     })?;
-
-    // if info.funds.len() > 1 {
-    //     return Err(ContractError::InvalidAmount {});
-    // };
 
     let fee = info
         .funds
@@ -727,6 +730,14 @@ pub fn _withdraw_loan(
 
 pub fn _withdraw_asset(asset: &AssetInfo, _sender: Addr, recipient: Addr) -> StdResult<CosmosMsg> {
     match asset {
+        AssetInfo::Cw721Coin(cw721) => into_cosmos_msg(
+            Cw721ExecuteMsg::TransferNft {
+                recipient: recipient.to_string(),
+                token_id: cw721.token_id.clone(),
+            },
+            cw721.address.clone(),
+            None,
+        ),
         #[cfg(feature = "sg")]
         AssetInfo::Sg721Token(sg721) => into_cosmos_msg(
             Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
@@ -734,14 +745,6 @@ pub fn _withdraw_asset(asset: &AssetInfo, _sender: Addr, recipient: Addr) -> Std
                 token_id: sg721.token_id.clone(),
             },
             sg721.address.clone(),
-            None,
-        ),
-        AssetInfo::Cw721Coin(cw721) => into_cosmos_msg(
-            Cw721ExecuteMsg::TransferNft {
-                recipient: recipient.to_string(),
-                token_id: cw721.token_id.clone(),
-            },
-            cw721.address.clone(),
             None,
         ),
         _ => Err(StdError::generic_err("msg")),

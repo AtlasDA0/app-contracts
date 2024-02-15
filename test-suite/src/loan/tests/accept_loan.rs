@@ -22,9 +22,9 @@ mod tests {
             contract_vending_minter, custom_mock_app,
         },
         helpers::assert_error,
+        setup_minter::common::constants::OWNER_ADDR,
     };
 
-    const OWNER_ADDR: &str = "fee";
     const OFFERER_ADDR: &str = "offerer";
     const DEPOSITOR_ADDR: &str = "depositor";
     const BORROWER_ADDR: &str = "borrower";
@@ -130,7 +130,8 @@ mod tests {
                     listing_fee_coins: vec![
                         coin(55, NATIVE_DENOM.to_string()),
                         coin(45, "usstars".to_string()),
-                    ].into(),
+                    ]
+                    .into(),
                 },
                 &[],
                 "loans",

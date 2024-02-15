@@ -133,8 +133,8 @@ mod tests {
             query_config,
             ConfigResponse {
                 name: RAFFLE_NAME.to_string(),
-                owner: Addr::unchecked("fee"),
-                fee_addr: Addr::unchecked("fee"),
+                owner: Addr::unchecked(OWNER_ADDR),
+                fee_addr: Addr::unchecked(OWNER_ADDR),
                 last_raffle_id: 0,
                 minimum_raffle_duration: 20,
                 minimum_raffle_timeout: 420,

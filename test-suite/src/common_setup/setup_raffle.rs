@@ -14,7 +14,7 @@ use crate::common_setup::{
     setup_accounts_and_block::setup_accounts,
     setup_minter::{
         common::{
-            constants::{NOIS_PROXY_ADDR, RAFFLE_NAME},
+            constants::{NOIS_PROXY_ADDR, OWNER_ADDR, RAFFLE_NAME},
             minter_params::minter_params_token,
         },
         vending_minter::setup::configure_minter,
@@ -28,8 +28,6 @@ use sg2::tests::mock_collection_params_1;
 use sg_multi_test::StargazeApp;
 use sg_std::{GENESIS_MINT_START_TIME, NATIVE_DENOM};
 use vending_factory::state::{ParamsExtension, VendingMinterParams};
-
-const OWNER_ADDR: &str = "fee";
 
 pub fn proper_raffle_instantiate() -> (StargazeApp, Addr, Addr) {
     let mut app = custom_mock_app();

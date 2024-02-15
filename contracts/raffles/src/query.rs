@@ -3,19 +3,12 @@ use cosmwasm_std::{
 };
 use cw721::{Cw721QueryMsg, OwnerOfResponse};
 use cw_storage_plus::Bound;
-use sg721_base::QueryMsg as Sg721QueryMsg;
-use utils::state::AssetInfo;
-
-#[cfg(not(feature = "sg"))]
-use crate::{
-    msg::{AllRafflesResponse, ConfigResponse, QueryFilters, RaffleResponse},
-    state::vanilla::{
-        get_raffle_state, load_raffle, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO,
-        RAFFLE_TICKETS, USER_TICKETS,
-    },
-};
 
 #[cfg(feature = "sg")]
+use sg721_base::QueryMsg as Sg721QueryMsg;
+
+use utils::state::AssetInfo;
+
 use crate::{
     msg::{AllRafflesResponse, ConfigResponse, QueryFilters, RaffleResponse},
     state::{
@@ -243,6 +236,8 @@ pub fn is_nft_owner(
     Ok(())
 }
 
+
+#[cfg(feature = "sg")]
 pub fn is_sg721_owner(
     deps: Deps,
     sender: Addr,

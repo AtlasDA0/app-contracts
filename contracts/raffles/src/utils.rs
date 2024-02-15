@@ -6,7 +6,10 @@ use cosmwasm_std::{
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
 use nois::{int_in_range, ProxyExecuteMsg};
-use utils::{state::into_cosmos_msg, types::{CosmosMsg, Response}};
+use utils::{
+    state::into_cosmos_msg,
+    types::{CosmosMsg, Response},
+};
 
 #[cfg(feature = "sg")]
 use {
@@ -15,14 +18,6 @@ use {
     },
     sg721::ExecuteMsg as Sg721ExecuteMsg,
     utils::state::AssetInfo,
-};
-#[cfg(not(feature = "sg"))]
-use {
-    crate::state::{
-        get_raffle_state as grsv, RaffleInfo, RaffleState, CONFIG as CONFIG_V,
-        RAFFLE_INFO as RAFFLE_INFO_V, RAFFLE_TICKETS as RAFFLE_TICKETS_V,
-    },
-    cosmwasm_std::Response as VanillaResponse,
 };
 
 pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, ContractError> {
@@ -67,7 +62,12 @@ pub fn get_raffle_owner_finished_messages(
 
     // use raffle_fee % to calculate treasury distribution
     let treasury_amount = total_paid * config.raffle_fee;
-    let owner_amount = total_paid - treasury_amount;
+    let mut owner_amount = total_paid;
+
+    // if ticket cost was not 0, deduct ticket sales tax from raffle owner revenue
+    if !total_paid.is_zero() {
+        owner_amount = total_paid - treasury_amount;
+    };
 
     // Then we craft the messages needed for asset transfers
     match raffle_info.raffle_ticket_price {

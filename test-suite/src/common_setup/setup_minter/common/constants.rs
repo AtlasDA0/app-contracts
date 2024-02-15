@@ -17,7 +17,7 @@ pub const MINT_PRICE: u128 = 100_000_000;
 pub const SHUFFLE_FEE: u128 = 500_000_000;
 // const NOIS_AMOUNT: u128 = 50;
 
-pub const OWNER_ADDR: &str = "fee";
+pub const OWNER_ADDR: &str = "owner";
 pub const OFFERER_ADDR: &str = "offerer";
 pub const DEPOSITOR_ADDR: &str = "depositor";
 pub const BORROWER_ADDR: &str = "borrower";
@@ -32,5 +32,3 @@ pub const DEV_ADDRESS: &str = "stars1abcd4kdla12mh86psg4y4h6hh05g2hmqoap350";
 pub const FOUNDATION: &str = "stars1xqz6xujjyz0r9uzn7srasle5uynmpa0zkjr5l8";
 
 const NOIS_AMOUNT: u128 = 50;
-const NAME: &str = "raffle param name";
-

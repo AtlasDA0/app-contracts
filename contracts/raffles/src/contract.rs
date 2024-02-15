@@ -3,37 +3,21 @@ use cosmwasm_std::{
     QueryResponse, StdResult,
 };
 
+use crate::{
+    execute::{
+        execute_buy_tickets, execute_cancel_raffle, execute_create_raffle,
+        execute_determine_winner, execute_modify_raffle, execute_receive, execute_receive_nois,
+        execute_toggle_lock, execute_update_config, execute_update_randomness,
+    },
+    state::{
+        get_raffle_state, load_raffle, Config, CONFIG, MAX_PARTICIPANT_NUMBER,
+        MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, STATIC_RAFFLE_CREATION_FEE,
+    },
+};
 use utils::{state::is_valid_name, types::Response};
-#[cfg(not(feature = "sg"))]
-use {
-    crate::{
-        execute::{
-            execute_buy_tickets, execute_cancel_raffle, execute_create_raffle,
-            execute_determine_winner, execute_modify_raffle, execute_receive, execute_receive_nois,
-            execute_toggle_lock, execute_update_config, execute_update_randomness,
-        },
-        state::{
-            get_raffle_state, load_raffle, Config, CONFIG, MINIMUM_RAFFLE_DURATION,
-            MINIMUM_RAFFLE_TIMEOUT, STATIC_RAFFLE_CREATION_FEE,
-        },
-    },
-    cosmwasm_std::Response,
-};
+
 #[cfg(feature = "sg")]
-use {
-    crate::{
-        execute::{
-            execute_buy_tickets, execute_cancel_raffle, execute_create_raffle,
-            execute_determine_winner, execute_modify_raffle, execute_receive, execute_receive_nois,
-            execute_toggle_lock, execute_update_config, execute_update_randomness,
-        },
-        state::{
-            get_raffle_state, load_raffle, Config, CONFIG, MINIMUM_RAFFLE_DURATION,
-            MINIMUM_RAFFLE_TIMEOUT, STATIC_RAFFLE_CREATION_FEE,
-        },
-    },
-    sg_std::NATIVE_DENOM,
-};
+use sg_std::NATIVE_DENOM;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse};
@@ -55,7 +39,7 @@ pub fn instantiate(
     // define the accepted fee coins
     let creation_coins = match msg.creation_coins {
         Some(cc_msg) => cc_msg,
-        None => vec![coin(STATIC_RAFFLE_CREATION_FEE, NATIVE_DENOM)],
+        None => vec![coin(STATIC_RAFFLE_CREATION_FEE, NATIVE_DENOM)], // TODO: update to handle ibc contract support native denoms
     };
 
     // fee decimal range
@@ -90,6 +74,7 @@ pub fn instantiate(
         nois_proxy_addr,
         nois_proxy_coin: msg.nois_proxy_coin,
         creation_coins,
+        maximum_participant_number: Some(msg.max_participant_number.unwrap_or(MAX_PARTICIPANT_NUMBER)),
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -169,6 +154,7 @@ pub fn execute(
             fee_addr,
             minimum_raffle_duration,
             minimum_raffle_timeout,
+            maximum_participant_number,
             raffle_fee,
             nois_proxy_addr,
             nois_proxy_coin,
@@ -182,6 +168,7 @@ pub fn execute(
             fee_addr,
             minimum_raffle_duration,
             minimum_raffle_timeout,
+            maximum_participant_number,
             raffle_fee,
             nois_proxy_addr,
             nois_proxy_coin,

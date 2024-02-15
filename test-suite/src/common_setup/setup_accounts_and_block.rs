@@ -3,6 +3,8 @@ use cw_multi_test::{BankSudo, SudoMsg};
 use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
 
+use crate::common_setup::setup_minter::common::constants::OWNER_ADDR;
+
 pub const INITIAL_BALANCE: u128 = 100_000_000_000_000;
 
 pub fn setup_accounts(
@@ -14,7 +16,7 @@ pub fn setup_accounts(
     //  Addr, Addr, Addr, Addr, Addr
 ) {
     // define accounts
-    let owner = Addr::unchecked("fee");
+    let owner = Addr::unchecked(OWNER_ADDR);
     let depositor = Addr::unchecked("depositor");
     let lender = Addr::unchecked("offerer");
     //define balances
