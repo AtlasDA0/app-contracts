@@ -3,7 +3,10 @@ use cosmwasm_std::{
 };
 use cw721::{Cw721QueryMsg, OwnerOfResponse};
 use cw_storage_plus::Bound;
+
+#[cfg(feature = "sg")]
 use sg721_base::QueryMsg as Sg721QueryMsg;
+
 use utils::state::AssetInfo;
 
 use crate::{
@@ -233,6 +236,8 @@ pub fn is_nft_owner(
     Ok(())
 }
 
+
+#[cfg(feature = "sg")]
 pub fn is_sg721_owner(
     deps: Deps,
     sender: Addr,

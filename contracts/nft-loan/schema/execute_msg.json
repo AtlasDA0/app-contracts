@@ -438,11 +438,11 @@
         {
           "type": "object",
           "required": [
-            "sg721_token"
+            "coin"
           ],
           "properties": {
-            "sg721_token": {
-              "$ref": "#/definitions/Sg721Token"
+            "coin": {
+              "$ref": "#/definitions/Coin"
             }
           },
           "additionalProperties": false
@@ -450,11 +450,11 @@
         {
           "type": "object",
           "required": [
-            "coin"
+            "sg721_token"
           ],
           "properties": {
-            "coin": {
-              "$ref": "#/definitions/Coin"
+            "sg721_token": {
+              "$ref": "#/definitions/Sg721Token"
             }
           },
           "additionalProperties": false

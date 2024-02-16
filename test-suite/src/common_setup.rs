@@ -6,4 +6,5 @@ pub mod setup_loan;
 pub mod setup_raffle;
 pub mod msg;
 pub mod templates;
+pub mod create_raffles;
 // pub mod contract_boxes_empty;

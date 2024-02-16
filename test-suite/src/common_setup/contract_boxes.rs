@@ -8,9 +8,9 @@ pub fn custom_mock_app() -> StargazeApp {
 
 pub fn contract_raffles() -> Box<dyn Contract<StargazeMsgWrapper>> {
     let contract = ContractWrapper::new(
-        sg_raffles::contract::execute,
-        sg_raffles::contract::instantiate,
-        sg_raffles::contract::query,
+        raffles::contract::execute,
+        raffles::contract::instantiate,
+        raffles::contract::query,
     );
     // .with_sudo(vending_factory::contract::sudo);
     Box::new(contract)
@@ -47,9 +47,9 @@ pub fn contract_sg721_base() -> Box<dyn Contract<StargazeMsgWrapper>> {
 
 pub fn contract_nft_loans() -> Box<dyn Contract<StargazeMsgWrapper>> {
     let contract = ContractWrapper::new(
-        sg_nft_loans::contract::execute,
-        sg_nft_loans::contract::instantiate,
-        sg_nft_loans::contract::query,
+        nft_loans_nc::contract::execute,
+        nft_loans_nc::contract::instantiate,
+        nft_loans_nc::contract::query,
     );
     // .with_sudo(vending_factory::contract::sudo);
     Box::new(contract)

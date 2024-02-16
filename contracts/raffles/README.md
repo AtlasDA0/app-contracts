@@ -17,7 +17,7 @@ This handles the creation & lifecycle of raffles on Stargaze.
         "ibc/ACCAF790E082E772691A20B0208FB972AD3A01C2DE0D7E8C479CCABF6C9F39B1"
     ],
     "fee_addr": "stars1n5x097nd7v8dv8ng4x4xeux5xdv6jas62qslh3",
-    "max_participant_number": 1,
+    "max_ticket_number": 1,
     "minimum_raffle_duration": 120 // in seconds 
 }
 

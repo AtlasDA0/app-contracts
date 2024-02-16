@@ -4,7 +4,7 @@ use crate::common_setup::contract_boxes::{
 };
 use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Decimal, Timestamp, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
-use sg_nft_loans::msg::InstantiateMsg as LoanInstantiateMsg;
+use nft_loans_nc::msg::InstantiateMsg as LoanInstantiateMsg;
 use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
 use vending_factory::state::{ParamsExtension, VendingMinterParams};

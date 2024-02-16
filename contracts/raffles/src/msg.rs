@@ -3,6 +3,9 @@ use cosmwasm_std::{Addr, Coin, Decimal, HexBinary, StdError, StdResult};
 use nois::NoisCallback;
 use utils::state::{is_valid_name, AssetInfo};
 
+#[cfg(not(feature = "sg"))]
+use crate::state_vanilla::{RaffleInfo, RaffleOptionsMsg, RaffleState};
+#[cfg(feature = "sg")]
 use crate::state::{RaffleInfo, RaffleOptionsMsg, RaffleState};
 
 #[cw_serde]
@@ -22,7 +25,7 @@ pub struct InstantiateMsg {
     // Minimum cooldown from raffle end to determine winner
     pub minimum_raffle_timeout: Option<u64>,
     // Maximum participant limit for a raffle
-    pub max_participant_number: Option<u32>,
+    pub max_ticket_number: Option<u32>,
     // % fee of raffle ticket sales to fee_addr
     pub raffle_fee: Decimal,
 
@@ -54,6 +57,7 @@ pub enum ExecuteMsg {
         assets: Vec<AssetInfo>,
         raffle_options: RaffleOptionsMsg,
         raffle_ticket_price: AssetInfo,
+        autocycle: Option<bool>,
     },
     CancelRaffle {
         raffle_id: u64,
@@ -64,6 +68,7 @@ pub enum ExecuteMsg {
         fee_addr: Option<String>,
         minimum_raffle_duration: Option<u64>,
         minimum_raffle_timeout: Option<u64>,
+        maximum_participant_number: Option<u32>,
         raffle_fee: Option<Decimal>,
         nois_proxy_addr: Option<String>,
         nois_proxy_coin: Option<Coin>,

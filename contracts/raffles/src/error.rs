@@ -15,7 +15,13 @@ pub enum ContractError {
 
     #[error("Proxy address is not valid")]
     InvalidProxyAddress,
-    
+
+    #[error("Proxy coin is not valid")]
+    InvalidProxyCoin,
+
+    #[error("One of the creation coins you provided is not valid")]
+    InvalidCreationCoins,
+
     #[error("Invalid Name")]
     InvalidName {},
 
@@ -45,7 +51,7 @@ pub enum ContractError {
 
     #[error("The randomness signatur is invalid")]
     InvalidSignature {},
-    
+
     #[error("Already claimed")]
     Claimed {},
 
@@ -158,6 +164,9 @@ pub enum ContractError {
 
     #[error("This raffle cannot be cancelled anymore,   Current status : {status:?}")]
     WrongStateForCancel { status: RaffleState },
+
+    #[error("This raffle is not able to be modified.  Current status : {status:?}")]
+    WrongStateForModify { status: RaffleState },
 
     #[error("This raffle has already started.")]
     RaffleAlreadyStarted {},

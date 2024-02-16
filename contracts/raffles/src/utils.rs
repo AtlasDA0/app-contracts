@@ -1,9 +1,9 @@
+#[cfg(feature = "sg")]
+use sg721::ExecuteMsg as Sg721ExecuteMsg;
+
 use crate::{
-    contract::Response,
     error::ContractError,
-    state::{
-        get_raffle_state, RaffleInfo, RaffleState, CONFIG, NOIS_AMOUNT, RAFFLE_INFO, RAFFLE_TICKETS,
-    },
+    state::{get_raffle_state, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO, RAFFLE_TICKETS},
 };
 use cosmwasm_std::{
     coin, coins, to_json_binary, Addr, BankMsg, Coin, Deps, Empty, Env, HexBinary, StdError,
@@ -11,10 +11,13 @@ use cosmwasm_std::{
 };
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
+
 use nois::{int_in_range, ProxyExecuteMsg};
-use sg721::ExecuteMsg as Sg721ExecuteMsg;
-use sg_std::CosmosMsg;
-use utils::state::{into_cosmos_msg, AssetInfo};
+
+use utils::{
+    state::{into_cosmos_msg, AssetInfo},
+    types::{CosmosMsg, Response},
+};
 
 pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, ContractError> {
     let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id.clone())?;
@@ -58,7 +61,12 @@ pub fn get_raffle_owner_finished_messages(
 
     // use raffle_fee % to calculate treasury distribution
     let treasury_amount = total_paid * config.raffle_fee;
-    let owner_amount = total_paid - treasury_amount;
+    let mut owner_amount = total_paid;
+
+    // if ticket cost was not 0, deduct ticket sales tax from raffle owner revenue
+    if !total_paid.is_zero() {
+        owner_amount = total_paid - treasury_amount;
+    };
 
     // Then we craft the messages needed for asset transfers
     match raffle_info.raffle_ticket_price {
@@ -136,6 +144,7 @@ fn _get_raffle_end_asset_messages(
                 };
                 into_cosmos_msg(message, nft.address.clone(), None)
             }
+            #[cfg(feature = "sg")]
             AssetInfo::Sg721Token(sg721_token) => {
                 let message = Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
                     recipient: receiver.clone(),
@@ -182,9 +191,7 @@ pub fn can_buy_ticket(env: Env, raffle_info: RaffleInfo) -> Result<(), ContractE
     }
 }
 
-// RAFFLE WINNER
-
-/// Util to get the winner messages to return when claiming a Raffle (returns the raffled asset)
+#[cfg(feature = "sg")]
 pub fn get_raffle_winner_messages(
     deps: Deps,
     env: Env,
@@ -199,3 +206,5 @@ pub fn get_raffle_winner_messages(
     // generate state modifications for
     _get_raffle_end_asset_messages(env, raffle_info, winner.to_string())
 }
+
+// RAFFLE WINNER

@@ -1,25 +1,28 @@
 use cosmwasm_std::{
     coin, ensure, entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
-    QueryResponse, StdResult,
+    QueryResponse, StdResult, Uint128,
 };
-use sg_std::{StargazeMsgWrapper, NATIVE_DENOM};
-use utils::state::is_valid_name;
+
+use crate::{
+    execute::{
+        execute_buy_tickets, execute_cancel_raffle, execute_create_raffle,
+        execute_determine_winner, execute_modify_raffle, execute_receive, execute_receive_nois,
+        execute_toggle_lock, execute_update_config, execute_update_randomness,
+    },
+    state::{
+        get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
+        MINIMUM_RAFFLE_TIMEOUT, STATIC_RAFFLE_CREATION_FEE,
+    },
+};
+use utils::{state::is_valid_name, types::Response};
+
+#[cfg(feature = "sg")]
+use sg_std::NATIVE_DENOM;
 
 use crate::error::ContractError;
-use crate::execute::{
-    execute_buy_tickets, execute_cancel_raffle, execute_create_raffle, execute_determine_winner,
-    execute_modify_raffle, execute_receive, execute_receive_nois, execute_toggle_lock,
-    execute_update_config, execute_update_randomness,
-};
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse};
 use crate::query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count};
-use crate::state::{
-    get_raffle_state, load_raffle, Config, CONFIG, MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT,
-    STATIC_RAFFLE_CREATION_FEE,
-};
 use cw2::set_contract_version;
-
-pub type Response = cosmwasm_std::Response<StargazeMsgWrapper>;
 
 #[entry_point]
 pub fn instantiate(
@@ -36,13 +39,17 @@ pub fn instantiate(
     // define the accepted fee coins
     let creation_coins = match msg.creation_coins {
         Some(cc_msg) => cc_msg,
-        None => vec![coin(STATIC_RAFFLE_CREATION_FEE, NATIVE_DENOM)],
+        None => vec![coin(STATIC_RAFFLE_CREATION_FEE, NATIVE_DENOM)], // TODO: update to handle ibc contract support native denoms
     };
 
     // fee decimal range
     ensure!(
         msg.raffle_fee >= Decimal::zero() && msg.raffle_fee <= Decimal::one(),
         ContractError::InvalidFeeRate {}
+    );
+    ensure!(
+        msg.nois_proxy_coin.amount >= Uint128::zero(),
+        ContractError::InvalidProxyCoin
     );
     // valid name
     if !is_valid_name(&msg.name) {
@@ -71,6 +78,7 @@ pub fn instantiate(
         nois_proxy_addr,
         nois_proxy_coin: msg.nois_proxy_coin,
         creation_coins,
+        maximum_participant_number: Some(msg.max_ticket_number.unwrap_or(MAX_TICKET_NUMBER)),
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -105,6 +113,7 @@ pub fn execute(
             assets,
             raffle_options,
             raffle_ticket_price,
+            autocycle,
         } => execute_create_raffle(
             deps,
             env,
@@ -113,6 +122,7 @@ pub fn execute(
             assets,
             raffle_ticket_price,
             raffle_options,
+            autocycle,
         ),
         ExecuteMsg::CancelRaffle { raffle_id } => execute_cancel_raffle(deps, env, info, raffle_id),
         ExecuteMsg::ModifyRaffle {
@@ -148,6 +158,7 @@ pub fn execute(
             fee_addr,
             minimum_raffle_duration,
             minimum_raffle_timeout,
+            maximum_participant_number,
             raffle_fee,
             nois_proxy_addr,
             nois_proxy_coin,
@@ -161,6 +172,7 @@ pub fn execute(
             fee_addr,
             minimum_raffle_duration,
             minimum_raffle_timeout,
+            maximum_participant_number,
             raffle_fee,
             nois_proxy_addr,
             nois_proxy_coin,

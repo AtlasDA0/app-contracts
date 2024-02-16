@@ -1,23 +1,31 @@
-use cosmwasm_std::{
-    coins, Addr, BankMsg, Coin, Decimal, DepsMut, Empty, Env, MessageInfo, StdError, StdResult,
-    Storage,
+#[cfg(feature = "sg")]
+use {
+    crate::query::{is_approved_sg721, is_sg721_owner},
+    sg721::ExecuteMsg as Sg721ExecuteMsg,
+    utils::state::into_cosmos_msg,
 };
 
-use cw721::Cw721ExecuteMsg;
-use cw721_base::Extension;
-use sg721::ExecuteMsg as Sg721ExecuteMsg;
-use sg_std::{CosmosMsg, Response};
-use utils::state::{into_cosmos_msg, is_valid_comment, AssetInfo, Cw721Coin, Sg721Token};
-
-use crate::{
-    error::{self, ContractError},
-    query::{is_approved_cw721, is_approved_sg721, is_nft_owner, is_sg721_owner},
-    state::{
-        can_repay_loan, get_active_loan, get_offer, is_active_lender, is_collateral_withdrawable,
-        is_lender, is_loan_acceptable, is_loan_counterable, is_loan_defaulted, is_loan_modifiable,
-        is_offer_borrower, is_offer_refusable, lender_offers, save_offer, BorrowerInfo,
-        CollateralInfo, LoanState, LoanTerms, OfferInfo, OfferState, BORROWER_INFO,
-        COLLATERAL_INFO, CONFIG,
+use {
+    crate::{
+        error::{self, ContractError},
+        query::{is_approved_cw721, is_nft_owner},
+        state::{
+            can_repay_loan, get_active_loan, get_offer, is_active_lender,
+            is_collateral_withdrawable, is_lender, is_loan_acceptable, is_loan_counterable,
+            is_loan_defaulted, is_loan_modifiable, is_offer_borrower, is_offer_refusable,
+            lender_offers, save_offer, BorrowerInfo, CollateralInfo, LoanState, LoanTerms,
+            OfferInfo, OfferState, BORROWER_INFO, COLLATERAL_INFO, CONFIG,
+        },
+    },
+    cosmwasm_std::{
+        coins, Addr, BankMsg, Coin, Decimal, DepsMut, Empty, Env, MessageInfo, StdError, StdResult,
+        Storage,
+    },
+    cw721::Cw721ExecuteMsg,
+    cw721_base::Extension,
+    utils::{
+        state::{is_valid_comment, AssetInfo, Cw721Coin, Sg721Token},
+        types::{CosmosMsg, Response},
     },
 };
 
@@ -67,6 +75,7 @@ pub fn list_collaterals(
                 token_id.clone(),
             )
         }
+        #[cfg(feature = "sg")]
         AssetInfo::Sg721Token(Sg721Token { address, token_id }) => {
             // asserts borrower is owner of collateral
             is_sg721_owner(
@@ -86,10 +95,6 @@ pub fn list_collaterals(
         }
         _ => Err(ContractError::SenderNotOwner {}),
     })?;
-
-    // if info.funds.len() > 1 {
-    //     return Err(ContractError::InvalidAmount {});
-    // };
 
     let fee = info
         .funds
@@ -327,7 +332,6 @@ fn _make_offer_raw(
     Ok((contract_config.global_offer_index.to_string(), offer_id))
 }
 
-/// Accepts an offer without any owner checks
 fn _accept_offer_raw(
     deps: DepsMut,
     env: Env,
@@ -382,6 +386,7 @@ fn _accept_offer_raw(
                     None,
                 )?)
             }
+            #[cfg(feature = "sg")]
             AssetInfo::Sg721Token(Sg721Token { address, token_id }) => {
                 is_sg721_owner(
                     deps.as_ref(),
@@ -725,20 +730,21 @@ pub fn _withdraw_loan(
 
 pub fn _withdraw_asset(asset: &AssetInfo, _sender: Addr, recipient: Addr) -> StdResult<CosmosMsg> {
     match asset {
-        AssetInfo::Sg721Token(sg721) => into_cosmos_msg(
-            Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
-                recipient: recipient.to_string(),
-                token_id: sg721.token_id.clone(),
-            },
-            sg721.address.clone(),
-            None,
-        ),
         AssetInfo::Cw721Coin(cw721) => into_cosmos_msg(
             Cw721ExecuteMsg::TransferNft {
                 recipient: recipient.to_string(),
                 token_id: cw721.token_id.clone(),
             },
             cw721.address.clone(),
+            None,
+        ),
+        #[cfg(feature = "sg")]
+        AssetInfo::Sg721Token(sg721) => into_cosmos_msg(
+            Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
+                recipient: recipient.to_string(),
+                token_id: sg721.token_id.clone(),
+            },
+            sg721.address.clone(),
             None,
         ),
         _ => Err(StdError::generic_err("msg")),

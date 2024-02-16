@@ -3,6 +3,8 @@ use cosmwasm_std::{
 };
 use cw721::{ApprovalResponse, Cw721QueryMsg, Expiration, OwnerOfResponse};
 use cw_storage_plus::Bound;
+
+#[cfg(feature = "sg")]
 use sg721_base::QueryMsg as Sg721QueryMsg;
 
 use crate::{
@@ -48,6 +50,7 @@ pub fn is_nft_owner(
 }
 
 // confirm ownership
+#[cfg(feature = "sg")]
 pub fn is_sg721_owner(
     deps: Deps,
     sender: Addr,
@@ -94,6 +97,7 @@ pub fn is_approved_cw721(
 }
 
 // confirm token approval
+#[cfg(feature = "sg")]
 pub fn is_approved_sg721(
     deps: Deps,
     env: Env,

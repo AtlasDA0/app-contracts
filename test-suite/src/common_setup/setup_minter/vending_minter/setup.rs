@@ -9,7 +9,7 @@ use cosmwasm_std::{coin, coins, to_json_binary, Addr, Decimal};
 use cw_multi_test::{AppResponse, Executor};
 use sg2::msg::CreateMinterMsg;
 use sg2::msg::{CollectionParams, Sg2ExecuteMsg};
-use sg_nft_loans::msg::InstantiateMsg as LoanInstantiateMsg;
+use nft_loans_nc::msg::InstantiateMsg as LoanInstantiateMsg;
 use sg_std::NATIVE_DENOM;
 use vending_factory::msg::{VendingMinterInitMsgExtension, VendingUpdateParamsExtension};
 

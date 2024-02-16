@@ -12,6 +12,12 @@ pub struct MinterCollectionResponse {
     pub error: Option<Error>,
 }
 
+pub struct CreateRaffleResponse {
+    pub raffle: Option<Addr>,
+    pub owner: Option<Addr>,
+    pub error: Option<Error>,
+}
+
 pub struct MinterSetupParams<'a> {
     pub router: &'a mut StargazeApp,
     pub minter_admin: Addr,
@@ -62,17 +68,6 @@ pub struct MinterCodeIds {
     pub sg721_code_id: u64,
 }
 
-pub struct RaffleTemplateResponse<T> {
-    pub raffle_response_vec: Vec<CreateRaffleResponse>,
-    pub router: StargazeApp,
-    pub accts: T,
-}
-
-pub struct CreateRaffleResponse {
-    pub raffle: Option<Addr>,
-    pub owner: Option<Addr>,
-    pub error: Option<Error>,
-}
 
 pub struct RaffleAccounts {
     pub creator: Addr,
@@ -91,6 +86,12 @@ pub struct MinterAccounts {
 
 pub struct MinterTemplateResponse<T> {
     pub collection_response_vec: Vec<MinterCollectionResponse>,
+    pub router: StargazeApp,
+    pub accts: T,
+}
+
+pub struct RaffleTemplateResponse<T> {
+    pub raffle_response_vec: Vec<CreateRaffleResponse>,
     pub router: StargazeApp,
     pub accts: T,
 }
