@@ -278,7 +278,7 @@ mod tests {
                 Addr::unchecked(SG721_CONTRACT),
                 &sg721_base::msg::ExecuteMsg::<Empty, Empty>::Approve {
                     spender: raffle_contract_addr.to_string(),
-                    token_id: "41".to_string(),
+                    token_id: "63".to_string(),
                     expires: None,
                 },
                 &[],
@@ -291,7 +291,7 @@ mod tests {
                 Addr::unchecked(SG721_CONTRACT),
                 &sg721_base::msg::ExecuteMsg::<Empty, Empty>::Approve {
                     spender: raffle_contract_addr.to_string(),
-                    token_id: "56".to_string(),
+                    token_id: "65".to_string(),
                     expires: None,
                 },
                 &[],
@@ -320,11 +320,11 @@ mod tests {
                     assets: vec![
                         AssetInfo::Sg721Token(Sg721Token {
                             address: SG721_CONTRACT.to_string(),
-                            token_id: "41".to_string(),
+                            token_id: "65".to_string(),
                         }),
                         AssetInfo::Sg721Token(Sg721Token {
                             address: SG721_CONTRACT.to_string(),
-                            token_id: "56".to_string(),
+                            token_id: "63".to_string(),
                         }),
                     ],
                     raffle_options: RaffleOptionsMsg {
@@ -362,11 +362,11 @@ mod tests {
                 assets: vec![
                     AssetInfo::Sg721Token(Sg721Token {
                         address: SG721_CONTRACT.to_string(),
-                        token_id: "41".to_string(),
+                        token_id: "65".to_string(),
                     }),
                     AssetInfo::Sg721Token(Sg721Token {
                         address: SG721_CONTRACT.to_string(),
-                        token_id: "56".to_string(),
+                        token_id: "63".to_string(),
                     })
                 ],
                 raffle_ticket_price: AssetInfo::Coin(Coin::new(100, "ustars".to_string())),
@@ -489,7 +489,7 @@ mod tests {
             .query_wasm_smart(
                 SG721_CONTRACT.to_string(),
                 &sg721_base::QueryMsg::OwnerOf {
-                    token_id: "41".to_string(),
+                    token_id: "63".to_string(),
                     include_expired: None,
                 },
             )

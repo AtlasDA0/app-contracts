@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::coin;
+    use raffles::msg::QueryMsg as RaffleQueryMsg;
     use std::vec;
 
     use crate::{
@@ -35,6 +36,17 @@ mod tests {
             purchase_tickets.is_ok(),
             "There is an issue with purchasing a ticket"
         );
+        let res: u32 = app
+            .wrap()
+            .query_wasm_smart(
+                raffle_addr.clone(),
+                &RaffleQueryMsg::TicketCount {
+                    owner: one.to_string(),
+                    raffle_id: 0,
+                },
+            )
+            .unwrap();
+        assert_eq!(res, 1);
         // println!("{:#?}", purchase_tickets.unwrap());
     }
 }

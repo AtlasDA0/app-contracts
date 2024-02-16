@@ -1,16 +1,15 @@
 use anyhow::Error as anyhow_error;
-use cosmwasm_std::{coin, coins, Addr, Coin, Decimal, Uint128};
+use cosmwasm_std::{coin, coins, Coin, Uint128};
 use cw_multi_test::{AppResponse, BankSudo, Executor, SudoMsg};
 use raffles::{
-    msg::{ExecuteMsg as RaffleExecuteMsg, InstantiateMsg, QueryMsg as RaffleQueryMsg},
+    msg::{ExecuteMsg as RaffleExecuteMsg, InstantiateMsg},
     state::RaffleOptionsMsg,
 };
 use sg_std::NATIVE_DENOM;
 use utils::state::{AssetInfo, Sg721Token};
 
 use crate::common_setup::{
-    contract_boxes::contract_raffles,
-    setup_minter::common::constants::{NOIS_PROXY_ADDR, RAFFLE_NAME, RAFFLE_TAX, SG721_CONTRACT},
+    contract_boxes::contract_raffles, setup_minter::common::constants::SG721_CONTRACT,
 };
 
 use super::test_msgs::{CreateRaffleParams, InstantiateRaffleParams, PurchaseTicketsParams};
@@ -19,7 +18,7 @@ pub fn instantate_raffle_contract(
     params: InstantiateRaffleParams,
 ) -> Result<cosmwasm_std::Addr, anyhow_error> {
     // define contract instantiation values
-    let mut admin_account = params.admin_account;
+    let admin_account = params.admin_account;
     let funds_amount = params.funds_amount;
     let name = params.name;
     let nois_coin = params.nois_proxy_coin;
@@ -112,7 +111,6 @@ pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse,
 
 pub fn buy_tickets_template(params: PurchaseTicketsParams) -> Result<AppResponse, anyhow_error> {
     // define msg values
-    let current_time = params.app.block_info().time.clone();
     let id = params.raffle_id;
     let msg_sender = &params.msg_senders;
     let raffle_addr = params.raffle_contract_addr;

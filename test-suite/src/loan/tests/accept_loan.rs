@@ -208,7 +208,6 @@ mod tests {
                 }],
             )
             .unwrap();
-        // println!("{:#?}", _mint_nft_tokens_again);
 
         // token id 41
         let _grant_approval = app
@@ -217,7 +216,7 @@ mod tests {
                 Addr::unchecked(SG721_CONTRACT),
                 &sg721_base::msg::ExecuteMsg::<Empty, Empty>::Approve {
                     spender: nft_loan_addr.to_string(),
-                    token_id: "41".to_string(),
+                    token_id: "63".to_string(),
                     expires: None,
                 },
                 &[],
@@ -230,7 +229,7 @@ mod tests {
                 Addr::unchecked(SG721_CONTRACT),
                 &sg721_base::msg::ExecuteMsg::<Empty, Empty>::Approve {
                     spender: nft_loan_addr.to_string(),
-                    token_id: "56".to_string(),
+                    token_id: "65".to_string(),
                     expires: None,
                 },
                 &[],
@@ -247,11 +246,11 @@ mod tests {
                     tokens: vec![
                         AssetInfo::Sg721Token(Sg721Token {
                             address: SG721_CONTRACT.to_string(),
-                            token_id: "41".to_string(),
+                            token_id: "63".to_string(),
                         }),
                         AssetInfo::Sg721Token(Sg721Token {
                             address: SG721_CONTRACT.to_string(),
-                            token_id: "56".to_string(),
+                            token_id: "65".to_string(),
                         }),
                     ],
                     terms: Some(LoanTerms {

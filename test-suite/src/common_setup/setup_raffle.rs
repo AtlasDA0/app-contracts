@@ -123,7 +123,7 @@ pub fn configure_raffle_assets(
     app: &mut StargazeApp,
     owner_addr: Addr,
     sg_factory_addr: Addr,
-) -> (&mut StargazeApp) {
+) -> &mut StargazeApp {
     let router = app;
     let current_time = router.block_info().time.clone();
 
@@ -205,7 +205,7 @@ pub fn configure_raffle_assets(
     //     )
     //     .unwrap();
 
-    (router)
+    router
 }
 
 pub fn raffle_template_code_ids(router: &mut StargazeApp) -> RaffleCodeIds {
@@ -230,7 +230,7 @@ pub fn create_raffle_setup(
     app: &mut StargazeApp,
     raffle_addr: Addr,
     owner_addr: Addr,
-) -> (&mut StargazeApp) {
+) -> &mut StargazeApp {
     let router = app;
     let current_time = router.block_info().time.clone();
 

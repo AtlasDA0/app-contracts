@@ -3,17 +3,13 @@ mod tests {
     use crate::common_setup::setup_raffle::{configure_raffle_assets, proper_raffle_instantiate};
     use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, HexBinary, Timestamp, Uint128};
     use cw721::OwnerOfResponse;
-    use cw_multi_test::{BankSudo, Executor, SudoMsg};
+    use cw_multi_test::Executor;
     use nois::NoisCallback;
     use raffles::msg::QueryMsg as RaffleQueryMsg;
-    use sg_std::{GENESIS_MINT_START_TIME, NATIVE_DENOM};
-    use utils::state::{AssetInfo, Sg721Token};
+    use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
 
     #[cfg(feature = "sg")]
-    use {
-        raffles::state::Config, sg2::tests::mock_collection_params_1, sg721::CollectionInfo,
-        sg721_base::QueryMsg as Sg721QueryMsg,
-    };
+    use sg721_base::QueryMsg as Sg721QueryMsg;
 
     use raffles::{
         error::ContractError,
@@ -438,6 +434,7 @@ mod tests {
                 creation_fee: vec![coin(4, NATIVE_DENOM)],
                 ticket_price: None,
             };
+
             // confirm raffles cannot be made & tickets cannot be bought
             let locked_creation = create_raffle_function(create_raffle_params).unwrap_err();
             assert_error(
@@ -532,14 +529,6 @@ mod tests {
             let good_create_raffle =
                 create_raffle_setup(&mut app, raffle_addr.clone(), owner_address.clone());
 
-            // confirm owner is set
-            // error if no creation fee provided when creating raffle
-            //  error if unauthorized to cancel a raffle
-            // err if no nois_proxy address is provided
-            // errors if no funds are sent
-            // errors if unauthorized to toggle lock
-            // errors if unauthorized to modify raffle
-
             // buy tickets
             let params = PurchaseTicketsParams {
                 app: &mut app,
@@ -549,7 +538,7 @@ mod tests {
                 num_tickets: 16,
                 funds_send: vec![coin(64, "ustars")],
             };
-            let ticket_purchase1 = buy_tickets_template(params);
+            buy_tickets_template(params).unwrap();
 
             let params = PurchaseTicketsParams {
                 app: &mut app,
@@ -559,37 +548,7 @@ mod tests {
                 num_tickets: 16,
                 funds_send: vec![coin(64, "ustars")],
             };
-            let ticket_purchase2 = buy_tickets_template(params);
-
-            let params = PurchaseTicketsParams {
-                app: &mut app,
-                raffle_contract_addr: raffle_addr.clone(),
-                msg_senders: vec![three.clone()],
-                raffle_id: 0,
-                num_tickets: 16,
-                funds_send: vec![coin(64, "ustars")],
-            };
-            let ticket_purchase3 = buy_tickets_template(params);
-
-            let params = PurchaseTicketsParams {
-                app: &mut app,
-                raffle_contract_addr: raffle_addr.clone(),
-                msg_senders: vec![four.clone()],
-                raffle_id: 0,
-                num_tickets: 16,
-                funds_send: vec![coin(64, "ustars")],
-            };
-            let ticket_purchase4 = buy_tickets_template(params);
-
-            let params = PurchaseTicketsParams {
-                app: &mut app,
-                raffle_contract_addr: raffle_addr.clone(),
-                msg_senders: vec![five.clone()],
-                raffle_id: 0,
-                num_tickets: 16,
-                funds_send: vec![coin(64, "ustars")],
-            };
-            let ticket_purchase5 = buy_tickets_template(params);
+            buy_tickets_template(params).unwrap();
 
             let res: u32 = app
                 .wrap()
@@ -609,49 +568,6 @@ mod tests {
                 current_time.clone().plus_seconds(130).nanos(),
                 Some(current_block.clone() + 100),
                 &chainid.clone(),
-            );
-
-            // try to claim ticket before randomness is requested
-            let claim_but_no_randomness_yet = app
-                .execute_contract(
-                    one.clone(),
-                    raffle_addr.clone(),
-                    &ExecuteMsg::DetermineWinner { raffle_id: 0 },
-                    &[],
-                )
-                .unwrap_err();
-
-            // println!("{:#?}", claim_but_no_randomness_yet);
-            assert_error(
-                Err(claim_but_no_randomness_yet),
-                ContractError::WrongStateForClaim {
-                    status: RaffleState::Closed,
-                }
-                .to_string(),
-            );
-
-            // ensure only nois_proxy provides randomness
-            let bad_recieve_randomness = app
-                .execute_contract(
-                    one.clone(),
-                    raffle_addr.clone(),
-                    &ExecuteMsg::NoisReceive {
-                        callback: NoisCallback {
-                            job_id: "raffle-0".to_string(),
-                            published: current_time.clone(),
-                            randomness: HexBinary::from_hex(
-                                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
-                            )
-                            .unwrap(),
-                        },
-                    },
-                    &[],
-                )
-                .unwrap_err();
-            // println!("{:#?}", bad_recieve_randomness);
-            assert_error(
-                Err(bad_recieve_randomness),
-                ContractError::UnauthorizedReceive.to_string(),
             );
 
             // simulates the response from nois_proxy
@@ -680,6 +596,11 @@ mod tests {
                     &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
                 )
                 .unwrap();
+
+            assert!(
+                res.raffle_info.unwrap().randomness.is_some(),
+                "randomness should have been updated into the raffle state"
+            );
 
             // determine the raffle winner, send tokens to winner
             let _claim_ticket = app

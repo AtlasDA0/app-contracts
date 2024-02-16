@@ -3,7 +3,7 @@ mod tests {
     use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, StdError, Timestamp, Uint128};
     use cw_multi_test::Executor;
     use raffles::state::ATLAS_DAO_STARGAZE_TREASURY;
-    use sg_std::{GENESIS_MINT_START_TIME, NATIVE_DENOM};
+    use sg_std::NATIVE_DENOM;
 
     use sg721::CollectionInfo;
     use vending_factory::msg::VendingMinterCreateMsg;

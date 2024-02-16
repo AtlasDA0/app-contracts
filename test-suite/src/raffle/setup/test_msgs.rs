@@ -1,6 +1,4 @@
-use std::{ops::Add, vec};
-
-use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
+use cosmwasm_std::{Addr, Coin, Decimal};
 
 pub struct InstantiateRaffleParams<'a> {
     pub app: &'a mut sg_multi_test::StargazeApp,
