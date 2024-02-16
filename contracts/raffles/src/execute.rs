@@ -1,6 +1,6 @@
 use cosmwasm_std::{
     coin, ensure, ensure_eq, from_json, to_json_binary, Addr, BankMsg, Coin, Decimal, DepsMut,
-    Empty, Env, MessageInfo, StdError, StdResult, Uint128, WasmMsg,
+    Empty, Env, MessageInfo, StdError, StdResult, Storage, Uint128, WasmMsg,
 };
 use cw721::{Cw721ExecuteMsg, Cw721ReceiveMsg};
 use cw721_base::Extension;
@@ -395,6 +395,12 @@ pub fn _buy_tickets(
     assets: AssetInfo,
 ) -> Result<(), ContractError> {
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
+    let config = CONFIG.load(deps.storage);
+
+    // right now we prevent contract from selling tickets if frozen.
+    if config.unwrap().lock {
+        return Err(ContractError::ContractIsLocked {});
+    }
 
     // We first check the sent assets match the raffle assets
     let tc = ticket_cost(raffle_info.clone(), ticket_count)?;
@@ -575,11 +581,17 @@ pub fn execute_determine_winner(
     // Loads the raffle id and makes sure the raffle has ended and randomness from nois has been provided.
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
     let raffle_state = get_raffle_state(env.clone(), raffle_info.clone());
+    let config = CONFIG.load(deps.storage);
 
     if raffle_state != RaffleState::Finished {
         return Err(ContractError::WrongStateForClaim {
             status: raffle_state,
         });
+    }
+
+    // prevent winner from being determined if contract is locked
+    if config.unwrap().lock {
+        return Err(ContractError::ContractIsLocked {});
     }
 
     // If there was no participant, the winner is the raffle owner and we pay no fees whatsoever
@@ -648,7 +660,7 @@ pub fn execute_update_config(
     nois_proxy_coin: Option<Coin>,
     creation_coins: Option<Vec<Coin>>,
 ) -> Result<Response, ContractError> {
-    let mut config = CONFIG.load(deps.storage)?;
+    let config = CONFIG.load(deps.storage)?;
     // ensure msg sender is admin
     ensure_eq!(info.sender, config.owner, ContractError::Unauthorized);
     let name = match name {

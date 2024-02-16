@@ -403,6 +403,66 @@ mod tests {
         }
 
         #[test]
+        fn good_toggle_lock() {
+            let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
+            let (owner_address, one, _) = setup_accounts(&mut app);
+            configure_raffle_assets(&mut app, owner_address.clone(), factory_addr);
+            let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
+                app: &mut app,
+                raffle_contract_addr: raffle_addr.clone(),
+                owner_addr: owner_address.clone(),
+                creation_fee: vec![coin(4, NATIVE_DENOM)],
+                ticket_price: None,
+            };
+            create_raffle_function(create_raffle_params.into()).unwrap();
+
+            let invalid_toggle_lock = app
+                .execute_contract(
+                    owner_address.clone(),
+                    raffle_addr.clone(),
+                    &ExecuteMsg::ToggleLock { lock: true },
+                    &[],
+                )
+                .unwrap();
+            // confirm the state is now true
+            let res: Config = app
+                .wrap()
+                .query_wasm_smart(raffle_addr.to_string(), &RaffleQueryMsg::Config {})
+                .unwrap();
+            assert_eq!(res.lock, true);
+
+            let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
+                app: &mut app,
+                raffle_contract_addr: raffle_addr.clone(),
+                owner_addr: owner_address.clone(),
+                creation_fee: vec![coin(4, NATIVE_DENOM)],
+                ticket_price: None,
+            };
+            // confirm raffles cannot be made & tickets cannot be bought
+            let locked_creation = create_raffle_function(create_raffle_params).unwrap_err();
+            assert_error(
+                Err(locked_creation),
+                ContractError::ContractIsLocked {}.to_string(),
+            );
+
+            let params = PurchaseTicketsParams {
+                app: &mut app,
+                raffle_contract_addr: raffle_addr.clone(),
+                msg_senders: vec![one.clone()],
+                raffle_id: 0,
+                num_tickets: 1,
+                funds_send: vec![coin(4, "ustars")],
+            };
+            // simulate the puchase of tickets
+            let purchase_tickets = buy_tickets_template(params).unwrap_err();
+
+            assert_error(
+                Err(purchase_tickets),
+                ContractError::ContractIsLocked {}.to_string(),
+            )
+        }
+
+        #[test]
         fn bad_modify_raffle_unauthorized() {
             let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
             let (owner_address, one, _) = setup_accounts(&mut app);
