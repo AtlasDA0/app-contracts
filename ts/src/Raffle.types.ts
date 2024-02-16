@@ -87,7 +87,7 @@ export interface Sg721Token {
 }
 export interface RaffleOptionsMsg {
   comment?: string | null;
-  max_participant_number?: number | null;
+  max_ticket_number?: number | null;
   max_ticket_per_address?: number | null;
   raffle_duration?: number | null;
   raffle_preview?: number | null;
@@ -107,7 +107,7 @@ export interface NoisCallback {
 export interface InstantiateMsg {
   creation_coins?: Coin[] | null;
   fee_addr?: string | null;
-  max_participant_number?: number | null;
+  max_ticket_number?: number | null;
   minimum_raffle_duration?: number | null;
   minimum_raffle_timeout?: number | null;
   name: string;
@@ -168,7 +168,7 @@ export interface RaffleInfo {
 }
 export interface RaffleOptions {
   comment?: string | null;
-  max_participant_number?: number | null;
+  max_ticket_number?: number | null;
   max_ticket_per_address?: number | null;
   raffle_duration: number;
   raffle_preview: number;

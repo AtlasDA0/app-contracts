@@ -40,7 +40,7 @@ pub fn instantate_raffle_contract(
         fee_addr: Some(admin_account.to_string()),
         minimum_raffle_duration: None,
         minimum_raffle_timeout: None,
-        max_participant_number: None,
+        max_ticket_number: None,
         raffle_fee: raffle_fee,
         creation_coins: vec![coin(50, NATIVE_DENOM)].into(),
     };

@@ -142,7 +142,6 @@ pub fn execute(
         ExecuteMsg::SetListingCoins { listing_fee_coins } => {
             set_listing_coins(deps, env, info, listing_fee_coins)
         }
-
         ExecuteMsg::SetFeeRate { fee_rate } => set_fee_rate(deps, env, info, fee_rate),
     }
 }

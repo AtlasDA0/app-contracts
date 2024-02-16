@@ -97,7 +97,7 @@ mod tests {
                     fee_addr: Some(OWNER_ADDR.to_owned()),
                     minimum_raffle_duration: Some(20),
                     minimum_raffle_timeout: Some(420),
-                    max_participant_number: Some(3),
+                    max_ticket_number: Some(3),
                     raffle_fee: Decimal::percent(50),
                     creation_coins: vec![
                         coin(CREATION_FEE_AMNT.into(), NATIVE_DENOM.to_string()),
@@ -332,7 +332,7 @@ mod tests {
                         raffle_duration: None,
                         raffle_timeout: None,
                         comment: None,
-                        max_participant_number: Some(3),
+                        max_ticket_number: Some(3),
                         max_ticket_per_address: Some(1),
                         raffle_preview: None,
                     },
@@ -379,7 +379,7 @@ mod tests {
                     raffle_duration: 20,
                     raffle_timeout: 420,
                     comment: None,
-                    max_participant_number: Some(3),
+                    max_ticket_number: Some(3),
                     max_ticket_per_address: Some(1),
                     raffle_preview: 0,
                 }

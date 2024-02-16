@@ -11,7 +11,7 @@ pub const ATLAS_DAO_STARGAZE_TREASURY: &str =
 pub const CONFIG_KEY: &str = "config";
 pub const CONFIG: Item<Config> = Item::new(CONFIG_KEY);
 pub const DECIMAL_FRACTIONAL: u128 = 1_000_00;
-pub const MAX_PARTICIPANT_NUMBER: u32 = 100000; // The maximum amount of participants that can be in a raffle
+pub const MAX_TICKET_NUMBER: u32 = 100000; // The maximum amount of tickets () that can be in a raffle
 pub const MINIMUM_RAFFLE_DURATION: u64 = 1; // default minimum raffle duration, in blocks
 pub const MINIMUM_RAFFLE_TIMEOUT: u64 = 120; // The raffle timeout is a least 2 minutes
 pub const NOIS_AMOUNT: u128 = 500000;
@@ -73,14 +73,14 @@ pub fn load_raffle(storage: &dyn Storage, raffle_id: u64) -> StdResult<RaffleInf
 
 #[cw_serde]
 pub struct RaffleInfo {
-    pub owner: Addr,
-    pub assets: Vec<AssetInfo>,
-    pub raffle_ticket_price: AssetInfo,
-    pub number_of_tickets: u32,
-    pub randomness: Option<HexBinary>,
-    pub winner: Option<Addr>,
-    pub is_cancelled: bool,
-    pub raffle_options: RaffleOptions,
+    pub owner: Addr, // owner/admin of the raffle
+    pub assets: Vec<AssetInfo>, // assets being raffled off 
+    pub raffle_ticket_price: AssetInfo, // cost per ticket
+    pub number_of_tickets: u32, // number of tickets purchased 
+    pub randomness: Option<HexBinary>, // randomness seed provided by nois_proxy
+    pub winner: Option<Addr>, // winner is determined here
+    pub is_cancelled: bool, 
+    pub raffle_options: RaffleOptions, 
 }
 
 #[cw_serde]
@@ -141,12 +141,12 @@ pub fn get_raffle_state(env: Env, raffle_info: RaffleInfo) -> RaffleState {
 #[cw_serde]
 pub struct RaffleOptions {
     pub raffle_start_timestamp: Timestamp, // If not specified, starts immediately
-    pub raffle_duration: u64,
-    pub raffle_timeout: u64,
-    pub comment: Option<String>,
-    pub max_participant_number: Option<u32>,
-    pub max_ticket_per_address: Option<u32>,
-    pub raffle_preview: u32,
+    pub raffle_duration: u64, // length, in seconds the duration of a raffle
+    pub raffle_timeout: u64, // the cooldown time between the end of ticket sales & winner being determined.
+    pub comment: Option<String>, // raffle description
+    pub max_ticket_number: Option<u32>, // max amount of tickets able to be purchased
+    pub max_ticket_per_address: Option<u32>, // max amount of tickets able to bought per address
+    pub raffle_preview: u32, // ? 
 }
 
 #[cw_serde]
@@ -155,7 +155,7 @@ pub struct RaffleOptionsMsg {
     pub raffle_duration: Option<u64>,
     pub raffle_timeout: Option<u64>,
     pub comment: Option<String>,
-    pub max_participant_number: Option<u32>,
+    pub max_ticket_number: Option<u32>,
     pub max_ticket_per_address: Option<u32>,
     pub raffle_preview: Option<u32>,
 }
@@ -181,7 +181,7 @@ impl RaffleOptions {
                 .unwrap_or(config.minimum_raffle_timeout)
                 .max(config.minimum_raffle_timeout),
             comment: raffle_options.comment,
-            max_participant_number: raffle_options.max_participant_number,
+            max_ticket_number: raffle_options.max_ticket_number,
             max_ticket_per_address: raffle_options.max_ticket_per_address,
             raffle_preview: raffle_options
                 .raffle_preview
@@ -216,9 +216,9 @@ impl RaffleOptions {
                 .unwrap_or(current_options.raffle_timeout)
                 .max(config.minimum_raffle_timeout),
             comment: raffle_options.comment.or(current_options.comment),
-            max_participant_number: raffle_options
-                .max_participant_number
-                .or(current_options.max_participant_number),
+            max_ticket_number: raffle_options
+                .max_ticket_number
+                .or(current_options.max_ticket_number),
             max_ticket_per_address: raffle_options
                 .max_ticket_per_address
                 .or(current_options.max_ticket_per_address),

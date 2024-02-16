@@ -262,17 +262,23 @@ pub fn execute_cancel_raffle(
 /// This function is only accessible if no raffle ticket was bought on the raffle
 pub fn execute_modify_raffle(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     raffle_id: u64,
     raffle_ticket_price: Option<AssetInfo>,
     raffle_options: RaffleOptionsMsg,
 ) -> Result<Response, ContractError> {
     let mut raffle_info = is_raffle_owner(deps.storage, raffle_id, info.sender)?;
+    let raffle_state = get_raffle_state(env, raffle_info.clone());
     let config = CONFIG.load(deps.storage)?;
     // We then verify there are not tickets bought
     if raffle_info.number_of_tickets != 0 {
         return Err(ContractError::RaffleAlreadyStarted {});
+    }
+    if raffle_state != RaffleState::Created && raffle_state != RaffleState::Started {
+        return Err(ContractError::WrongStateForModify {
+            status: raffle_state,
+        });
     }
 
     // checks comment size
@@ -421,10 +427,10 @@ pub fn _buy_tickets(
     }
 
     // Then we check there are some ticket left to buy
-    if let Some(max_participant_number) = raffle_info.raffle_options.max_participant_number {
-        if raffle_info.number_of_tickets + ticket_count > max_participant_number {
+    if let Some(max_ticket_number) = raffle_info.raffle_options.max_ticket_number {
+        if raffle_info.number_of_tickets + ticket_count > max_ticket_number {
             return Err(ContractError::TooMuchTickets {
-                max: max_participant_number,
+                max: max_ticket_number,
                 nb_before: raffle_info.number_of_tickets,
                 nb_after: raffle_info.number_of_tickets + ticket_count,
             });
@@ -566,10 +572,8 @@ pub fn execute_determine_winner(
     _info: MessageInfo,
     raffle_id: u64,
 ) -> Result<Response, ContractError> {
-    // Loading the raffle object
+    // Loads the raffle id and makes sure the raffle has ended and randomness from nois has been provided.
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
-
-    // We make sure the raffle is ended, and randomness from nois has been provided.
     let raffle_state = get_raffle_state(env.clone(), raffle_info.clone());
 
     if raffle_state != RaffleState::Finished {
@@ -689,12 +693,27 @@ pub fn execute_update_config(
         None => config.nois_proxy_addr,
     };
     let nois_proxy_coin = match nois_proxy_coin {
-        Some(npc) => npc,
+        Some(npc) => {
+            ensure!(
+                npc.amount >= Uint128::zero(),
+                ContractError::InvalidProxyCoin
+            );
+            npc
+        }
         None => config.nois_proxy_coin,
     };
 
+    // verifies all provided coins are greater than 0
     let creation_coins = match creation_coins {
-        Some(crc) => crc,
+        Some(mut crc) => {
+            for coin in &mut crc {
+                ensure!(
+                    coin.amount >= Uint128::zero(),
+                    ContractError::InvalidFeeRate {}
+                )
+            }
+            crc
+        }
         None => config.creation_coins,
     };
     let maximum_participant_number = match maximum_participant_number {
@@ -702,27 +721,23 @@ pub fn execute_update_config(
         None => config.maximum_participant_number.unwrap(),
     };
     // we have a seperate function to lock a raffle, so we skip here
-    let lock = config.lock;
-    // we do not want to be able to manually update the last raffle id.
-    let last_raffle_id = config.last_raffle_id;
 
-    CONFIG.save(
-        deps.storage,
-        &Config {
-            name,
-            owner,
-            fee_addr,
-            last_raffle_id,
-            minimum_raffle_duration,
-            minimum_raffle_timeout,
-            raffle_fee,
-            lock,
-            nois_proxy_addr,
-            nois_proxy_coin,
-            creation_coins,
-            maximum_participant_number: Some(maximum_participant_number),
-        },
-    )?;
+    let new_config = Config {
+        name,
+        owner,
+        fee_addr,
+        minimum_raffle_duration,
+        minimum_raffle_timeout,
+        raffle_fee,
+        lock: config.lock,
+        nois_proxy_addr,
+        nois_proxy_coin,
+        creation_coins,
+        maximum_participant_number: Some(maximum_participant_number),
+        last_raffle_id: config.last_raffle_id,
+    };
+
+    CONFIG.save(deps.storage, &new_config)?;
 
     Ok(Response::new().add_attribute("action", "update_config"))
 }

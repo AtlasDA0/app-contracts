@@ -25,7 +25,7 @@ pub struct InstantiateMsg {
     // Minimum cooldown from raffle end to determine winner
     pub minimum_raffle_timeout: Option<u64>,
     // Maximum participant limit for a raffle
-    pub max_participant_number: Option<u32>,
+    pub max_ticket_number: Option<u32>,
     // % fee of raffle ticket sales to fee_addr
     pub raffle_fee: Decimal,
 

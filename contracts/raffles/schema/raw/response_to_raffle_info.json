@@ -179,7 +179,7 @@
             "null"
           ]
         },
-        "max_participant_number": {
+        "max_ticket_number": {
           "type": [
             "integer",
             "null"

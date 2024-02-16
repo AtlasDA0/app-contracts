@@ -1,6 +1,6 @@
 use cosmwasm_std::{
     coin, ensure, entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
-    QueryResponse, StdResult,
+    QueryResponse, StdResult, Uint128,
 };
 
 use crate::{
@@ -10,8 +10,8 @@ use crate::{
         execute_toggle_lock, execute_update_config, execute_update_randomness,
     },
     state::{
-        get_raffle_state, load_raffle, Config, CONFIG, MAX_PARTICIPANT_NUMBER,
-        MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, STATIC_RAFFLE_CREATION_FEE,
+        get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
+        MINIMUM_RAFFLE_TIMEOUT, STATIC_RAFFLE_CREATION_FEE,
     },
 };
 use utils::{state::is_valid_name, types::Response};
@@ -47,6 +47,10 @@ pub fn instantiate(
         msg.raffle_fee >= Decimal::zero() && msg.raffle_fee <= Decimal::one(),
         ContractError::InvalidFeeRate {}
     );
+    ensure!(
+        msg.nois_proxy_coin.amount >= Uint128::zero(),
+        ContractError::InvalidProxyCoin
+    );
     // valid name
     if !is_valid_name(&msg.name) {
         return Err(ContractError::InvalidName {});
@@ -74,7 +78,7 @@ pub fn instantiate(
         nois_proxy_addr,
         nois_proxy_coin: msg.nois_proxy_coin,
         creation_coins,
-        maximum_participant_number: Some(msg.max_participant_number.unwrap_or(MAX_PARTICIPANT_NUMBER)),
+        maximum_participant_number: Some(msg.max_ticket_number.unwrap_or(MAX_TICKET_NUMBER)),
     };
 
     CONFIG.save(deps.storage, &config)?;

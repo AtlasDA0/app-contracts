@@ -1,23 +1,22 @@
-use crate::error::ContractError;
+#[cfg(feature = "sg")]
+use sg721::ExecuteMsg as Sg721ExecuteMsg;
+
+use crate::{
+    error::ContractError,
+    state::{get_raffle_state, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO, RAFFLE_TICKETS},
+};
 use cosmwasm_std::{
     coin, coins, to_json_binary, Addr, BankMsg, Coin, Deps, Empty, Env, HexBinary, StdError,
     StdResult, Storage, Uint128, WasmMsg,
 };
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
-use nois::{int_in_range, ProxyExecuteMsg};
-use utils::{
-    state::into_cosmos_msg,
-    types::{CosmosMsg, Response},
-};
 
-#[cfg(feature = "sg")]
-use {
-    crate::state::{
-        get_raffle_state, RaffleInfo, RaffleState, CONFIG, NOIS_AMOUNT, RAFFLE_INFO, RAFFLE_TICKETS,
-    },
-    sg721::ExecuteMsg as Sg721ExecuteMsg,
-    utils::state::AssetInfo,
+use nois::{int_in_range, ProxyExecuteMsg};
+
+use utils::{
+    state::{into_cosmos_msg, AssetInfo},
+    types::{CosmosMsg, Response},
 };
 
 pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, ContractError> {
