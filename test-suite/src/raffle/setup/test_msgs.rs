@@ -23,8 +23,8 @@ pub struct CreateRaffleParams<'a> {
 pub struct PurchaseTicketsParams<'a> {
     pub app: &'a mut sg_multi_test::StargazeApp,
     pub raffle_contract_addr: Addr,
-    pub raffle_id: u64,
     pub msg_senders: Vec<Addr>,
+    pub raffle_id: u64,
     pub num_tickets: u32,
     pub funds_send: Vec<Coin>,
 }

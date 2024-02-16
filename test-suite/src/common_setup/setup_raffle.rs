@@ -16,7 +16,7 @@ use crate::common_setup::{
     },
 };
 use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, Timestamp, Uint128};
-use cw_multi_test::Executor;
+use cw_multi_test::{BankSudo, Executor, SudoMsg};
 use raffles::{
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg as RaffleQueryMsg},
     state::{RaffleOptionsMsg, NOIS_AMOUNT},
@@ -103,6 +103,15 @@ pub fn proper_raffle_instantiate() -> (StargazeApp, Addr, Addr) {
             Some(Addr::unchecked(OWNER_ADDR).to_string()),
         )
         .unwrap();
+
+    // fund raffle contract for nois_proxy fee
+    app.sudo(SudoMsg::Bank({
+        BankSudo::Mint {
+            to_address: raffle_contract_addr.clone().to_string(),
+            amount: vec![coin(100000000000u128, "ustars".to_string())],
+        }
+    }))
+    .unwrap();
     // println!("raffle_contract_addr: {raffle_contract_addr}");
     // println!("factory_addr: {factory_addr}");
     // println!("{:#?}", res);
@@ -264,7 +273,7 @@ pub fn create_raffle_setup(
             &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
         )
         .unwrap();
-    assert_eq!(res.raffle_info.unwrap().owner, "owner");
+    assert_eq!(res.clone().raffle_info.unwrap().owner, "owner");
 
     router
 }

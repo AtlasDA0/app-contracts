@@ -110,9 +110,7 @@ pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse,
     msg
 }
 
-pub fn buy_raffle_tickets_template(
-    params: PurchaseTicketsParams,
-) -> Result<AppResponse, anyhow_error> {
+pub fn buy_tickets_template(params: PurchaseTicketsParams) -> Result<AppResponse, anyhow_error> {
     // define msg values
     let current_time = params.app.block_info().time.clone();
     let id = params.raffle_id;
@@ -129,15 +127,9 @@ pub fn buy_raffle_tickets_template(
         &RaffleExecuteMsg::BuyTicket {
             raffle_id: id.clone(),
             ticket_count: num_tickets.clone(),
-            sent_assets: AssetInfo::Coin(Coin {
-                denom: NATIVE_DENOM.to_string(),
-                amount: Uint128::new(64u128),
-            }),
+            sent_assets: AssetInfo::Coin(funds_sent[0].clone()),
         },
-        &[Coin {
-            denom: NATIVE_DENOM.to_string(),
-            amount: Uint128::new(64u128),
-        }],
+        &funds_sent,
     );
     ticket_purchase1
 }
