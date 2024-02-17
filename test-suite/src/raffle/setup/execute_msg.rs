@@ -2,9 +2,10 @@ use anyhow::Error as anyhow_error;
 use cosmwasm_std::{coin, coins, Coin, Uint128};
 use cw_multi_test::{AppResponse, BankSudo, Executor, SudoMsg};
 use raffles::{
-    msg::{ExecuteMsg as RaffleExecuteMsg, InstantiateMsg},
+    msg::{ExecuteMsg as RaffleExecuteMsg, InstantiateMsg, QueryMsg as RaffleQueryMsg},
     state::RaffleOptionsMsg,
 };
+use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
 use utils::state::{AssetInfo, Sg721Token};
 
@@ -130,4 +131,54 @@ pub fn buy_tickets_template(params: PurchaseTicketsParams) -> Result<AppResponse
         &funds_sent,
     );
     ticket_purchase1
+}
+
+pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
+    let router = params.app;
+    let raffle_addr = params.raffle_contract_addr;
+    let owner_addr = params.owner_addr;
+    let current_time = router.block_info().time.clone();
+
+    // create a raffle
+    let good_create_raffle = router.execute_contract(
+        owner_addr.clone(),
+        raffle_addr.clone(),
+        &RaffleExecuteMsg::CreateRaffle {
+            owner: Some(owner_addr.clone().to_string()),
+            assets: vec![AssetInfo::Sg721Token(Sg721Token {
+                address: SG721_CONTRACT.to_string(),
+                token_id: "63".to_string(),
+            })],
+            raffle_options: RaffleOptionsMsg {
+                raffle_start_timestamp: Some(current_time.clone()),
+                raffle_duration: None,
+                raffle_timeout: None,
+                comment: None,
+                max_ticket_number: None,
+                max_ticket_per_address: None,
+                raffle_preview: None,
+            },
+            raffle_ticket_price: AssetInfo::Coin(Coin {
+                denom: "ustars".to_string(),
+                amount: Uint128::new(4u128),
+            }),
+            autocycle: Some(false),
+        },
+        &[coin(4, "ustars")],
+    );
+    // confirm owner is set
+    assert!(
+        good_create_raffle.is_ok(),
+        "There is an issue creating a raffle"
+    );
+    let res: raffles::msg::RaffleResponse = router
+        .wrap()
+        .query_wasm_smart(
+            raffle_addr.clone(),
+            &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
+        )
+        .unwrap();
+    assert_eq!(res.clone().raffle_info.unwrap().owner, "owner");
+
+    router
 }

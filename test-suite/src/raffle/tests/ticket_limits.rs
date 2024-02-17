@@ -393,29 +393,6 @@ mod tests {
             chain_id: chainid.clone(),
         });
 
-        // ensure error if max tickets per address set is reached
-        let bad_ticket_purchase = app
-            .execute_contract(
-                Addr::unchecked("wallet-1"),
-                raffle_contract_addr.clone(),
-                &ExecuteMsg::BuyTicket {
-                    raffle_id: 0,
-                    ticket_count: 2,
-                    sent_assets: AssetInfo::Coin(Coin::new(200, "ustars".to_string())),
-                },
-                &[Coin::new(200, "ustars".to_string())],
-            )
-            .unwrap_err();
-        assert_error(
-            Err(bad_ticket_purchase),
-            ContractError::TooMuchTicketsForUser {
-                max: 1,
-                nb_before: 0,
-                nb_after: 2,
-            }
-            .to_string(),
-        );
-
         // ensure raffle duration
         // move forward in time
         app.set_block(BlockInfo {

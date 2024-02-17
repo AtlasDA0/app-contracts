@@ -9,26 +9,37 @@ mod tests {
         state::RaffleState,
     };
     use std::vec;
+    use utils::state::NATIVE_DENOM;
 
     use crate::{
         common_setup::{
             helpers::{assert_error, setup_block_time},
             setup_accounts_and_block::{setup_accounts, setup_raffle_participants},
             setup_minter::common::constants::NOIS_PROXY_ADDR,
-            setup_raffle::{
-                configure_raffle_assets, create_raffle_setup, proper_raffle_instantiate,
-            },
+            setup_raffle::{configure_raffle_assets, proper_raffle_instantiate},
         },
-        raffle::setup::{execute_msg::buy_tickets_template, test_msgs::PurchaseTicketsParams},
+        raffle::setup::{
+            execute_msg::{buy_tickets_template, create_raffle_setup},
+            test_msgs::{CreateRaffleParams, PurchaseTicketsParams},
+        },
     };
 
     #[test]
     fn test_updating_raffle_randomness() {
         let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
-        let (owner_address, _, _) = setup_accounts(&mut app);
+        let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
-        configure_raffle_assets(&mut app, owner_address.clone(), factory_addr);
-        create_raffle_setup(&mut app, raffle_addr.clone(), owner_address.clone());
+        configure_raffle_assets(&mut app, owner_addr.clone(), factory_addr);
+
+        let params = CreateRaffleParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            owner_addr: owner_addr,
+            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            ticket_price: Some(4),
+        };
+
+        create_raffle_setup(params);
         // customize ticket purchase params
         let params = PurchaseTicketsParams {
             app: &mut app,

@@ -25,4 +25,6 @@ pub struct PurchaseTicketsParams<'a> {
     pub raffle_id: u64,
     pub num_tickets: u32,
     pub funds_send: Vec<Coin>,
+
+    
 }
