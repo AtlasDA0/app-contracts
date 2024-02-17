@@ -78,7 +78,7 @@ pub fn instantiate(
         nois_proxy_addr,
         nois_proxy_coin: msg.nois_proxy_coin,
         creation_coins,
-        maximum_participant_number: Some(msg.max_ticket_number.unwrap_or(MAX_TICKET_NUMBER)),
+        max_tickets_per_raffle: Some(msg.max_ticket_number.unwrap_or(MAX_TICKET_NUMBER)),
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -158,7 +158,7 @@ pub fn execute(
             fee_addr,
             minimum_raffle_duration,
             minimum_raffle_timeout,
-            maximum_participant_number,
+            max_tickets_per_raffle,
             raffle_fee,
             nois_proxy_addr,
             nois_proxy_coin,
@@ -172,7 +172,7 @@ pub fn execute(
             fee_addr,
             minimum_raffle_duration,
             minimum_raffle_timeout,
-            maximum_participant_number,
+            max_tickets_per_raffle,
             raffle_fee,
             nois_proxy_addr,
             nois_proxy_coin,

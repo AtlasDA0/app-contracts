@@ -32,6 +32,7 @@ export interface RaffleMessage {
   updateConfig: ({
     creationCoins,
     feeAddr,
+    maxTicketsPerRaffle,
     minimumRaffleDuration,
     minimumRaffleTimeout,
     name,
@@ -42,6 +43,7 @@ export interface RaffleMessage {
   }: {
     creationCoins?: Coin[];
     feeAddr?: string;
+    maxTicketsPerRaffle?: number;
     minimumRaffleDuration?: number;
     minimumRaffleTimeout?: number;
     name?: string;
@@ -170,6 +172,7 @@ export class RaffleMessageComposer implements RaffleMessage {
   updateConfig = ({
     creationCoins,
     feeAddr,
+    maxTicketsPerRaffle,
     minimumRaffleDuration,
     minimumRaffleTimeout,
     name,
@@ -180,6 +183,7 @@ export class RaffleMessageComposer implements RaffleMessage {
   }: {
     creationCoins?: Coin[];
     feeAddr?: string;
+    maxTicketsPerRaffle?: number;
     minimumRaffleDuration?: number;
     minimumRaffleTimeout?: number;
     name?: string;
@@ -197,6 +201,7 @@ export class RaffleMessageComposer implements RaffleMessage {
           update_config: {
             creation_coins: creationCoins,
             fee_addr: feeAddr,
+            max_tickets_per_raffle: maxTicketsPerRaffle,
             minimum_raffle_duration: minimumRaffleDuration,
             minimum_raffle_timeout: minimumRaffleTimeout,
             name,

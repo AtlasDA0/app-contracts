@@ -35,7 +35,7 @@ pub struct Config {
     /// The minimum interval, in seconds, during which users can provide entropy to the contract.
     pub minimum_raffle_timeout: u64,
     // The maximum number of participants available to participate in any 1 raffle
-    pub maximum_participant_number: Option<u32>,
+    pub max_tickets_per_raffle: Option<u32>,
     /// A % cut of all raffle fee's generated to go to the fee_addr
     pub raffle_fee: Decimal,
     /// locks the contract from new raffles being created

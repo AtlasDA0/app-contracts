@@ -68,7 +68,7 @@ pub enum ExecuteMsg {
         fee_addr: Option<String>,
         minimum_raffle_duration: Option<u64>,
         minimum_raffle_timeout: Option<u64>,
-        maximum_participant_number: Option<u32>,
+        max_tickets_per_raffle: Option<u32>,
         raffle_fee: Option<Decimal>,
         nois_proxy_addr: Option<String>,
         nois_proxy_coin: Option<Coin>,

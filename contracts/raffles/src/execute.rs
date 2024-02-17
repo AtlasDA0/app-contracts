@@ -443,6 +443,16 @@ pub fn _buy_tickets(
         }
     };
 
+    if let Some(max_tickets_per_raffle) = raffle_info.raffle_options.max_ticket_number {
+        if raffle_info.number_of_tickets + ticket_count > max_tickets_per_raffle {
+            return Err(ContractError::TooMuchTickets {
+                max: max_tickets_per_raffle,
+                nb_before: raffle_info.number_of_tickets,
+                nb_after: raffle_info.number_of_tickets + ticket_count,
+            });
+        }
+    }
+
     // Then we save the sender to the bought tickets
     for n in 0..ticket_count {
         RAFFLE_TICKETS.save(
@@ -654,7 +664,7 @@ pub fn execute_update_config(
     fee_addr: Option<String>,
     minimum_raffle_duration: Option<u64>,
     minimum_raffle_timeout: Option<u64>,
-    maximum_participant_number: Option<u32>,
+    max_tickets_per_raffle: Option<u32>,
     raffle_fee: Option<Decimal>,
     nois_proxy_addr: Option<String>,
     nois_proxy_coin: Option<Coin>,
@@ -728,9 +738,9 @@ pub fn execute_update_config(
         }
         None => config.creation_coins,
     };
-    let maximum_participant_number = match maximum_participant_number {
+    let max_tickets_per_raffle = match max_tickets_per_raffle {
         Some(mpn) => mpn,
-        None => config.maximum_participant_number.unwrap(),
+        None => config.max_tickets_per_raffle.unwrap(),
     };
     // we have a seperate function to lock a raffle, so we skip here
 
@@ -745,7 +755,7 @@ pub fn execute_update_config(
         nois_proxy_addr,
         nois_proxy_coin,
         creation_coins,
-        maximum_participant_number: Some(maximum_participant_number),
+        max_tickets_per_raffle: max_tickets_per_raffle.into(),
         last_raffle_id: config.last_raffle_id,
     };
 

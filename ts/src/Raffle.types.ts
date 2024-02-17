@@ -20,6 +20,7 @@ export type ExecuteMsg = {
   update_config: {
     creation_coins?: Coin[] | null;
     fee_addr?: string | null;
+    max_tickets_per_raffle?: number | null;
     minimum_raffle_duration?: number | null;
     minimum_raffle_timeout?: number | null;
     name?: string | null;

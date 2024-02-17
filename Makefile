@@ -3,9 +3,9 @@ all:
 	RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown
 	cp ./target/wasm32-unknown-unknown/release/crosschain_contract.wasm ./crosschain_contract.wasm
 
-stargaze: 
+sg: 
 	rustup target add wasm32-unknown-unknown
-	RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown --no-default-features --features stargaze
+	RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown --no-default-features --features sg
 	cp ./target/wasm32-unknown-unknown/release/crosschain_contract.wasm ./crosschain_contract.wasm
 
 vanilla:

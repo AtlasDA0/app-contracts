@@ -93,6 +93,14 @@
                 "null"
               ]
             },
+            "max_tickets_per_raffle": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
             "minimum_raffle_duration": {
               "type": [
                 "integer",

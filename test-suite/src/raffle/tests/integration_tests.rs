@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
-    use crate::common_setup::setup_raffle::{configure_raffle_assets, proper_raffle_instantiate};
+    use std::vec;
     use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, HexBinary, Timestamp, Uint128};
     use cw721::OwnerOfResponse;
     use cw_multi_test::Executor;
     use nois::NoisCallback;
-    use raffles::msg::QueryMsg as RaffleQueryMsg;
+    use raffles::{msg::QueryMsg as RaffleQueryMsg, state::Config};
     use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
 
     #[cfg(feature = "sg")]
@@ -17,31 +17,28 @@ mod tests {
         state::{RaffleOptionsMsg, RaffleState, NOIS_AMOUNT},
     };
 
+    use crate::{
+        common_setup::{
+            contract_boxes::custom_mock_app,
+            helpers::{assert_error, setup_block_time},
+            setup_accounts_and_block::{setup_accounts, setup_raffle_participants},
+            setup_minter::common::constants::{
+                CREATION_FEE_AMNT, FACTORY_ADDR, MINT_PRICE, NOIS_PROXY_ADDR, OWNER_ADDR,
+                RAFFLE_NAME, RAFFLE_TAX, SG721_CONTRACT,
+            },
+            setup_raffle::{
+                configure_raffle_assets, create_raffle_setup, proper_raffle_instantiate,
+            },
+        },
+        raffle::setup::{
+            execute_msg::{
+                buy_tickets_template, create_raffle_function, instantate_raffle_contract,
+            },
+            test_msgs::{CreateRaffleParams, InstantiateRaffleParams, PurchaseTicketsParams},
+        },
+    };
+
     mod init {
-        use std::vec;
-
-        use raffles::{query::query_config, state::Config};
-
-        use crate::{
-            common_setup::{
-                contract_boxes::custom_mock_app,
-                helpers::{assert_error, setup_block_time},
-                msg::MinterCollectionResponse,
-                setup_accounts_and_block::{setup_accounts, setup_raffle_participants},
-                setup_minter::common::constants::{
-                    CREATION_FEE_AMNT, FACTORY_ADDR, MINT_PRICE, NOIS_PROXY_ADDR, OWNER_ADDR,
-                    RAFFLE_NAME, RAFFLE_TAX, SG721_CONTRACT, VENDING_MINTER,
-                },
-                setup_raffle::create_raffle_setup,
-            },
-            raffle::setup::{
-                execute_msg::{
-                    buy_tickets_template, create_raffle_function, instantate_raffle_contract,
-                },
-                test_msgs::{CreateRaffleParams, InstantiateRaffleParams, PurchaseTicketsParams},
-            },
-        };
-
         use super::*;
 
         #[test]
@@ -150,7 +147,7 @@ mod tests {
                     last_raffle_id: Some(0),
                     minimum_raffle_duration: 1,
                     minimum_raffle_timeout: 120,
-                    maximum_participant_number: None,
+                    max_tickets_per_raffle: None,
                     raffle_fee: RAFFLE_TAX,
                     lock: false,
                     nois_proxy_addr: Addr::unchecked(NOIS_PROXY_ADDR),
@@ -180,7 +177,7 @@ mod tests {
                         nois_proxy_addr: None,
                         nois_proxy_coin: None,
                         creation_coins: None,
-                        maximum_participant_number: None,
+                        max_tickets_per_raffle: None,
                     },
                     &[],
                 )
@@ -239,7 +236,7 @@ mod tests {
                         nois_proxy_addr: Some("new-owner".to_string()),
                         nois_proxy_coin: Some(coin(NOIS_AMOUNT, NATIVE_DENOM)),
                         creation_coins: Some(vec![coin(420, "new-new")]),
-                        maximum_participant_number: None,
+                        max_tickets_per_raffle: None,
                     },
                     &[],
                 )
@@ -259,7 +256,7 @@ mod tests {
                     last_raffle_id: Some(0),
                     minimum_raffle_duration: 60,
                     minimum_raffle_timeout: 240,
-                    maximum_participant_number: None,
+                    max_tickets_per_raffle: None,
                     raffle_fee: Decimal::percent(99),
                     lock: false,
                     nois_proxy_addr: Addr::unchecked("new-owner"),
