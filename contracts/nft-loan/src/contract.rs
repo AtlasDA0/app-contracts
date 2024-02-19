@@ -147,7 +147,7 @@ pub fn execute(
             set_listing_coins(deps, env, info, listing_fee_coins)
         }
         ExecuteMsg::SetFeeRate { fee_rate } => set_fee_rate(deps, env, info, fee_rate),
-        ExecuteMsg::ToggleLock { lock } => execute_toggle_lock(deps, env, lock),
+        ExecuteMsg::ToggleLock { lock } => execute_toggle_lock(deps, info, env, lock),
     }
 }
 

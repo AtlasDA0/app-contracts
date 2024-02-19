@@ -332,6 +332,27 @@
       "additionalProperties": false
     },
     {
+      "type": "object",
+      "required": [
+        "toggle_lock"
+      ],
+      "properties": {
+        "toggle_lock": {
+          "type": "object",
+          "required": [
+            "lock"
+          ],
+          "properties": {
+            "lock": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
       "description": "Internal state",
       "type": "object",
       "required": [

@@ -18,8 +18,8 @@ use {
         },
     },
     cosmwasm_std::{
-        coins, Addr, BankMsg, Coin, Decimal, DepsMut, Empty, Env, MessageInfo, StdError, StdResult,
-        Storage,
+        coins, ensure_eq, Addr, BankMsg, Coin, Decimal, DepsMut, Empty, Env, MessageInfo, StdError,
+        StdResult, Storage,
     },
     cw721::Cw721ExecuteMsg,
     cw721_base::Extension,
@@ -769,13 +769,17 @@ pub fn _withdraw_asset(asset: &AssetInfo, _sender: Addr, recipient: Addr) -> Std
     }
 }
 
-// governance can lock contract
+// admin can lock contract
 pub fn execute_toggle_lock(
     deps: DepsMut,
+    info: MessageInfo,
     _env: Env,
     lock: bool,
 ) -> Result<Response, ContractError> {
     let mut config = CONFIG.load(deps.storage)?;
+
+    // check the calling address is the authorised multisig
+    ensure_eq!(info.sender, config.owner, ContractError::Unauthorized {});
 
     config.locks.lock = lock;
     CONFIG.save(deps.storage, &config)?;
