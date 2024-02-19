@@ -1,16 +1,13 @@
 use cosmwasm_std::{
-    coin, ensure, ensure_eq, from_json, to_json_binary, Addr, BankMsg, Coin, Decimal, DepsMut,
-    Empty, Env, MessageInfo, StdError, StdResult, Storage, Uint128, WasmMsg,
+    ensure, ensure_eq, from_json, to_json_binary, Addr, BankMsg, Coin, Decimal, DepsMut, Empty,
+    Env, MessageInfo, StdError, StdResult, Uint128, WasmMsg,
 };
 use cw721::{Cw721ExecuteMsg, Cw721ReceiveMsg};
 use cw721_base::Extension;
 use nois::{NoisCallback, ProxyExecuteMsg};
 
 use utils::{
-    state::{
-        into_cosmos_msg, is_valid_comment, is_valid_name, AssetInfo, Cw721Coin, Sg721Token,
-        RANDOM_BEACON_MAX_REQUEST_TIME_IN_THE_FUTURE,
-    },
+    state::{into_cosmos_msg, is_valid_comment, is_valid_name, AssetInfo},
     types::{CosmosMsg, Response},
 };
 
@@ -22,8 +19,8 @@ use {
         query::{is_nft_owner, is_sg721_owner},
         state::{
             get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState,
-            CONFIG, MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, NOIS_AMOUNT, RAFFLE_INFO,
-            RAFFLE_TICKETS, USER_TICKETS,
+            CONFIG, MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, RAFFLE_INFO, RAFFLE_TICKETS,
+            USER_TICKETS,
         },
         utils::{
             can_buy_ticket, get_nois_randomness, get_raffle_owner_finished_messages,
@@ -46,7 +43,7 @@ pub fn execute_create_raffle(
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
-    if config.lock {
+    if config.locks.lock || config.locks.sudo_lock {
         return Err(ContractError::ContractIsLocked {});
     }
 
@@ -397,11 +394,6 @@ pub fn _buy_tickets(
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
     let config = CONFIG.load(deps.storage);
 
-    // right now we prevent contract from selling tickets if frozen.
-    if config.unwrap().lock {
-        return Err(ContractError::ContractIsLocked {});
-    }
-
     // We first check the sent assets match the raffle assets
     let tc = ticket_cost(raffle_info.clone(), ticket_count)?;
     if let AssetInfo::Coin(x) = tc.clone() {
@@ -474,16 +466,16 @@ pub fn _buy_tickets(
 }
 
 pub fn execute_receive(
-    deps: DepsMut,
-    env: Env,
+    _deps: DepsMut,
+    _env: Env,
     _info: MessageInfo,
     wrapper: Cw721ReceiveMsg,
 ) -> Result<Response, ContractError> {
-    let sender = deps.api.addr_validate(&wrapper.sender)?;
+    // let sender = deps.api.addr_validate(&wrapper.sender)?;
     match from_json(&wrapper.msg)? {
         ExecuteMsg::BuyTicket {
-            raffle_id,
-            ticket_count,
+            raffle_id: _,
+            ticket_count: _,
             sent_assets,
         } => {
             // First we make sure the received Asset is the one specified in the message
@@ -597,11 +589,6 @@ pub fn execute_determine_winner(
         return Err(ContractError::WrongStateForClaim {
             status: raffle_state,
         });
-    }
-
-    // prevent winner from being determined if contract is locked
-    if config.unwrap().lock {
-        return Err(ContractError::ContractIsLocked {});
     }
 
     // If there was no participant, the winner is the raffle owner and we pay no fees whatsoever
@@ -751,7 +738,7 @@ pub fn execute_update_config(
         minimum_raffle_duration,
         minimum_raffle_timeout,
         raffle_fee,
-        lock: config.lock,
+        locks: config.locks,
         nois_proxy_addr,
         nois_proxy_coin,
         creation_coins,
@@ -776,11 +763,28 @@ pub fn execute_toggle_lock(
     // check the calling address is the authorised multisig
     ensure_eq!(info.sender, config.owner, ContractError::Unauthorized);
 
-    config.lock = lock;
+    config.locks.lock = lock;
     CONFIG.save(deps.storage, &config)?;
 
     Ok(Response::new()
         .add_attribute("action", "modify_parameter")
+        .add_attribute("parameter", "contract_lock")
+        .add_attribute("value", lock.to_string()))
+}
+
+// governance can lock contract
+pub fn execute_sudo_toggle_lock(
+    deps: DepsMut,
+    _env: Env,
+    lock: bool,
+) -> Result<Response, ContractError> {
+    let mut config = CONFIG.load(deps.storage)?;
+
+    config.locks.sudo_lock = lock;
+    CONFIG.save(deps.storage, &config)?;
+
+    Ok(Response::new()
+        .add_attribute("action", "sudo_update_status")
         .add_attribute("parameter", "contract_lock")
         .add_attribute("value", lock.to_string()))
 }

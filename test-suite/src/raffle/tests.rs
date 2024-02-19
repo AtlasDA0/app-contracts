@@ -4,3 +4,5 @@ pub mod buying_tickets;
 pub mod determine_winner;
 pub mod config_coverage;
 pub mod updating_raffles;
+pub mod init;
+pub mod create_and_modify;

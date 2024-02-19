@@ -7,15 +7,14 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 
 use utils::{
-    state::{is_valid_name, NATIVE_DENOM},
+    state::{is_valid_name, Locks, SudoMsg, NATIVE_DENOM},
     types::Response,
 };
 
-use crate::error::ContractError;
 use crate::execute::{
-    accept_loan, accept_offer, cancel_offer, list_collaterals, make_offer, modify_collaterals,
-    refuse_offer, repay_borrowed_funds, withdraw_collateral, withdraw_defaulted_loan,
-    withdraw_refused_offer,
+    accept_loan, accept_offer, cancel_offer, execute_toggle_lock, list_collaterals, make_offer,
+    modify_collaterals, refuse_offer, repay_borrowed_funds, withdraw_collateral,
+    withdraw_defaulted_loan, withdraw_refused_offer,
 };
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::query::{
@@ -23,6 +22,7 @@ use crate::query::{
     query_config, query_lender_offers, query_offer_info, query_offers,
 };
 use crate::state::{Config, CONFIG, STATIC_LOAN_LISTING_FEE};
+use crate::{error::ContractError, execute::execute_sudo_toggle_lock};
 // version info for migration info
 const CONTRACT_NAME: &str = concat!("crates.io:", env!("CARGO_CRATE_NAME"));
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -54,11 +54,15 @@ pub fn instantiate(
         name: msg.name,
         owner: deps
             .api
-            .addr_validate(&msg.owner.unwrap_or_else(|| info.sender.to_string()))?, // msg sender is owner if no value provided
+            .addr_validate(&msg.owner.unwrap_or_else(|| info.sender.to_string()))?,
         treasury_addr: deps.api.addr_validate(&msg.treasury_addr)?,
         fee_rate: msg.fee_rate,
         global_offer_index: 0,
         listing_fee_coins: listing_fee,
+        locks: Locks {
+            lock: false,
+            sudo_lock: false,
+        },
     };
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -143,6 +147,7 @@ pub fn execute(
             set_listing_coins(deps, env, info, listing_fee_coins)
         }
         ExecuteMsg::SetFeeRate { fee_rate } => set_fee_rate(deps, env, info, fee_rate),
+        ExecuteMsg::ToggleLock { lock } => execute_toggle_lock(deps, env, lock),
     }
 }
 
@@ -178,6 +183,16 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             start_after,
             limit,
         } => to_json_binary(&query_lender_offers(deps, lender, start_after, limit)?),
+    }
+}
+
+// sudo entry point for governance override
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn sudo(deps: DepsMut, env: Env, msg: SudoMsg) -> Result<Response, ContractError> {
+    match msg {
+        SudoMsg::ToggleLock { lock } => {
+            execute_sudo_toggle_lock(deps, env, lock).map_err(|_| ContractError::ContractBug {})
+        }
     }
 }
 

@@ -4,7 +4,7 @@ use cosmwasm_std::{
 };
 
 use cw_storage_plus::{Item, Map};
-use utils::state::AssetInfo;
+use utils::state::{AssetInfo, Locks};
 
 pub const ATLAS_DAO_STARGAZE_TREASURY: &str =
     "stars1jyg4j6t4kdptgsx6q55mu0f434zqcfppkx6ww9gs7p4x7clgfrjq29sgmc";
@@ -39,7 +39,7 @@ pub struct Config {
     /// A % cut of all raffle fee's generated to go to the fee_addr
     pub raffle_fee: Decimal,
     /// locks the contract from new raffles being created
-    pub lock: bool,
+    pub locks: Locks,
     /// The nois_proxy contract address
     pub nois_proxy_addr: Addr,
     /// The expected fee token denomination of the nois_proxy contract
@@ -73,14 +73,14 @@ pub fn load_raffle(storage: &dyn Storage, raffle_id: u64) -> StdResult<RaffleInf
 
 #[cw_serde]
 pub struct RaffleInfo {
-    pub owner: Addr, // owner/admin of the raffle
-    pub assets: Vec<AssetInfo>, // assets being raffled off 
+    pub owner: Addr,                    // owner/admin of the raffle
+    pub assets: Vec<AssetInfo>,         // assets being raffled off
     pub raffle_ticket_price: AssetInfo, // cost per ticket
-    pub number_of_tickets: u32, // number of tickets purchased 
-    pub randomness: Option<HexBinary>, // randomness seed provided by nois_proxy
-    pub winner: Option<Addr>, // winner is determined here
-    pub is_cancelled: bool, 
-    pub raffle_options: RaffleOptions, 
+    pub number_of_tickets: u32,         // number of tickets purchased
+    pub randomness: Option<HexBinary>,  // randomness seed provided by nois_proxy
+    pub winner: Option<Addr>,           // winner is determined here
+    pub is_cancelled: bool,
+    pub raffle_options: RaffleOptions,
 }
 
 #[cw_serde]
@@ -141,12 +141,12 @@ pub fn get_raffle_state(env: Env, raffle_info: RaffleInfo) -> RaffleState {
 #[cw_serde]
 pub struct RaffleOptions {
     pub raffle_start_timestamp: Timestamp, // If not specified, starts immediately
-    pub raffle_duration: u64, // length, in seconds the duration of a raffle
+    pub raffle_duration: u64,              // length, in seconds the duration of a raffle
     pub raffle_timeout: u64, // the cooldown time between the end of ticket sales & winner being determined.
     pub comment: Option<String>, // raffle description
     pub max_ticket_number: Option<u32>, // max amount of tickets able to be purchased
     pub max_ticket_per_address: Option<u32>, // max amount of tickets able to bought per address
-    pub raffle_preview: u32, // ? 
+    pub raffle_preview: u32, // ?
 }
 
 #[cw_serde]

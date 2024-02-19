@@ -1,12 +1,12 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Decimal, HexBinary, StdError, StdResult};
 use nois::NoisCallback;
-use utils::state::{is_valid_name, AssetInfo};
+use utils::state::{is_valid_name, AssetInfo, Locks};
 
-#[cfg(not(feature = "sg"))]
-use crate::state_vanilla::{RaffleInfo, RaffleOptionsMsg, RaffleState};
 #[cfg(feature = "sg")]
 use crate::state::{RaffleInfo, RaffleOptionsMsg, RaffleState};
+#[cfg(not(feature = "sg"))]
+use crate::state_vanilla::{RaffleInfo, RaffleOptionsMsg, RaffleState};
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -141,7 +141,7 @@ pub struct ConfigResponse {
     pub minimum_raffle_duration: u64, // The minimum interval in which users can buy raffle tickets
     pub minimum_raffle_timeout: u64, // The minimum interval during which users can provide entropy to the contract
     pub raffle_fee: Decimal, // The percentage of the resulting ticket-tokens that will go to the treasury
-    pub lock: bool,          // Wether the contract can accept new raffles
+    pub locks: Locks, // Wether the contract can accept new raffles
     pub nois_proxy_addr: Addr,
     pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,

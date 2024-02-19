@@ -3,7 +3,6 @@ use cw_multi_test::{BankSudo, SudoMsg};
 use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
 
-
 pub const INITIAL_BALANCE: u128 = 100_000_000_000_000;
 
 pub fn setup_accounts(
@@ -19,7 +18,7 @@ pub fn setup_accounts(
     let depositor = Addr::unchecked("depositor");
     let lender = Addr::unchecked("offerer");
     //define balances
-    let owner_funds = coins(INITIAL_BALANCE, NATIVE_DENOM);
+    let owner_funds = coins(INITIAL_BALANCE + 100104u128, NATIVE_DENOM);
     let depositor_funds = coins(INITIAL_BALANCE, NATIVE_DENOM);
     let lender_funds = coins(INITIAL_BALANCE, NATIVE_DENOM);
 
@@ -28,7 +27,7 @@ pub fn setup_accounts(
         .sudo(SudoMsg::Bank({
             BankSudo::Mint {
                 to_address: owner.to_string(),
-                amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
+                amount: vec![coin(INITIAL_BALANCE + 100104u128, NATIVE_DENOM.to_string())],
             }
         }))
         .map_err(|err| println!("{err:?}"))

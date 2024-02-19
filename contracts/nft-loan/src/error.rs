@@ -17,6 +17,9 @@ pub enum ContractError {
     #[error("An unplanned bug just happened :/")]
     ContractBug {},
 
+    #[error("This action is not allowed, the contract is locked")]
+    ContractIsLocked {},
+
     #[error("Wrong asset deposited, only cw1155 and cw721 are authorized")]
     WrongAssetDeposited {},
 

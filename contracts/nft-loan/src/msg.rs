@@ -82,8 +82,10 @@ pub enum ExecuteMsg {
         borrower: String,
         loan_id: u64,
     },
+    ToggleLock {
+        lock: bool,
+    },
     // TODO: Encode empathy
-    
     /// Internal state
     SetOwner {
         owner: String,
@@ -96,7 +98,7 @@ pub enum ExecuteMsg {
     },
     SetListingCoins {
         listing_fee_coins: Vec<Coin>,
-    }
+    },
 }
 
 #[cw_serde]

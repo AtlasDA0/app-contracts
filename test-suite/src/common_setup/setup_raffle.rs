@@ -1,11 +1,6 @@
 use std::vec;
 
-use super::{
-    helpers::setup_block_time,
-    msg::{MinterCodeIds, RaffleCodeIds},
-    setup_accounts_and_block::setup_accounts,
-    setup_minter::vending_minter::setup::vending_minter_code_ids,
-};
+use super::{helpers::setup_block_time, msg::RaffleCodeIds};
 use crate::common_setup::{
     contract_boxes::{
         contract_raffles, contract_sg721_base, contract_vending_factory, contract_vending_minter,
@@ -19,12 +14,11 @@ use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, Timestamp, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
 use raffles::{
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg as RaffleQueryMsg},
-    state::{RaffleOptionsMsg, NOIS_AMOUNT},
+    state::{RaffleOptionsMsg, ATLAS_DAO_STARGAZE_TREASURY, NOIS_AMOUNT},
 };
 use sg721::CollectionInfo;
 use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
-use utils::state::{AssetInfo, Sg721Token};
 use vending_factory::{
     msg::{ExecuteMsg as SgVendingFactoryExecuteMsg, VendingMinterCreateMsg},
     state::{ParamsExtension, VendingMinterParams},
@@ -87,11 +81,11 @@ pub fn proper_raffle_instantiate() -> (StargazeApp, Addr, Addr) {
                 nois_proxy_addr: NOIS_PROXY_ADDR.to_string(),
                 nois_proxy_coin: coin(NOIS_AMOUNT.into(), NATIVE_DENOM.to_string()),
                 owner: Some(OWNER_ADDR.to_string()),
-                fee_addr: Some(OWNER_ADDR.to_owned()),
+                fee_addr: Some(ATLAS_DAO_STARGAZE_TREASURY.to_owned()),
                 minimum_raffle_duration: None,
                 minimum_raffle_timeout: None,
                 max_ticket_number: None,
-                raffle_fee: Decimal::percent(0),
+                raffle_fee: Decimal::percent(50),
                 creation_coins: vec![
                     coin(4, NATIVE_DENOM.to_string()),
                     coin(20, "ustars".to_string()),
@@ -190,20 +184,6 @@ pub fn configure_raffle_assets(
             &[],
         )
         .unwrap();
-
-    // token id 63
-    // let _grant_approval = router
-    //     .execute_contract(
-    //         owner_addr.clone(),
-    //         Addr::unchecked(SG721_CONTRACT),
-    //         &sg721_base::msg::ExecuteMsg::<Empty, Empty>::Approve {
-    //             spender: RAFFLE_CONTRACT.to_string(),
-    //             token_id: "63".to_string(),
-    //             expires: None,
-    //         },
-    //         &[],
-    //     )
-    //     .unwrap();
 
     router
 }

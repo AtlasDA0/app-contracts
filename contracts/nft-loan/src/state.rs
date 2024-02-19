@@ -1,15 +1,14 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal, Env, StdError, StdResult, Storage, Timestamp, Uint128};
 use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, MultiIndex};
-use utils::state::AssetInfo;
+use utils::state::{AssetInfo, Locks};
 
 use crate::error::ContractError;
 
 pub const CONFIG: Item<Config> = Item::new("config");
 pub const COLLATERAL_INFO: Map<(Addr, u64), CollateralInfo> = Map::new("collateral_info");
 pub const BORROWER_INFO: Map<&Addr, BorrowerInfo> = Map::new("borrower_info");
-pub const STATIC_LOAN_LISTING_FEE: u128 = 10; 
-
+pub const STATIC_LOAN_LISTING_FEE: u128 = 10;
 
 #[cw_serde]
 pub struct OwnerStruct {
@@ -31,7 +30,8 @@ pub struct Config {
     pub listing_fee_coins: Vec<Coin>,
     /// Tracks the number of offers made across all loans
     pub global_offer_index: u64,
-
+    /// lock state prevents new collateral listings to be made
+    pub locks: Locks,
 }
 
 #[cw_serde]

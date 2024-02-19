@@ -6,8 +6,8 @@ use crate::{
     state::{get_raffle_state, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO, RAFFLE_TICKETS},
 };
 use cosmwasm_std::{
-    coin, coins, to_json_binary, Addr, BankMsg, Coin, Deps, Empty, Env, HexBinary, StdError,
-    StdResult, Storage, Uint128, WasmMsg,
+    coins, to_json_binary, Addr, BankMsg, Coin, Deps, Empty, Env, HexBinary, StdError, StdResult,
+    Storage, Uint128, WasmMsg,
 };
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
@@ -61,12 +61,7 @@ pub fn get_raffle_owner_finished_messages(
 
     // use raffle_fee % to calculate treasury distribution
     let treasury_amount = total_paid * config.raffle_fee;
-    let mut owner_amount = total_paid;
-
-    // if ticket cost was not 0, deduct ticket sales tax from raffle owner revenue
-    if !total_paid.is_zero() {
-        owner_amount = total_paid - treasury_amount;
-    };
+    let owner_amount = total_paid - treasury_amount;
 
     // Then we craft the messages needed for asset transfers
     match raffle_info.raffle_ticket_price {
@@ -84,7 +79,7 @@ pub fn get_raffle_owner_finished_messages(
             if owner_amount != Uint128::zero() {
                 messages.push(
                     BankMsg::Send {
-                        to_address: config.fee_addr.to_string(),
+                        to_address: config.owner.to_string(),
                         amount: coins(owner_amount.u128(), coin.denom),
                     }
                     .into(),
@@ -191,7 +186,6 @@ pub fn can_buy_ticket(env: Env, raffle_info: RaffleInfo) -> Result<(), ContractE
     }
 }
 
-#[cfg(feature = "sg")]
 pub fn get_raffle_winner_messages(
     deps: Deps,
     env: Env,

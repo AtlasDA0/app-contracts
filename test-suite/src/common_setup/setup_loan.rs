@@ -10,8 +10,12 @@ use sg_std::NATIVE_DENOM;
 use vending_factory::state::{ParamsExtension, VendingMinterParams};
 
 use super::{
-    msg::{LoanCodeIds, LoanSetupParams},
-    setup_minter::{self, common::constants::{OFFERER_ADDR, OWNER_ADDR, TREASURY_ADDR}, vending_minter::setup::setup_minter_contract},
+    msg::LoanCodeIds,
+    setup_minter::{
+        self,
+        common::constants::{OFFERER_ADDR, OWNER_ADDR, TREASURY_ADDR},
+        vending_minter::setup::setup_minter_contract,
+    },
 };
 
 pub fn loan_template_code_ids(router: &mut StargazeApp) -> LoanCodeIds {

@@ -32,7 +32,7 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         minimum_raffle_duration: config.minimum_raffle_duration,
         minimum_raffle_timeout: config.minimum_raffle_timeout,
         raffle_fee: config.raffle_fee,
-        lock: config.lock,
+        locks: config.locks,
         nois_proxy_addr: config.nois_proxy_addr,
         creation_coins: config.creation_coins,
         nois_proxy_coin: config.nois_proxy_coin,
@@ -235,7 +235,6 @@ pub fn is_nft_owner(
     }
     Ok(())
 }
-
 
 #[cfg(feature = "sg")]
 pub fn is_sg721_owner(
