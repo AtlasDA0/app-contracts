@@ -1,5 +1,6 @@
 # Sg-Raffles
 This handles the creation & lifecycle of raffles on Stargaze.
+
 ## InstantiateMsg
 ```json
 {
