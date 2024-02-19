@@ -25,37 +25,40 @@ mod tests {
     };
 
     #[test]
-    fn test_updating_raffle_randomness() {
+    fn test_zero_tickets() {
         let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
         configure_raffle_assets(&mut app, owner_addr.clone(), factory_addr);
-
+        // create raffle
         let params = CreateRaffleParams {
             app: &mut app,
             raffle_contract_addr: raffle_addr.clone(),
-            owner_addr: owner_addr,
+            owner_addr: owner_addr.clone(),
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: Some(4),
+            max_ticket_per_addr: None,
         };
-
         create_raffle_setup(params);
-        // customize ticket purchase params
-        let params = PurchaseTicketsParams {
-            app: &mut app,
-            raffle_contract_addr: raffle_addr.clone(),
-            msg_senders: vec![one.clone()],
-            raffle_id: 0,
-            num_tickets: 1,
-            funds_send: vec![coin(4, "ustars")],
-        };
-        // simulate the puchase of tickets
-        let purchase_tickets = buy_tickets_template(params);
-        assert!(
-            purchase_tickets.is_ok(),
-            "There is an issue with purchasing a ticket"
+
+        // skip purchasing tickets
+
+        // try to determine winner before raffle ends
+        let claim_but_no_randomness_yet = app
+            .execute_contract(
+                one.clone(),
+                raffle_addr.clone(),
+                &RaffleExecuteMsg::DetermineWinner { raffle_id: 0 },
+                &[],
+            )
+            .unwrap_err();
+        assert_error(
+            Err(claim_but_no_randomness_yet),
+            ContractError::WrongStateForClaim {
+                status: RaffleState::Started,
+            }
+            .to_string(),
         );
-        // println!("{:#?}", purchase_tickets.unwrap());
 
         // move forward in time
         let current_time = app.block_info().time.clone();
@@ -69,7 +72,7 @@ mod tests {
             &chainid.clone(),
         );
 
-        // try to claim ticket before randomness is requested
+        // try to determine winner before randomness exists in state
         let claim_but_no_randomness_yet = app
             .execute_contract(
                 one.clone(),
@@ -108,7 +111,6 @@ mod tests {
             Err(bad_recieve_randomness),
             ContractError::UnauthorizedReceive.to_string(),
         );
-
         // simulates the response from nois_proxy
         let _good_receive_randomness = app
             .execute_contract(
@@ -128,6 +130,30 @@ mod tests {
             )
             .unwrap();
 
+        // queries the raffle
+        let res: RaffleResponse = app
+            .wrap()
+            .query_wasm_smart(
+                raffle_addr.clone(),
+                &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
+            )
+            .unwrap();
+        // verify randomness state has been updated
+        assert!(
+            res.raffle_info.unwrap().randomness.is_some(),
+            "randomness should have been updated into the raffle state"
+        );
+
+        let good_determine_winner = app
+            .execute_contract(
+                owner_addr.clone(),
+                raffle_addr.clone(),
+                &RaffleExecuteMsg::DetermineWinner { raffle_id: 0 },
+                &[],
+            )
+            .unwrap();
+
+        // queries the raffle
         let res: RaffleResponse = app
             .wrap()
             .query_wasm_smart(
@@ -136,9 +162,26 @@ mod tests {
             )
             .unwrap();
 
+        // verify winner is always owner
+        assert_eq!(
+            res.raffle_info.clone().unwrap().owner,
+            res.raffle_info.unwrap().winner.unwrap(),
+            "winner should always be the owner if no tickets were bought"
+        );
+        // verify no tickets can be bought after raffle ends
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            msg_senders: vec![one.clone()],
+            raffle_id: 0,
+            num_tickets: 1,
+            funds_send: vec![coin(4, "ustars")],
+        };
+        // simulate the puchase of tickets
+        let purchase_tickets = buy_tickets_template(params);
         assert!(
-            res.raffle_info.unwrap().randomness.is_some(),
-            "randomness should have been updated into the raffle state"
-        )
+            purchase_tickets.is_err(),
+            "There should be an issue with purchasing a ticket once the winner is determined"
+        );
     }
 }

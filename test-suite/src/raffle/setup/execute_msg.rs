@@ -13,7 +13,9 @@ use crate::common_setup::{
     contract_boxes::contract_raffles, setup_minter::common::constants::SG721_CONTRACT,
 };
 
-use super::test_msgs::{CreateRaffleParams, InstantiateRaffleParams, PurchaseTicketsParams};
+use super::test_msgs::{
+    CreateRaffleParams, DetermineWinnerParams, InstantiateRaffleParams, PurchaseTicketsParams,
+};
 
 pub fn instantate_raffle_contract(
     params: InstantiateRaffleParams,
@@ -126,7 +128,7 @@ pub fn buy_tickets_template(params: PurchaseTicketsParams) -> Result<AppResponse
         &RaffleExecuteMsg::BuyTicket {
             raffle_id: id.clone(),
             ticket_count: num_tickets.clone(),
-            sent_assets: AssetInfo::Coin(funds_sent[0].clone()),
+            sent_assets: AssetInfo::Coin(funds_sent[0].clone()).into(),
         },
         &funds_sent,
     );
@@ -138,6 +140,8 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
     let raffle_addr = params.raffle_contract_addr;
     let owner_addr = params.owner_addr;
     let current_time = router.block_info().time.clone();
+    let max_per_addr = params.max_ticket_per_addr;
+    let raffle_ticket_price = params.ticket_price;
 
     // create a raffle
     let good_create_raffle = router.execute_contract(
@@ -155,22 +159,24 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
                 raffle_timeout: None,
                 comment: None,
                 max_ticket_number: None,
-                max_ticket_per_address: None,
+                max_ticket_per_address: max_per_addr,
                 raffle_preview: None,
             },
             raffle_ticket_price: AssetInfo::Coin(Coin {
                 denom: "ustars".to_string(),
-                amount: Uint128::new(4u128),
+                amount: raffle_ticket_price.unwrap().into(),
             }),
             autocycle: Some(false),
         },
         &[coin(4, "ustars")],
     );
     // confirm owner is set
-    assert!(
-        good_create_raffle.is_ok(),
-        "There is an issue creating a raffle"
-    );
+    // assert!(
+    //     good_create_raffle.is_ok(),
+    //     "There is an issue creating a raffle"
+    // );
+    good_create_raffle.unwrap();
+
     let res: raffles::msg::RaffleResponse = router
         .wrap()
         .query_wasm_smart(
@@ -180,5 +186,22 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
         .unwrap();
     assert_eq!(res.clone().raffle_info.unwrap().owner, "owner");
 
+    router
+}
+
+pub fn determine_winner_template(params: DetermineWinnerParams) -> &mut StargazeApp {
+    let router = params.app;
+    let raffle_addr = params.raffle_contract_addr;
+    let owner_addr = params.owner_addr;
+    let raffle_id = params.raffle_id;
+
+    let determine_winner = router.execute_contract(
+        owner_addr.clone(),
+        raffle_addr.clone(),
+        &RaffleExecuteMsg::DetermineWinner {
+            raffle_id: raffle_id,
+        },
+        &[],
+    );
     router
 }

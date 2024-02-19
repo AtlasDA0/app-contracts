@@ -1,23 +1,30 @@
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::{coin, Addr, Decimal, HexBinary};
-    use cw_multi_test::Executor;
+    use cw_multi_test::{Executor, SudoMsg};
     use nois::NoisCallback;
     use raffles::{
         error::ContractError,
         msg::{ExecuteMsg, QueryMsg as RaffleQueryMsg},
         state::Config,
     };
-    use utils::state::{NATIVE_DENOM, NOIS_AMOUNT};
+    use utils::state::{Locks, SudoMsg as RaffleSudoMsg, NATIVE_DENOM, NOIS_AMOUNT};
 
     use crate::{
         common_setup::{
-            contract_boxes::custom_mock_app, helpers::assert_error, setup_accounts_and_block::setup_accounts, setup_minter::common::constants::{
+            contract_boxes::custom_mock_app,
+            helpers::assert_error,
+            setup_accounts_and_block::setup_accounts,
+            setup_minter::common::constants::{
                 CREATION_FEE_AMNT, MINT_PRICE, NOIS_PROXY_ADDR, OWNER_ADDR, RAFFLE_NAME, RAFFLE_TAX,
-            }, setup_raffle::{configure_raffle_assets, proper_raffle_instantiate}
+            },
+            setup_raffle::{configure_raffle_assets, proper_raffle_instantiate},
         },
         raffle::setup::{
-            execute_msg::{buy_tickets_template, create_raffle_function, instantate_raffle_contract}, test_msgs::{CreateRaffleParams, InstantiateRaffleParams, PurchaseTicketsParams},
+            execute_msg::{
+                buy_tickets_template, create_raffle_function, instantate_raffle_contract,
+            },
+            test_msgs::{CreateRaffleParams, InstantiateRaffleParams, PurchaseTicketsParams},
         },
     };
 
@@ -50,10 +57,13 @@ mod tests {
                 minimum_raffle_timeout: 120,
                 max_tickets_per_raffle: None,
                 raffle_fee: RAFFLE_TAX,
-                lock: false,
                 nois_proxy_addr: Addr::unchecked(NOIS_PROXY_ADDR),
                 nois_proxy_coin: coin(NOIS_AMOUNT, NATIVE_DENOM),
                 creation_coins: vec![coin(CREATION_FEE_AMNT, NATIVE_DENOM)],
+                locks: Locks {
+                    lock: false,
+                    sudo_lock: false,
+                }
             }
         )
     }
@@ -159,10 +169,13 @@ mod tests {
                 minimum_raffle_timeout: 240,
                 max_tickets_per_raffle: None,
                 raffle_fee: Decimal::percent(99),
-                lock: false,
                 nois_proxy_addr: Addr::unchecked("new-owner"),
                 nois_proxy_coin: coin(NOIS_AMOUNT, NATIVE_DENOM),
                 creation_coins: vec![coin(420, "new-new")],
+                locks: Locks {
+                    lock: false,
+                    sudo_lock: false,
+                }
             }
         )
     }
@@ -178,6 +191,7 @@ mod tests {
             owner_addr: owner_address.clone(),
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: None,
+            max_ticket_per_addr: None,
         };
         create_raffle_function(create_raffle_params.into()).unwrap();
 
@@ -194,7 +208,7 @@ mod tests {
             .wrap()
             .query_wasm_smart(raffle_addr.to_string(), &RaffleQueryMsg::Config {})
             .unwrap();
-        assert_eq!(res.lock, true);
+        assert_eq!(res.locks.lock, true);
 
         let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
             app: &mut app,
@@ -202,6 +216,7 @@ mod tests {
             owner_addr: owner_address.clone(),
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: None,
+            max_ticket_per_addr: None,
         };
 
         // confirm raffles cannot be made & tickets cannot be bought
@@ -220,11 +235,65 @@ mod tests {
             funds_send: vec![coin(4, "ustars")],
         };
         // simulate the puchase of tickets
-        let purchase_tickets = buy_tickets_template(params).unwrap_err();
+        let purchase_tickets = buy_tickets_template(params);
+        assert!(purchase_tickets.is_ok());
+    }
 
+    #[test]
+    fn good_toggle_sudo_lock() {
+        let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
+        let (owner_address, one, _) = setup_accounts(&mut app);
+        configure_raffle_assets(&mut app, owner_address.clone(), factory_addr);
+        let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            owner_addr: owner_address.clone(),
+            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            ticket_price: None,
+            max_ticket_per_addr: None,
+        };
+        create_raffle_function(create_raffle_params.into()).unwrap();
+
+        let invalid_toggle_lock = app
+            .wasm_sudo(
+                raffle_addr.clone(),
+                &RaffleSudoMsg::ToggleLock { lock: true },
+            )
+            .unwrap();
+
+        // confirm the state is now true
+        let res: Config = app
+            .wrap()
+            .query_wasm_smart(raffle_addr.to_string(), &RaffleQueryMsg::Config {})
+            .unwrap();
+        assert_eq!(res.locks.sudo_lock, true);
+
+        let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            owner_addr: owner_address.clone(),
+            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            ticket_price: None,
+            max_ticket_per_addr: None,
+        };
+
+        // confirm raffles cannot be made
+        let locked_creation = create_raffle_function(create_raffle_params).unwrap_err();
         assert_error(
-            Err(purchase_tickets),
+            Err(locked_creation),
             ContractError::ContractIsLocked {}.to_string(),
-        )
+        );
+
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            msg_senders: vec![one.clone()],
+            raffle_id: 0,
+            num_tickets: 1,
+            funds_send: vec![coin(4, "ustars")],
+        };
+        // simulate the puchase of tickets
+        let purchase_tickets = buy_tickets_template(params);
+        assert!(purchase_tickets.is_ok());
     }
 }

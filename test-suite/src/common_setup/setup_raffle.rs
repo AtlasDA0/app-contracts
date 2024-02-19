@@ -71,7 +71,8 @@ pub fn proper_raffle_instantiate() -> (StargazeApp, Addr, Addr) {
             Some(OWNER_ADDR.to_string()),
         )
         .unwrap();
-
+    
+    // create raffle contract 
     let raffle_contract_addr = app
         .instantiate_contract(
             code_ids.raffle_code_id,

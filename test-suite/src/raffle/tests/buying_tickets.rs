@@ -19,7 +19,7 @@ mod tests {
     use utils::state::AssetInfo;
 
     #[test]
-    fn test_basic_purchase_ticket() {
+    fn basic_ticket_purchase() {
         let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
@@ -31,6 +31,7 @@ mod tests {
             owner_addr: owner_addr,
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: Some(4),
+            max_ticket_per_addr: None,
         };
         create_raffle_setup(params);
         // customize ticket purchase params
@@ -67,11 +68,12 @@ mod tests {
 
         use super::*;
 
+        #[test]
         fn _max_per_address_limit_test() {
             let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
-            let (owner_addr, _, _) = setup_accounts(&mut app);
+            let (owner_addr, one, _) = setup_accounts(&mut app);
             let (_, _, _, _, _, _) = setup_raffle_participants(&mut app);
-            configure_raffle_assets(&mut app, owner_addr.clone(), factory_addr);
+            configure_raffle_assets(&mut app, owner_addr.clone(), factory_addr.clone());
 
             let params = CreateRaffleParams {
                 app: &mut app,
@@ -79,20 +81,21 @@ mod tests {
                 owner_addr: owner_addr,
                 creation_fee: vec![coin(4, NATIVE_DENOM)],
                 ticket_price: Some(4),
+                max_ticket_per_addr: Some(1),
             };
             create_raffle_setup(params);
 
             // ensure error if max tickets per address set is reached
             let bad_ticket_purchase = app
                 .execute_contract(
-                    Addr::unchecked("wallet-1"),
+                    one.clone(),
                     raffle_addr.clone(),
                     &RaffleExecuteMsg::BuyTicket {
                         raffle_id: 0,
                         ticket_count: 2,
-                        sent_assets: AssetInfo::Coin(Coin::new(200, "ustars".to_string())),
+                        sent_assets: AssetInfo::Coin(Coin::new(8, "ustars".to_string())),
                     },
-                    &[Coin::new(200, "ustars".to_string())],
+                    &[Coin::new(8, "ustars".to_string())],
                 )
                 .unwrap_err();
             assert_error(
@@ -106,6 +109,7 @@ mod tests {
             );
         }
 
+        #[test]
         fn _end_of_raffle_test() {
             let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
             let (owner_addr, _, _) = setup_accounts(&mut app);
@@ -117,10 +121,136 @@ mod tests {
                 owner_addr: owner_addr,
                 creation_fee: vec![coin(4, NATIVE_DENOM)],
                 ticket_price: Some(4),
+                max_ticket_per_addr: None,
             };
             create_raffle_setup(params);
 
-            
+            // TODO move forward in time
+        }
+
+        #[test]
+        fn bad_raffle_id() {
+            let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
+            let (owner_addr, one, _) = setup_accounts(&mut app);
+            let (_, _, _, _, _, _) = setup_raffle_participants(&mut app);
+            configure_raffle_assets(&mut app, owner_addr.clone(), factory_addr);
+            let params = CreateRaffleParams {
+                app: &mut app,
+                raffle_contract_addr: raffle_addr.clone(),
+                owner_addr: owner_addr,
+                creation_fee: vec![coin(4, NATIVE_DENOM)],
+                ticket_price: Some(4),
+                max_ticket_per_addr: None,
+            };
+            create_raffle_setup(params);
+
+            let bad_ticket_purchase = app.execute_contract(
+                one.clone(),
+                raffle_addr.clone(),
+                &RaffleExecuteMsg::BuyTicket {
+                    raffle_id: 1,
+                    ticket_count: 2,
+                    sent_assets: AssetInfo::Coin(Coin::new(8, "ustars".to_string())),
+                },
+                &[Coin::new(8, "ustars".to_string())],
+            );
+            assert!(bad_ticket_purchase.is_err());
+        }
+
+        #[test]
+        fn bad_payment_amount_() {
+            let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
+            let (owner_addr, one, _) = setup_accounts(&mut app);
+            let (_, _, _, _, _, _) = setup_raffle_participants(&mut app);
+
+            // bad params
+            let ticket_count = 2u32;
+            let ticket_price = Some(4);
+            let sent_coin = Coin::new(20, "ustars".to_string());
+            let sent_assets = AssetInfo::Coin(sent_coin.clone());
+            let assets_wanted = AssetInfo::Coin(Coin::new(
+                (ticket_count.clone() * ticket_count.clone()).into(),
+                "ustars",
+            ));
+
+            configure_raffle_assets(&mut app, owner_addr.clone(), factory_addr);
+            let params = CreateRaffleParams {
+                app: &mut app,
+                raffle_contract_addr: raffle_addr.clone(),
+                owner_addr: owner_addr,
+                creation_fee: vec![coin(4, NATIVE_DENOM)],
+                ticket_price: ticket_price.clone(),
+                max_ticket_per_addr: None,
+            };
+            create_raffle_setup(params);
+            // Too many tokens sent
+            let bad_ticket_purchase = app
+                .execute_contract(
+                    one.clone(),
+                    raffle_addr.clone(),
+                    &RaffleExecuteMsg::BuyTicket {
+                        raffle_id: 0,
+                        ticket_count: ticket_count.clone(),
+                        sent_assets: sent_assets,
+                    },
+                    &[sent_coin.clone()],
+                )
+                .unwrap_err();
+            assert_error(
+                Err(bad_ticket_purchase),
+                ContractError::PaymentNotSufficient {
+                    ticket_count: ticket_count.clone(),
+                    assets_wanted: assets_wanted.clone(),
+                    assets_received: utils::state::AssetInfo::Coin(sent_coin),
+                }
+                .to_string(),
+            );
+            // Too few tokens sent
+            let sent_coin = Coin::new(2, "ustars".to_string());
+            let sent_assets = AssetInfo::Coin(sent_coin.clone());
+
+            let bad_ticket_purchase = app
+                .execute_contract(
+                    one.clone(),
+                    raffle_addr.clone(),
+                    &RaffleExecuteMsg::BuyTicket {
+                        raffle_id: 0,
+                        ticket_count: ticket_count.clone(),
+                        sent_assets: sent_assets.clone(),
+                    },
+                    &[sent_coin.clone()],
+                )
+                .unwrap_err();
+            assert_error(
+                Err(bad_ticket_purchase),
+                ContractError::PaymentNotSufficient {
+                    ticket_count: ticket_count.clone(),
+                    assets_wanted: assets_wanted.clone(),
+                    assets_received: utils::state::AssetInfo::Coin(sent_coin),
+                }
+                .to_string(),
+            );
+
+            // sent_assets not true
+            let sent_coin = Coin::new(4, "ustars".to_string());
+            let sent_assets = AssetInfo::Coin(Coin::new(8, "ustars".to_string()));
+
+            let bad_ticket_purchase = app
+                .execute_contract(
+                    one.clone(),
+                    raffle_addr.clone(),
+                    &RaffleExecuteMsg::BuyTicket {
+                        raffle_id: 0,
+                        ticket_count: ticket_count.clone(),
+                        sent_assets: sent_assets.clone(),
+                    },
+                    &[sent_coin.clone()],
+                )
+                .unwrap_err();
+            assert_error(
+                Err(bad_ticket_purchase),
+                ContractError::AssetMismatch {}.to_string(),
+            );
         }
     }
 }

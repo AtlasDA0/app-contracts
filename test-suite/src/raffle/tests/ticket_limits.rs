@@ -12,7 +12,7 @@ mod tests {
         state::{RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState},
     };
 
-    use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
+    use utils::state::{AssetInfo, Locks, Sg721Token, NATIVE_DENOM};
     use vending_factory::msg::VendingMinterCreateMsg;
 
     use raffles::{msg::InstantiateMsg, state::NOIS_AMOUNT};
@@ -139,13 +139,16 @@ mod tests {
                 minimum_raffle_duration: 20,
                 minimum_raffle_timeout: 420,
                 raffle_fee: Decimal::percent(50),
-                lock: false,
+                locks: Locks {
+                    lock: false,
+                    sudo_lock: false,
+                },
                 nois_proxy_addr: Addr::unchecked("nois"),
                 nois_proxy_coin: coin(500000, NATIVE_DENOM),
                 creation_coins: vec![
                     coin(CREATION_FEE_AMNT, NATIVE_DENOM.to_string()),
                     coin(CREATION_FEE_AMNT, "usstars".to_string())
-                ]
+                ],
             }
         );
 
