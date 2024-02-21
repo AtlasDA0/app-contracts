@@ -128,7 +128,6 @@ mod tests {
             )
             .unwrap();
 
-        // println!("{:#?}", query_config);
         assert_eq!(
             query_config,
             ConfigResponse {
@@ -449,7 +448,6 @@ mod tests {
                 &raffles::msg::QueryMsg::RaffleInfo { raffle_id: 0 },
             )
             .unwrap();
-        // println!("{:#?}", res);
         assert_eq!(res.clone().raffle_state, RaffleState::Finished);
         assert_eq!(res.raffle_info.unwrap().winner, None);
 
@@ -474,7 +472,6 @@ mod tests {
                 },
             )
             .unwrap();
-        println!("{:#?}", res);
         assert_eq!(res.owner, Addr::unchecked(OWNER_ADDR));
     }
 }

@@ -183,8 +183,6 @@ pub fn configure_loan_assets(
         }],
     );
     assert!((mint1.is_ok() || mint2.is_ok()));
-    // println!("{:#?}", mint1.unwrap());
-    // println!("{:#?}", mint2.unwrap());
 
     // token id 63
     let _grant_approval = router

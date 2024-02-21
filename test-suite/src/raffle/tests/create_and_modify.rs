@@ -250,10 +250,6 @@ mod tests {
             &[],
         );
         assert!(invalid_modify_raffle.is_err());
-
-        // println!("{:#?}", invalid_modify_raffle);
-
-        // assert!(invalid_modify_raffle.is_err());
     }
     #[test]
     fn good_modify_raffle() {

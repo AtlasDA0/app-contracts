@@ -185,8 +185,6 @@ mod tests {
             .unwrap();
         assert_eq!(res.raffle_state, RaffleState::Claimed);
 
-        // println!("{:#?}", _claim_ticket);
-
         // confirm owner of nft is now raffle winner
         let res: OwnerOfResponse = app
             .wrap()

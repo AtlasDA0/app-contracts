@@ -12,19 +12,25 @@ You can find the documentation for these smart contracts [here.](https://docs.at
 
 ## Testnet: `Elgafar-1`
 ### [NFT Loans Non-Custodial](./contracts/nft-loan/README.md)
-- **code-id:** `3631`
-- **contract:** `stars1zfp2pfksjnagf39a5q5qxhgvgq42vzt5exspvegnff0qx3yyxyjqazgk2u`
+- **code-id:** `3640`
+- **contract:** `stars1uqxvll7napqauy4c5flzmf55937jthyyc7t7ddelnz0lystgtjws3qvnvd`
 
 ### [On-Chain Raffles](./contracts//raffles/README.md)
-- **code-id:** `3630`
-- **contract:** `stars1mm4qvegrda96pl0738zam9ze454n47q3xdf8ffnfrdgaavnytdwq4vh0j5`
+- **code-id:** `3641`
+- **contract:** `stars1ref6hjmvjecf0sscwc2yqctnqzwfgcquw2dxx0gxukwfgah7u7msp44r9t`
 
 
 ## Mainnet: `Stargaze-1`
 *Proposal commonwealth discussion: [link](https://commonwealth.im/stargaze/discussion/15181-whitelist-the-atlas-dao-app)*
-- **code-id:** ` `
-- **contract-address:** ` `
+- **code-id:** `n/a`
+- **contract-address:** `n/a`
 
+
+### Scripts 
+**Storing the contracts `bash scripts/store.sh`**\
+**Instantiating the contracts - `bash scripts/i.sh LOAN_CODE_ID_# RAFFLE_CODE_ID_#`**\
+**Checking a code-id sha256sum - `bash scripts/verify-code-checksum.sh`**\
+**Checking a contract address code sha256sum  - `bash scripts/verify-contract-checksum.sh`**
 
 ### Special Thanks
 Thank you to the following teams for making this contract a reality ::)
