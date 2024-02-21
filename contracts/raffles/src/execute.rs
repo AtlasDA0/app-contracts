@@ -41,6 +41,17 @@ pub fn execute_create_raffle(
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
+    // verify ticket cost atleast 1
+    match raffle_ticket_price.clone() {
+        AssetInfo::Cw721Coin(_) => return Err(ContractError::InvalidTicketCost),
+        AssetInfo::Coin(coin) => {
+            if coin.amount < Uint128::one() {
+                return Err(ContractError::InvalidTicketCost {});
+            };
+        }
+        AssetInfo::Sg721Token(_) => return Err(ContractError::InvalidTicketCost),
+    }
+
     if config.locks.lock || config.locks.sudo_lock {
         return Err(ContractError::ContractIsLocked {});
     }
@@ -52,6 +63,8 @@ pub fn execute_create_raffle(
         .find(|c| config.creation_coins.contains(c))
         .map(|c| Coin::from(c.clone()))
         .unwrap_or_default();
+
+    // prevents 0 ticket costs
 
     // if the fee is not equal to one of the raffle fee coins set
     // return an invalid raffle fee error

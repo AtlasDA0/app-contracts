@@ -18,6 +18,9 @@ pub enum ContractError {
 
     #[error("Proxy coin is not valid")]
     InvalidProxyCoin,
+    
+    #[error("Invalid raffle ticket value set")]
+    InvalidTicketCost,
 
     #[error("One of the creation coins you provided is not valid")]
     InvalidCreationCoins,
