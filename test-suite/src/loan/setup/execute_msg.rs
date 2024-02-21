@@ -1,16 +1,11 @@
-use crate::{
-    common_setup::{
-        contract_boxes::contract_nft_loans,
-        setup_minter::common::constants::{
-            LOAN_NAME, MIN_COLLATERAL_LISTING, OWNER_ADDR, SG721_CONTRACT,
-        },
-    },
-    loan,
+use crate::common_setup::{
+    contract_boxes::contract_nft_loans,
+    setup_minter::common::constants::{MIN_COLLATERAL_LISTING, OWNER_ADDR, SG721_CONTRACT},
 };
 
 use super::test_msgs::{CreateLoanParams, InstantiateParams};
 use anyhow::Error as anyhow_error;
-use cosmwasm_std::{coin, coins, Addr, Coin, Uint128};
+use cosmwasm_std::{coin, coins, Coin, Uint128};
 use cw_multi_test::{AppResponse, BankSudo, Executor, SudoMsg};
 use nft_loans_nc::{
     msg::{ExecuteMsg as LoansExecuteMsg, InstantiateMsg},

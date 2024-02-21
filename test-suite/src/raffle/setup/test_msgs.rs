@@ -1,4 +1,4 @@
-use cosmwasm_std::{Addr, Coin, Decimal};
+use cosmwasm_std::{Addr, Coin, Decimal, Uint128};
 use utils::state::AssetInfo;
 
 pub struct InstantiateRaffleParams<'a> {
@@ -16,9 +16,10 @@ pub struct CreateRaffleParams<'a> {
     pub raffle_contract_addr: Addr,
     pub owner_addr: Addr,
     pub creation_fee: Vec<Coin>,
-    pub ticket_price: Option<u128>,
+    pub ticket_price: Uint128,
     pub max_ticket_per_addr: Option<u32>,
     pub raffle_nfts: Vec<AssetInfo>,
+    pub duration: Option<u64>,
 }
 
 pub struct PurchaseTicketsParams<'a> {
@@ -30,9 +31,9 @@ pub struct PurchaseTicketsParams<'a> {
     pub funds_send: Vec<Coin>,
 }
 
-pub struct DetermineWinnerParams<'a> {
-    pub app: &'a mut sg_multi_test::StargazeApp,
-    pub raffle_contract_addr: Addr,
-    pub owner_addr: Addr,
-    pub raffle_id: u64,
-}
+// pub struct DetermineWinnerParams<'a> {
+//     pub app: &'a mut sg_multi_test::StargazeApp,
+//     pub raffle_contract_addr: Addr,
+//     pub owner_addr: Addr,
+//     pub raffle_id: u64,
+// }

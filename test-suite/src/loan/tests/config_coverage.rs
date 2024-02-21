@@ -1,22 +1,16 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, StdError, Timestamp, Uint128};
+    use cosmwasm_std::{coin, Addr, Coin, Decimal};
     use cw_multi_test::Executor;
     use raffles::state::ATLAS_DAO_STARGAZE_TREASURY;
     use sg_std::NATIVE_DENOM;
 
-    use sg721::CollectionInfo;
-    use vending_factory::msg::VendingMinterCreateMsg;
-
     use nft_loans_nc::{
         error::ContractError,
-        msg::{
-            CollateralResponse, ExecuteMsg, MultipleCollateralsResponse, OfferResponse,
-            QueryMsg as LoanQueryMsg,
-        },
-        state::{CollateralInfo, Config, LoanState, LoanTerms, OfferState},
+        msg::{ExecuteMsg, QueryMsg as LoanQueryMsg},
+        state::Config,
     };
-    use utils::state::{AssetInfo, Locks, Sg721Token, SudoMsg as LoanSudoMsg};
+    use utils::state::{Locks, SudoMsg as LoanSudoMsg};
 
     use crate::{
         common_setup::{
@@ -28,12 +22,9 @@ mod tests {
                 LOAN_INTEREST_TAX, LOAN_NAME, MINT_PRICE, MIN_COLLATERAL_LISTING, OWNER_ADDR,
             },
         },
-        loan::{
-            self,
-            setup::{
-                execute_msg::{create_loan_function, instantate_loan_contract},
-                test_msgs::{CreateLoanParams, InstantiateParams},
-            },
+        loan::setup::{
+            execute_msg::{create_loan_function, instantate_loan_contract},
+            test_msgs::{CreateLoanParams, InstantiateParams},
         },
     };
 
@@ -195,7 +186,7 @@ mod tests {
     #[test]
     fn good_toggle_lock() {
         let (mut app, loan_addr, factory_addr) = proper_loan_instantiate();
-        let (owner_address, one, _) = setup_accounts(&mut app);
+        let (owner_address, _, _) = setup_accounts(&mut app);
         configure_loan_assets(&mut app, owner_address.clone(), factory_addr);
         let create_raffle_params: CreateLoanParams<'_> = CreateLoanParams {
             app: &mut app,
@@ -207,7 +198,7 @@ mod tests {
         };
         create_loan_function(create_raffle_params.into()).unwrap();
 
-        let invalid_toggle_lock = app
+        let _invalid_toggle_lock = app
             .execute_contract(
                 owner_address.clone(),
                 loan_addr.clone(),
@@ -237,7 +228,7 @@ mod tests {
             ContractError::ContractIsLocked {}.to_string(),
         );
 
-        let params = CreateLoanParams {
+        let _params = CreateLoanParams {
             app: &mut app,
             loan_contract_addr: loan_addr.clone(),
             owner_addr: owner_address.clone(),
@@ -247,7 +238,7 @@ mod tests {
     #[test]
     fn good_toggle_sudo_lock() {
         let (mut app, loan_addr, factory_addr) = proper_loan_instantiate();
-        let (owner_address, one, _) = setup_accounts(&mut app);
+        let (owner_address, _, _) = setup_accounts(&mut app);
         configure_loan_assets(&mut app, Addr::unchecked("owner").clone(), factory_addr);
         let create_loan_params: CreateLoanParams<'_> = CreateLoanParams {
             app: &mut app,
@@ -256,7 +247,7 @@ mod tests {
         };
         create_loan_function(create_loan_params.into()).unwrap();
 
-        let invalid_toggle_lock = app
+        let _invalid_toggle_lock = app
             .wasm_sudo(loan_addr.clone(), &LoanSudoMsg::ToggleLock { lock: true })
             .unwrap();
 

@@ -1,10 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, StdError, Timestamp, Uint128};
+    use cosmwasm_std::{coin, Addr, Coin, Decimal, StdError, Timestamp, Uint128};
     use cw_multi_test::Executor;
     use sg_std::NATIVE_DENOM;
-
-
 
     use nft_loans_nc::{
         error::ContractError,
@@ -13,7 +11,7 @@ mod tests {
         },
         state::{CollateralInfo, Config, LoanState, LoanTerms, OfferState},
     };
-    use utils::state::{AssetInfo, Locks, Sg721Token};
+    use utils::state::{AssetInfo, Sg721Token};
 
     use crate::{
         common_setup::{
@@ -27,7 +25,6 @@ mod tests {
 
     const TREASURY_ADDR: &str = "collector";
     const OFFERER_ADDR: &str = "offerer";
-    const VENDING_MINTER: &str = "contract2";
     const SG721_CONTRACT: &str = "contract3";
 
     // TODO: setup function to create nft minter, mint & approve nfts
@@ -35,7 +32,7 @@ mod tests {
     fn integration_test_loans() {
         // setup test environment
         let (mut app, loan_addr, factory_addr) = proper_loan_instantiate();
-        let (owner_address, one, _) = setup_accounts(&mut app);
+        let (owner_address, _, _) = setup_accounts(&mut app);
         configure_loan_assets(&mut app, owner_address.clone(), factory_addr);
         let create_loan_params: CreateLoanParams<'_> = CreateLoanParams {
             app: &mut app,

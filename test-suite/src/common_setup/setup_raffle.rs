@@ -10,11 +10,11 @@ use crate::common_setup::{
         NOIS_PROXY_ADDR, OWNER_ADDR, RAFFLE_CONTRACT, RAFFLE_NAME, SG721_CONTRACT, VENDING_MINTER,
     },
 };
-use cosmwasm_std::{coin, Addr, Attribute, Coin, Decimal, Empty, Timestamp, Uint128};
+use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
 use raffles::{
-    msg::{ExecuteMsg, InstantiateMsg, QueryMsg as RaffleQueryMsg},
-    state::{RaffleOptionsMsg, ATLAS_DAO_STARGAZE_TREASURY, NOIS_AMOUNT},
+    msg::InstantiateMsg,
+    state::{ATLAS_DAO_STARGAZE_TREASURY, NOIS_AMOUNT},
 };
 use sg721::CollectionInfo;
 use sg_multi_test::StargazeApp;
@@ -124,7 +124,7 @@ pub fn configure_raffle_assets(
     let current_time = router.block_info().time.clone();
 
     if create_minter {
-        let create_nft_minter = router.execute_contract(
+        let _create_nft_minter = router.execute_contract(
             owner_addr.clone(),
             sg_factory_addr.clone(),
             &SgVendingFactoryExecuteMsg::CreateMinter {

@@ -1,38 +1,20 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, HexBinary, Timestamp, Uint128};
-    use cw721::OwnerOfResponse;
-    use cw_multi_test::Executor;
-    use nois::NoisCallback;
-    use raffles::{msg::QueryMsg as RaffleQueryMsg, state::Config};
-    use std::vec;
-    use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
+    use cosmwasm_std::{coin, Addr, Decimal};
+    use utils::state::NATIVE_DENOM;
 
-    #[cfg(feature = "sg")]
-    use sg721_base::QueryMsg as Sg721QueryMsg;
-
-    use raffles::{
-        error::ContractError,
-        msg::{ExecuteMsg, InstantiateMsg, RaffleResponse},
-        state::{RaffleOptionsMsg, RaffleState, NOIS_AMOUNT},
-    };
+    use raffles::{error::ContractError, state::NOIS_AMOUNT};
 
     use crate::{
         common_setup::{
             contract_boxes::custom_mock_app,
-            helpers::{assert_error, setup_block_time},
-            setup_accounts_and_block::{setup_accounts, setup_raffle_participants},
+            helpers::assert_error,
             setup_minter::common::constants::{
-                FACTORY_ADDR, MINT_PRICE, NOIS_PROXY_ADDR, OWNER_ADDR, RAFFLE_NAME, RAFFLE_TAX,
-                SG721_CONTRACT,
+                MINT_PRICE, NOIS_PROXY_ADDR, OWNER_ADDR, RAFFLE_NAME, RAFFLE_TAX,
             },
-            setup_raffle::{configure_raffle_assets, proper_raffle_instantiate},
         },
         raffle::setup::{
-            execute_msg::{
-                buy_tickets_template, create_raffle_function, instantate_raffle_contract,
-            },
-            test_msgs::{CreateRaffleParams, InstantiateRaffleParams, PurchaseTicketsParams},
+            execute_msg::instantate_raffle_contract, test_msgs::InstantiateRaffleParams,
         },
     };
 

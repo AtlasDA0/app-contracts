@@ -1,5 +1,5 @@
 use anyhow::Error as anyhow_error;
-use cosmwasm_std::{coin, coins, Coin, Uint128};
+use cosmwasm_std::{coin, coins, Coin};
 use cw_multi_test::{AppResponse, BankSudo, Executor, SudoMsg};
 use raffles::{
     msg::{ExecuteMsg as RaffleExecuteMsg, InstantiateMsg, QueryMsg as RaffleQueryMsg},
@@ -7,15 +7,11 @@ use raffles::{
 };
 use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
-use utils::state::{AssetInfo, Sg721Token};
+use utils::state::AssetInfo;
 
-use crate::common_setup::{
-    contract_boxes::contract_raffles, setup_minter::common::constants::SG721_CONTRACT,
-};
+use crate::common_setup::contract_boxes::contract_raffles;
 
-use super::test_msgs::{
-    CreateRaffleParams, DetermineWinnerParams, InstantiateRaffleParams, PurchaseTicketsParams,
-};
+use super::test_msgs::{CreateRaffleParams, InstantiateRaffleParams, PurchaseTicketsParams};
 
 pub fn instantate_raffle_contract(
     params: InstantiateRaffleParams,
@@ -70,6 +66,8 @@ pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse,
     let owner_addr = params.owner_addr;
     let raffle_contract = params.raffle_contract_addr;
     let creation_fee = params.creation_fee;
+    let assets = params.raffle_nfts;
+    let ticket_price = params.ticket_price;
 
     // fund contract for nois_proxy fee
     params
@@ -87,10 +85,7 @@ pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse,
         raffle_contract.clone(),
         &RaffleExecuteMsg::CreateRaffle {
             owner: None,
-            assets: vec![AssetInfo::Sg721Token(Sg721Token {
-                address: SG721_CONTRACT.to_string(),
-                token_id: "63".to_string(),
-            })],
+            assets: assets,
             raffle_options: RaffleOptionsMsg {
                 raffle_start_timestamp: Some(current_time.clone()),
                 raffle_duration: None,
@@ -102,7 +97,7 @@ pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse,
             },
             raffle_ticket_price: AssetInfo::Coin(Coin {
                 denom: "ustars".to_string(),
-                amount: Uint128::new(4u128),
+                amount: ticket_price,
             }),
             autocycle: Some(false),
         },
@@ -143,6 +138,7 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
     let max_per_addr = params.max_ticket_per_addr;
     let raffle_ticket_price = params.ticket_price;
     let raffle_nfts = params.raffle_nfts;
+    let duration = params.duration;
 
     // create a raffle
     let good_create_raffle = router.execute_contract(
@@ -153,7 +149,7 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
             assets: raffle_nfts,
             raffle_options: RaffleOptionsMsg {
                 raffle_start_timestamp: Some(current_time.clone()),
-                raffle_duration: None,
+                raffle_duration: duration,
                 raffle_timeout: None,
                 comment: None,
                 max_ticket_number: None,
@@ -162,7 +158,7 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
             },
             raffle_ticket_price: AssetInfo::Coin(Coin {
                 denom: "ustars".to_string(),
-                amount: raffle_ticket_price.unwrap().into(),
+                amount: raffle_ticket_price,
             }),
             autocycle: Some(false),
         },
@@ -187,19 +183,19 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
     router
 }
 
-pub fn determine_winner_template(params: DetermineWinnerParams) -> &mut StargazeApp {
-    let router = params.app;
-    let raffle_addr = params.raffle_contract_addr;
-    let owner_addr = params.owner_addr;
-    let raffle_id = params.raffle_id;
+// pub fn determine_winner_template(params: DetermineWinnerParams) -> &mut StargazeApp {
+//     let router = params.app;
+//     let raffle_addr = params.raffle_contract_addr;
+//     let owner_addr = params.owner_addr;
+//     let raffle_id = params.raffle_id;
 
-    let determine_winner = router.execute_contract(
-        owner_addr.clone(),
-        raffle_addr.clone(),
-        &RaffleExecuteMsg::DetermineWinner {
-            raffle_id: raffle_id,
-        },
-        &[],
-    );
-    router
-}
+//     let determine_winner = router.execute_contract(
+//         owner_addr.clone(),
+//         raffle_addr.clone(),
+//         &RaffleExecuteMsg::DetermineWinner {
+//             raffle_id: raffle_id,
+//         },
+//         &[],
+//     );
+//     router
+// }

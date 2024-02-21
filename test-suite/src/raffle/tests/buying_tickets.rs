@@ -12,7 +12,7 @@ mod tests {
         },
         raffle::setup::{execute_msg::buy_tickets_template, test_msgs::PurchaseTicketsParams},
     };
-    use cosmwasm_std::{coin, Addr, Coin};
+    use cosmwasm_std::{coin, Coin, Uint128};
     use cw_multi_test::Executor;
     use raffles::error::ContractError;
     use raffles::msg::{ExecuteMsg as RaffleExecuteMsg, QueryMsg as RaffleQueryMsg};
@@ -24,20 +24,20 @@ mod tests {
         let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
-        let configure_raffle_assets =
-            configure_raffle_assets(&mut app, owner_addr.clone(), factory_addr, true);
+        configure_raffle_assets(&mut app, owner_addr.clone(), factory_addr, true);
 
         let params = CreateRaffleParams {
             app: &mut app,
             raffle_contract_addr: raffle_addr.clone(),
             owner_addr: owner_addr,
             creation_fee: vec![coin(4, NATIVE_DENOM)],
-            ticket_price: Some(4),
+            ticket_price: Uint128::new(4),
             max_ticket_per_addr: None,
             raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
                 address: SG721_CONTRACT.to_string(),
                 token_id: "63".to_string(),
             })],
+            duration: None,
         };
         create_raffle_setup(params);
         // customize ticket purchase params
@@ -72,7 +72,10 @@ mod tests {
     // bad scenarios, expect errors
     mod bad {
 
+        use cosmwasm_std::Uint128;
         use utils::state::Sg721Token;
+
+        use crate::raffle::setup::execute_msg::create_raffle_function;
 
         use super::*;
 
@@ -88,12 +91,13 @@ mod tests {
                 raffle_contract_addr: raffle_addr.clone(),
                 owner_addr: owner_addr,
                 creation_fee: vec![coin(4, NATIVE_DENOM)],
-                ticket_price: Some(4),
+                ticket_price: Uint128::new(4),
                 max_ticket_per_addr: Some(1),
                 raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                   address: SG721_CONTRACT.to_string(),
+                    address: SG721_CONTRACT.to_string(),
                     token_id: "63".to_string(),
                 })],
+                duration: None,
             };
             create_raffle_setup(params);
 
@@ -121,28 +125,68 @@ mod tests {
             );
         }
 
-        #[test]
-        fn _end_of_raffle_test() {
-            let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
-            let (owner_addr, _, _) = setup_accounts(&mut app);
-            let (_, _, _, _, _, _) = setup_raffle_participants(&mut app);
-            configure_raffle_assets(&mut app, owner_addr.clone(), factory_addr, true);
+        // #[test]
+        // fn _end_of_raffle_test() {
+        //     let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
+        //     let (owner_addr, _, _) = setup_accounts(&mut app);
+        //     let (_, _, _, _, _, _) = setup_raffle_participants(&mut app);
+        //     configure_raffle_assets(&mut app, owner_addr.clone(), factory_addr, true);
 
+        //     let params = CreateRaffleParams {
+        //         app: &mut app,
+        //         raffle_contract_addr: raffle_addr.clone(),
+        //         owner_addr: owner_addr,
+        //         creation_fee: vec![coin(4, NATIVE_DENOM)],
+        //         ticket_price: Some(4),
+        //         max_ticket_per_addr: None,
+        //         raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+        //            address: SG721_CONTRACT.to_string(),
+        //             token_id: "63".to_string(),
+        //         })],
+        //     };
+        //     create_raffle_setup(params);
+        // }
+
+        #[test]
+        fn bad_ticket_sale_no_funds_provided() {
+            let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
+            let (owner_address, one, _) = setup_accounts(&mut app);
+            configure_raffle_assets(&mut app, owner_address.clone(), factory_addr, true);
             let params = CreateRaffleParams {
                 app: &mut app,
                 raffle_contract_addr: raffle_addr.clone(),
-                owner_addr: owner_addr,
+                owner_addr: owner_address.clone(),
                 creation_fee: vec![coin(4, NATIVE_DENOM)],
-                ticket_price: Some(4),
+                ticket_price: Uint128::new(4),
                 max_ticket_per_addr: None,
                 raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                   address: SG721_CONTRACT.to_string(),
+                    address: SG721_CONTRACT.to_string(),
                     token_id: "63".to_string(),
                 })],
+                duration: None,
             };
-            create_raffle_setup(params);
 
-            // TODO move forward in time
+            create_raffle_function(params).unwrap();
+
+            let invalid_raffle_purchase = app
+                .execute_contract(
+                    one.clone(),
+                    raffle_addr.clone(),
+                    &RaffleExecuteMsg::BuyTicket {
+                        raffle_id: 1,
+                        ticket_count: 1,
+                        sent_assets: AssetInfo::Coin(Coin {
+                            denom: "ustars".to_string(),
+                            amount: Uint128::new(69u128),
+                        }),
+                    },
+                    &[],
+                )
+                .unwrap_err();
+            assert_error(
+                Err(invalid_raffle_purchase),
+                ContractError::AssetMismatch {}.to_string(),
+            );
         }
 
         #[test]
@@ -156,12 +200,13 @@ mod tests {
                 raffle_contract_addr: raffle_addr.clone(),
                 owner_addr: owner_addr,
                 creation_fee: vec![coin(4, NATIVE_DENOM)],
-                ticket_price: Some(4),
+                ticket_price: Uint128::new(4),
                 max_ticket_per_addr: None,
                 raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                   address: SG721_CONTRACT.to_string(),
+                    address: SG721_CONTRACT.to_string(),
                     token_id: "63".to_string(),
                 })],
+                duration: None,
             };
             create_raffle_setup(params);
 
@@ -186,7 +231,6 @@ mod tests {
 
             // bad params
             let ticket_count = 2u32;
-            let ticket_price = Some(4);
             let sent_coin = Coin::new(20, "ustars".to_string());
             let sent_assets = AssetInfo::Coin(sent_coin.clone());
             let assets_wanted = AssetInfo::Coin(Coin::new(
@@ -200,12 +244,13 @@ mod tests {
                 raffle_contract_addr: raffle_addr.clone(),
                 owner_addr: owner_addr,
                 creation_fee: vec![coin(4, NATIVE_DENOM)],
-                ticket_price: ticket_price.clone(),
+                ticket_price: Uint128::new(4),
                 max_ticket_per_addr: None,
                 raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                   address: SG721_CONTRACT.to_string(),
+                    address: SG721_CONTRACT.to_string(),
                     token_id: "63".to_string(),
                 })],
+                duration: None,
             };
             create_raffle_setup(params);
             // Too many tokens sent

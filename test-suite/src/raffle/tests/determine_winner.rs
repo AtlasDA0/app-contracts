@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{coin, Addr, HexBinary};
+    use cosmwasm_std::{coin, Addr, HexBinary, Uint128};
     use cw_multi_test::Executor;
     use nois::NoisCallback;
     use raffles::{
@@ -36,12 +36,13 @@ mod tests {
             raffle_contract_addr: raffle_addr.clone(),
             owner_addr: owner_addr.clone(),
             creation_fee: vec![coin(4, NATIVE_DENOM)],
-            ticket_price: Some(4),
+            ticket_price: Uint128::new(4),
             max_ticket_per_addr: None,
             raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-               address: SG721_CONTRACT.to_string(),
+                address: SG721_CONTRACT.to_string(),
                 token_id: "63".to_string(),
             })],
+            duration: None,
         };
         create_raffle_setup(params);
 
@@ -148,7 +149,7 @@ mod tests {
             "randomness should have been updated into the raffle state"
         );
 
-        let good_determine_winner = app
+        let _good_determine_winner = app
             .execute_contract(
                 owner_addr.clone(),
                 raffle_addr.clone(),

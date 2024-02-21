@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
 
-    use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, HexBinary, Timestamp, Uint128};
+    use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Empty, HexBinary, Uint128};
     use cw721::OwnerOfResponse;
     use cw_multi_test::Executor;
     use nois::NoisCallback;
@@ -11,34 +11,29 @@ mod tests {
     use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
 
     use raffles::{
-        error::ContractError,
-        msg::{ExecuteMsg, InstantiateMsg, QueryMsg as RaffleQueryMsg, RaffleResponse},
-        state::{Config, RaffleOptionsMsg, RaffleState, ATLAS_DAO_STARGAZE_TREASURY, NOIS_AMOUNT},
+        msg::{ExecuteMsg, QueryMsg as RaffleQueryMsg, RaffleResponse},
+        state::{Config, RaffleState, ATLAS_DAO_STARGAZE_TREASURY},
     };
 
     use crate::{
         common_setup::{
-            helpers::{assert_error, setup_block_time},
+            helpers::setup_block_time,
             setup_accounts_and_block::{setup_accounts, setup_raffle_participants},
             setup_minter::common::constants::{
-                FACTORY_ADDR, MINT_PRICE, NOIS_PROXY_ADDR, OWNER_ADDR, RAFFLE_NAME, RAFFLE_TAX,
-                SG721_CONTRACT,
+                FACTORY_ADDR, NOIS_PROXY_ADDR, SG721_CONTRACT, VENDING_MINTER,
             },
             setup_raffle::{configure_raffle_assets, proper_raffle_instantiate},
         },
         raffle::setup::{
-            execute_msg::{
-                buy_tickets_template, create_raffle_function, create_raffle_setup,
-                instantate_raffle_contract,
-            },
-            test_msgs::{CreateRaffleParams, InstantiateRaffleParams, PurchaseTicketsParams},
+            execute_msg::{buy_tickets_template, create_raffle_setup},
+            test_msgs::{CreateRaffleParams, PurchaseTicketsParams},
         },
     };
 
     #[test]
     fn two_raffle_participants() {
         // create testing app
-        let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
+        let (mut app, raffle_addr, _) = proper_raffle_instantiate();
         let (owner_addr, one, two) = setup_accounts(&mut app);
         configure_raffle_assets(
             &mut app,
@@ -53,18 +48,19 @@ mod tests {
             raffle_contract_addr: raffle_addr.clone(),
             owner_addr: owner_addr.clone(),
             creation_fee: vec![coin(4, NATIVE_DENOM)],
-            ticket_price: Some(10),
+            ticket_price: Uint128::new(10),
             max_ticket_per_addr: None,
             raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-               address: SG721_CONTRACT.to_string(),
+                address: SG721_CONTRACT.to_string(),
                 token_id: "63".to_string(),
             })],
+            duration: None,
         };
 
         // create a raffle
         create_raffle_setup(params);
 
-        let res: Config = app
+        let _res: Config = app
             .wrap()
             .query_wasm_smart(raffle_addr.clone(), &RaffleQueryMsg::Config {})
             .unwrap();
@@ -219,8 +215,8 @@ mod tests {
     #[test]
     fn one_raffle_participants() {
         // create testing app
-        let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
-        let (owner_addr, one, two) = setup_accounts(&mut app);
+        let (mut app, raffle_addr, _) = proper_raffle_instantiate();
+        let (owner_addr, one, _) = setup_accounts(&mut app);
         configure_raffle_assets(
             &mut app,
             owner_addr.clone(),
@@ -234,12 +230,13 @@ mod tests {
             raffle_contract_addr: raffle_addr.clone(),
             owner_addr: owner_addr.clone(),
             creation_fee: vec![coin(4, NATIVE_DENOM)],
-            ticket_price: Some(10),
+            ticket_price: Uint128::new(10),
             max_ticket_per_addr: None,
             raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
                 address: SG721_CONTRACT.to_string(),
                 token_id: "63".to_string(),
             })],
+            duration: None,
         };
         // create a raffle
         create_raffle_setup(params);
@@ -330,12 +327,213 @@ mod tests {
         let res1 = app
             .wrap()
             .query_balance(owner_addr.clone(), NATIVE_DENOM.to_string());
-        let res2 = app.wrap().query_balance(
-            ATLAS_DAO_STARGAZE_TREASURY.clone(),
-            NATIVE_DENOM.to_string(),
-        );
+        let res2 = app
+            .wrap()
+            .query_balance(ATLAS_DAO_STARGAZE_TREASURY, NATIVE_DENOM.to_string());
         // at 50%, owner should recieve 5 & treasury should recieve 5 tokens
         assert_eq!(res1.unwrap().amount, Uint128::new(100000000000005));
         assert_eq!(res2.unwrap().amount, Uint128::new(5));
+    }
+
+    #[test]
+    fn two_raffles_two_participants() {
+        let (mut app, raffle_addr, _) = proper_raffle_instantiate();
+        let (owner_addr, one, two) = setup_accounts(&mut app);
+        let (three, _, _, _, _, _) = setup_raffle_participants(&mut app);
+
+        // configure nft tokens for raffle 1
+        configure_raffle_assets(
+            &mut app,
+            owner_addr.clone(),
+            Addr::unchecked(FACTORY_ADDR),
+            true,
+        );
+
+        // configure nft tokens for raffle 2
+        let mint_nft_tokens = app.execute_contract(
+            owner_addr.clone(),
+            Addr::unchecked(VENDING_MINTER),
+            &vending_minter::msg::ExecuteMsg::Mint {},
+            &[Coin {
+                denom: NATIVE_DENOM.to_string(),
+                amount: Uint128::new(100000u128),
+            }],
+        );
+        assert!(mint_nft_tokens.is_ok());
+
+        // // token id 34
+        let _grant_approval = app
+            .execute_contract(
+                owner_addr.clone(),
+                Addr::unchecked(SG721_CONTRACT),
+                &sg721_base::msg::ExecuteMsg::<Empty, Empty>::Approve {
+                    spender: raffle_addr.to_string(),
+                    token_id: "34".to_string(),
+                    expires: None,
+                },
+                &[],
+            )
+            .unwrap();
+
+        // creates raffle1
+        let params1 = CreateRaffleParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            owner_addr: owner_addr.clone(),
+            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            ticket_price: Uint128::new(10),
+            max_ticket_per_addr: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+                address: SG721_CONTRACT.to_string(),
+                token_id: "63".to_string(),
+            })],
+            duration: Some(50),
+        };
+        create_raffle_setup(params1);
+
+        // creates raffle2
+        let params2 = CreateRaffleParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            owner_addr: owner_addr.clone(),
+            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            ticket_price: Uint128::new(20),
+            max_ticket_per_addr: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+                address: SG721_CONTRACT.to_string(),
+                token_id: "34".to_string(),
+            })],
+            duration: Some(50),
+        };
+        create_raffle_setup(params2);
+
+        let res: Config = app
+            .wrap()
+            .query_wasm_smart(raffle_addr.to_string(), &RaffleQueryMsg::Config {})
+            .unwrap();
+        // confirm raffles were created
+        assert_eq!(res.last_raffle_id, Some(1));
+
+        // purchase raffle tickets
+        // addr_one buys 10 tickets from raffle 1
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            msg_senders: vec![one.clone()],
+            raffle_id: 0,
+            num_tickets: 10,
+            funds_send: vec![coin(100, "ustars")].into(),
+        };
+        buy_tickets_template(params).unwrap();
+        // addr_one buys 5 tickets from raffle 2
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            msg_senders: vec![one.clone()],
+            raffle_id: 1,
+            num_tickets: 5,
+            funds_send: vec![coin(100, "ustars")].into(),
+        };
+        buy_tickets_template(params).unwrap();
+        // addr_two buys 10 tickets from raffle 2
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            msg_senders: vec![two.clone()],
+            raffle_id: 1,
+            num_tickets: 10,
+            funds_send: vec![coin(200, "ustars")].into(),
+        };
+        buy_tickets_template(params).unwrap();
+        // addr_three buys 5 tickets from raffle 2
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            msg_senders: vec![three.clone()],
+            raffle_id: 1,
+            num_tickets: 5,
+            funds_send: vec![coin(100, "ustars")].into(),
+        };
+        buy_tickets_template(params).unwrap();
+        // addr_three buys 5 tickets from raffle 1
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            msg_senders: vec![three.clone()],
+            raffle_id: 0,
+            num_tickets: 5,
+            funds_send: vec![coin(50, "ustars")].into(),
+        };
+        buy_tickets_template(params).unwrap();
+
+        // move forward in time
+        let current_time = app.block_info().time.clone();
+        let current_block = app.block_info().height.clone();
+        let chainid = app.block_info().chain_id.clone();
+        app.set_block(BlockInfo {
+            height: current_block.clone() + 50,
+            time: current_time.clone().plus_seconds(1000),
+            chain_id: chainid.clone(),
+        });
+
+        // get randomness for raffle-0
+        let _good_receive_randomness = app
+            .execute_contract(
+                Addr::unchecked(NOIS_PROXY_ADDR),
+                raffle_addr.clone(),
+                &ExecuteMsg::NoisReceive {
+                    callback: NoisCallback {
+                        job_id: "raffle-0".to_string(),
+                        published: current_time.clone(),
+                        randomness: HexBinary::from_hex(
+                            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
+                        )
+                        .unwrap(),
+                    },
+                },
+                &[],
+            )
+            .unwrap();
+
+        // get randomness for raffle-1
+        let _good_receive_randomness = app
+            .execute_contract(
+                Addr::unchecked(NOIS_PROXY_ADDR),
+                raffle_addr.clone(),
+                &ExecuteMsg::NoisReceive {
+                    callback: NoisCallback {
+                        job_id: "raffle-1".to_string(),
+                        published: current_time.clone(),
+                        randomness: HexBinary::from_hex(
+                            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa130",
+                        )
+                        .unwrap(),
+                    },
+                },
+                &[],
+            )
+            .unwrap();
+
+        // determine winner raffle-0
+        // determine the raffle winner, send tokens to winner
+        let _claim_ticket = app
+            .execute_contract(
+                one.clone(),
+                raffle_addr.clone(),
+                &ExecuteMsg::DetermineWinner { raffle_id: 0 },
+                &[],
+            )
+            .unwrap();
+
+        // determine winner raffle-1
+        // determine the raffle winner, send tokens to winner
+        let _claim_ticket = app
+            .execute_contract(
+                one.clone(),
+                raffle_addr.clone(),
+                &ExecuteMsg::DetermineWinner { raffle_id: 1 },
+                &[],
+            )
+            .unwrap();
     }
 }

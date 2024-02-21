@@ -1,27 +1,22 @@
 // Upload contract code and instantiate vending minter contract
-use crate::common_setup::contract_boxes::{
-    contract_sg721_base, contract_vending_factory, contract_vending_minter,
+use crate::common_setup::{
+    contract_boxes::{contract_sg721_base, contract_vending_factory, contract_vending_minter},
+    msg::{MinterCodeIds, MinterCollectionResponse, MinterInstantiateParams, MinterSetupParams},
+    setup_minter::{
+        common::{
+            constants::{CREATION_FEE, MINT_PRICE},
+            parse_response::build_collection_response,
+        },
+        vending_minter::mock_params::{mock_create_minter, mock_params},
+    },
 };
-use crate::common_setup::msg::MinterSetupParams;
-use crate::common_setup::msg::{LoanCodeIds, MinterCodeIds, MinterCollectionResponse};
-use crate::common_setup::setup_minter::common::parse_response::build_collection_response;
-use cosmwasm_std::{coin, coins, to_json_binary, Addr, Decimal};
-use cw_multi_test::{AppResponse, Executor};
-use sg2::msg::CreateMinterMsg;
-use sg2::msg::{CollectionParams, Sg2ExecuteMsg};
-use nft_loans_nc::msg::InstantiateMsg as LoanInstantiateMsg;
+use cosmwasm_std::{coin, coins, Addr};
+use cw_multi_test::Executor;
+use sg2::msg::{CollectionParams, CreateMinterMsg, Sg2ExecuteMsg};
 use sg_std::NATIVE_DENOM;
-use vending_factory::msg::{VendingMinterInitMsgExtension, VendingUpdateParamsExtension};
+use vending_factory::msg::VendingMinterInitMsgExtension;
 
-use crate::common_setup::msg::MinterInstantiateParams;
-use crate::common_setup::setup_minter::vending_minter::mock_params::{
-    mock_create_minter, mock_params,
-};
 use sg_multi_test::StargazeApp;
-
-use crate::common_setup::setup_minter::common::constants::{
-    CREATION_FEE, MINT_PRICE, MIN_MINT_PRICE, OWNER_ADDR, TREASURY_ADDR,
-};
 
 pub fn build_init_msg(
     init_msg: Option<VendingMinterInitMsgExtension>,

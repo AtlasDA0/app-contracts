@@ -30,5 +30,3 @@ pub const SG721_CONTRACT: &str = "contract3";
 pub const TREASURY_ADDR: &str = "collector";
 pub const VENDING_MINTER: &str = "contract2";
 // const NOIS_AMOUNT: u128 = 50;
-
-const NOIS_AMOUNT: u128 = 50;

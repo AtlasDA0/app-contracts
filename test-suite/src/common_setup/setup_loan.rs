@@ -5,8 +5,8 @@ use crate::common_setup::{
     },
     setup_minter::common::constants::{RAFFLE_CONTRACT, SG721_CONTRACT, VENDING_MINTER},
 };
-use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Decimal, Empty, Timestamp, Uint128};
-use cw_multi_test::{BankSudo, Executor, SudoMsg};
+use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, Uint128};
+use cw_multi_test::Executor;
 use nft_loans_nc::msg::InstantiateMsg as LoanInstantiateMsg;
 use sg721::CollectionInfo;
 use sg_multi_test::StargazeApp;
@@ -19,11 +19,7 @@ use vending_factory::{
 use super::{
     helpers::setup_block_time,
     msg::LoanCodeIds,
-    setup_minter::{
-        self,
-        common::constants::{OFFERER_ADDR, OWNER_ADDR, TREASURY_ADDR},
-        vending_minter::setup::setup_minter_contract,
-    },
+    setup_minter::common::constants::{OWNER_ADDR, TREASURY_ADDR},
 };
 
 pub fn loan_template_code_ids(router: &mut StargazeApp) -> LoanCodeIds {
@@ -130,7 +126,7 @@ pub fn configure_loan_assets(
     let router = app;
     let current_time = router.block_info().time.clone();
 
-    let create_nft_minter = router.execute_contract(
+    let _create_nft_minter = router.execute_contract(
         owner_addr.clone(),
         sg_factory_addr.clone(),
         &SgVendingFactoryExecuteMsg::CreateMinter {
