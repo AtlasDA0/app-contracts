@@ -198,6 +198,7 @@ pub fn sudo(deps: DepsMut, env: Env, msg: SudoMsg) -> Result<Response, ContractE
     }
 }
 
+// sets a new owner of contract
 pub fn set_owner(
     deps: DepsMut,
     _env: Env,
@@ -214,7 +215,7 @@ pub fn set_owner(
         .add_attribute("new owner", new_owner))
 }
 
-/// Owner only function
+/// Owner only functions
 /// Sets a new fee-distributor contract
 pub fn set_fee_distributor(
     deps: DepsMut,
@@ -232,7 +233,6 @@ pub fn set_fee_distributor(
         .add_attribute("value", treasury_addr))
 }
 
-/// Owner only function
 /// Sets a new fee rate
 /// fee_rate is in units of a 1/100_000th, so e.g. if fee_rate=5_000, the fee_rate is 5%
 /// It correspond to the part of interests that are kept by the organisation (for redistribution and DAO purposes)

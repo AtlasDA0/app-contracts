@@ -159,30 +159,35 @@ pub struct CollateralResponse {
     pub collateral: CollateralInfo,
 }
 
+// array of loan information
 #[cw_serde]
 pub struct MultipleCollateralsResponse {
     pub collaterals: Vec<CollateralResponse>,
     pub next_collateral: Option<u64>,
 }
 
+// array of loan information
 #[cw_serde]
 pub struct MultipleCollateralsAllResponse {
     pub collaterals: Vec<CollateralResponse>,
     pub next_collateral: Option<(String, u64)>,
 }
 
+// loan terms offer response
 #[cw_serde]
 pub struct OfferResponse {
     pub global_offer_id: String,
     pub offer_info: OfferInfo,
 }
 
+// array of loan terms offer responses
 #[cw_serde]
 pub struct MultipleOffersResponse {
     pub offers: Vec<OfferResponse>,
     pub next_offer: Option<String>,
 }
 
+// filters on loan queries
 #[cw_serde]
 pub struct QueryFilters {
     pub states: Option<Vec<String>>,

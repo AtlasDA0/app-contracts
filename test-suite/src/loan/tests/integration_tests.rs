@@ -4,8 +4,7 @@ mod tests {
     use cw_multi_test::Executor;
     use sg_std::NATIVE_DENOM;
 
-    use sg721::CollectionInfo;
-    use vending_factory::msg::VendingMinterCreateMsg;
+
 
     use nft_loans_nc::{
         error::ContractError,

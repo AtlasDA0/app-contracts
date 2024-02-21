@@ -167,6 +167,7 @@ pub fn list_collaterals(
         .add_attribute("loan_id", loan_id.to_string()))
 }
 
+// modify a listing, if possible
 pub fn modify_collaterals(
     deps: DepsMut,
     env: Env,
@@ -343,6 +344,7 @@ fn _make_offer_raw(
     Ok((contract_config.global_offer_index.to_string(), offer_id))
 }
 
+// internal function that begins actually starts the loanl if possible
 fn _accept_offer_raw(
     deps: DepsMut,
     env: Env,
