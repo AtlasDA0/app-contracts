@@ -1,4 +1,5 @@
 use cosmwasm_std::{Addr, Coin, Decimal};
+use utils::state::AssetInfo;
 
 pub struct InstantiateRaffleParams<'a> {
     pub app: &'a mut sg_multi_test::StargazeApp,
@@ -17,6 +18,7 @@ pub struct CreateRaffleParams<'a> {
     pub creation_fee: Vec<Coin>,
     pub ticket_price: Option<u128>,
     pub max_ticket_per_addr: Option<u32>,
+    pub raffle_nfts: Vec<AssetInfo>,
 }
 
 pub struct PurchaseTicketsParams<'a> {

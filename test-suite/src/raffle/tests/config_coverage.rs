@@ -8,7 +8,9 @@ mod tests {
         msg::{ExecuteMsg, QueryMsg as RaffleQueryMsg},
         state::Config,
     };
-    use utils::state::{Locks, SudoMsg as RaffleSudoMsg, NATIVE_DENOM, NOIS_AMOUNT};
+    use utils::state::{
+        AssetInfo, Locks, Sg721Token, SudoMsg as RaffleSudoMsg, NATIVE_DENOM, NOIS_AMOUNT,
+    };
 
     use crate::{
         common_setup::{
@@ -16,7 +18,7 @@ mod tests {
             helpers::assert_error,
             setup_accounts_and_block::setup_accounts,
             setup_minter::common::constants::{
-                CREATION_FEE_AMNT, MINT_PRICE, NOIS_PROXY_ADDR, OWNER_ADDR, RAFFLE_NAME, RAFFLE_TAX,
+                CREATION_FEE_AMNT, MINT_PRICE, NOIS_PROXY_ADDR, OWNER_ADDR, RAFFLE_NAME, RAFFLE_TAX, SG721_CONTRACT,
             },
             setup_raffle::{configure_raffle_assets, proper_raffle_instantiate},
         },
@@ -184,7 +186,7 @@ mod tests {
     fn good_toggle_lock() {
         let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
         let (owner_address, one, _) = setup_accounts(&mut app);
-        configure_raffle_assets(&mut app, owner_address.clone(), factory_addr);
+        configure_raffle_assets(&mut app, owner_address.clone(), factory_addr, true);
         let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
             app: &mut app,
             raffle_contract_addr: raffle_addr.clone(),
@@ -192,6 +194,10 @@ mod tests {
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: None,
             max_ticket_per_addr: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+               address: SG721_CONTRACT.to_string(),
+                token_id: "63".to_string(),
+            })],
         };
         create_raffle_function(create_raffle_params.into()).unwrap();
 
@@ -217,6 +223,10 @@ mod tests {
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: None,
             max_ticket_per_addr: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+               address: SG721_CONTRACT.to_string(),
+                token_id: "63".to_string(),
+            })],
         };
 
         // confirm raffles cannot be made & tickets cannot be bought
@@ -243,7 +253,7 @@ mod tests {
     fn good_toggle_sudo_lock() {
         let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
         let (owner_address, one, _) = setup_accounts(&mut app);
-        configure_raffle_assets(&mut app, owner_address.clone(), factory_addr);
+        configure_raffle_assets(&mut app, owner_address.clone(), factory_addr, true);
         let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
             app: &mut app,
             raffle_contract_addr: raffle_addr.clone(),
@@ -251,6 +261,10 @@ mod tests {
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: None,
             max_ticket_per_addr: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+               address: SG721_CONTRACT.to_string(),
+                token_id: "63".to_string(),
+            })],
         };
         create_raffle_function(create_raffle_params.into()).unwrap();
 
@@ -275,6 +289,10 @@ mod tests {
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: None,
             max_ticket_per_addr: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+               address: SG721_CONTRACT.to_string(),
+                token_id: "63".to_string(),
+            })],
         };
 
         // confirm raffles cannot be made

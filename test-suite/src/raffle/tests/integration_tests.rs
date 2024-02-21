@@ -40,7 +40,12 @@ mod tests {
         // create testing app
         let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
         let (owner_addr, one, two) = setup_accounts(&mut app);
-        configure_raffle_assets(&mut app, owner_addr.clone(), Addr::unchecked(FACTORY_ADDR));
+        configure_raffle_assets(
+            &mut app,
+            owner_addr.clone(),
+            Addr::unchecked(FACTORY_ADDR),
+            true,
+        );
         let (_, _, _, _, _, _) = setup_raffle_participants(&mut app);
 
         let params = CreateRaffleParams {
@@ -50,6 +55,10 @@ mod tests {
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: Some(10),
             max_ticket_per_addr: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+               address: SG721_CONTRACT.to_string(),
+                token_id: "63".to_string(),
+            })],
         };
 
         // create a raffle
@@ -212,7 +221,12 @@ mod tests {
         // create testing app
         let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
         let (owner_addr, one, two) = setup_accounts(&mut app);
-        configure_raffle_assets(&mut app, owner_addr.clone(), Addr::unchecked(FACTORY_ADDR));
+        configure_raffle_assets(
+            &mut app,
+            owner_addr.clone(),
+            Addr::unchecked(FACTORY_ADDR),
+            true,
+        );
         let (_, _, _, _, _, _) = setup_raffle_participants(&mut app);
 
         let params = CreateRaffleParams {
@@ -222,8 +236,11 @@ mod tests {
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: Some(10),
             max_ticket_per_addr: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+                address: SG721_CONTRACT.to_string(),
+                token_id: "63".to_string(),
+            })],
         };
-
         // create a raffle
         create_raffle_setup(params);
 
@@ -321,6 +338,4 @@ mod tests {
         assert_eq!(res1.unwrap().amount, Uint128::new(100000000000005));
         assert_eq!(res2.unwrap().amount, Uint128::new(5));
     }
-    #[test]
-    fn free_tickets() {}
 }

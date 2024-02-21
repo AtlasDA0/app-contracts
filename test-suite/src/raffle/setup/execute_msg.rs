@@ -142,6 +142,7 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
     let current_time = router.block_info().time.clone();
     let max_per_addr = params.max_ticket_per_addr;
     let raffle_ticket_price = params.ticket_price;
+    let raffle_nfts = params.raffle_nfts;
 
     // create a raffle
     let good_create_raffle = router.execute_contract(
@@ -149,10 +150,7 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
         raffle_addr.clone(),
         &RaffleExecuteMsg::CreateRaffle {
             owner: Some(owner_addr.clone().to_string()),
-            assets: vec![AssetInfo::Sg721Token(Sg721Token {
-                address: SG721_CONTRACT.to_string(),
-                token_id: "63".to_string(),
-            })],
+            assets: raffle_nfts,
             raffle_options: RaffleOptionsMsg {
                 raffle_start_timestamp: Some(current_time.clone()),
                 raffle_duration: None,

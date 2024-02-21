@@ -128,6 +128,7 @@ mod tests {
                     borrower: Addr::unchecked(OWNER_ADDR).to_string(),
                     start_after: None,
                     limit: None,
+                    // filters: None,
                 },
             )
             .unwrap();
@@ -159,7 +160,8 @@ mod tests {
                     start_block: None,
                     comment: Some("be water, my friend".to_string()),
                     loan_preview: None,
-                }
+                },
+                loan_state: LoanState::Published,
             }
         );
 

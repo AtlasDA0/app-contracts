@@ -9,13 +9,13 @@ mod tests {
         state::RaffleState,
     };
     use std::vec;
-    use utils::state::NATIVE_DENOM;
+    use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
 
     use crate::{
         common_setup::{
             helpers::{assert_error, setup_block_time},
             setup_accounts_and_block::{setup_accounts, setup_raffle_participants},
-            setup_minter::common::constants::NOIS_PROXY_ADDR,
+            setup_minter::common::constants::{NOIS_PROXY_ADDR, SG721_CONTRACT},
             setup_raffle::{configure_raffle_assets, proper_raffle_instantiate},
         },
         raffle::setup::{
@@ -29,7 +29,7 @@ mod tests {
         let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
-        configure_raffle_assets(&mut app, owner_addr.clone(), factory_addr);
+        configure_raffle_assets(&mut app, owner_addr.clone(), factory_addr, true);
         // create raffle
         let params = CreateRaffleParams {
             app: &mut app,
@@ -38,6 +38,10 @@ mod tests {
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: Some(4),
             max_ticket_per_addr: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+               address: SG721_CONTRACT.to_string(),
+                token_id: "63".to_string(),
+            })],
         };
         create_raffle_setup(params);
 

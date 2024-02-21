@@ -10,7 +10,7 @@ use crate::common_setup::{
         NOIS_PROXY_ADDR, OWNER_ADDR, RAFFLE_CONTRACT, RAFFLE_NAME, SG721_CONTRACT, VENDING_MINTER,
     },
 };
-use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, Timestamp, Uint128};
+use cosmwasm_std::{coin, Addr, Attribute, Coin, Decimal, Empty, Timestamp, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
 use raffles::{
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg as RaffleQueryMsg},
@@ -71,8 +71,8 @@ pub fn proper_raffle_instantiate() -> (StargazeApp, Addr, Addr) {
             Some(OWNER_ADDR.to_string()),
         )
         .unwrap();
-    
-    // create raffle contract 
+
+    // create raffle contract
     let raffle_contract_addr = app
         .instantiate_contract(
             code_ids.raffle_code_id,
@@ -118,46 +118,48 @@ pub fn configure_raffle_assets(
     app: &mut StargazeApp,
     owner_addr: Addr,
     sg_factory_addr: Addr,
+    create_minter: bool,
 ) -> &mut StargazeApp {
     let router = app;
     let current_time = router.block_info().time.clone();
 
-    let _create_nft_minter = router.execute_contract(
-        owner_addr.clone(),
-        sg_factory_addr.clone(),
-        &SgVendingFactoryExecuteMsg::CreateMinter {
-            0: VendingMinterCreateMsg {
-                init_msg: vending_factory::msg::VendingMinterInitMsgExtension {
-                    base_token_uri: "ipfs://aldkfjads".to_string(),
-                    payment_address: Some(OWNER_ADDR.to_string()),
-                    start_time: current_time.clone(),
-                    num_tokens: 100,
-                    mint_price: coin(Uint128::new(100000u128).u128(), NATIVE_DENOM),
-                    per_address_limit: 3,
-                    whitelist: None,
-                },
-                collection_params: sg2::msg::CollectionParams {
-                    code_id: 4,
-                    name: "Collection Name".to_string(),
-                    symbol: "COL".to_string(),
-                    info: CollectionInfo {
-                        creator: owner_addr.to_string(),
-                        description: String::from("Atlanauts"),
-                        image: "https://example.com/image.png".to_string(),
-                        external_link: Some("https://example.com/external.html".to_string()),
-                        start_trading_time: None,
-                        explicit_content: Some(false),
-                        royalty_info: None,
+    if create_minter {
+        let create_nft_minter = router.execute_contract(
+            owner_addr.clone(),
+            sg_factory_addr.clone(),
+            &SgVendingFactoryExecuteMsg::CreateMinter {
+                0: VendingMinterCreateMsg {
+                    init_msg: vending_factory::msg::VendingMinterInitMsgExtension {
+                        base_token_uri: "ipfs://aldkfjads".to_string(),
+                        payment_address: Some(OWNER_ADDR.to_string()),
+                        start_time: current_time.clone(),
+                        num_tokens: 100,
+                        mint_price: coin(Uint128::new(100000u128).u128(), NATIVE_DENOM),
+                        per_address_limit: 3,
+                        whitelist: None,
+                    },
+                    collection_params: sg2::msg::CollectionParams {
+                        code_id: 4,
+                        name: "Collection Name".to_string(),
+                        symbol: "COL".to_string(),
+                        info: CollectionInfo {
+                            creator: owner_addr.to_string(),
+                            description: String::from("Atlanauts"),
+                            image: "https://example.com/image.png".to_string(),
+                            external_link: Some("https://example.com/external.html".to_string()),
+                            start_trading_time: None,
+                            explicit_content: Some(false),
+                            royalty_info: None,
+                        },
                     },
                 },
             },
-        },
-        &[Coin {
-            denom: NATIVE_DENOM.to_string(),
-            amount: Uint128::new(100000u128),
-        }],
-    );
-    // println!("{:#?}", create_nft_minter);
+            &[Coin {
+                denom: NATIVE_DENOM.to_string(),
+                amount: Uint128::new(100000u128),
+            }],
+        );
+    }
 
     // VENDING_MINTER is minter
     let mint_nft_tokens = router.execute_contract(
@@ -170,7 +172,6 @@ pub fn configure_raffle_assets(
         }],
     );
     assert!(mint_nft_tokens.is_ok());
-    // println!("{:#?}", mint_nft_tokens.unwrap());
 
     // token id 63
     let _grant_approval = router
