@@ -4,28 +4,25 @@ use cosmwasm_std::{
 };
 
 use crate::{
+    error::ContractError,
     execute::{
         execute_buy_tickets, execute_cancel_raffle, execute_create_raffle,
         execute_determine_winner, execute_modify_raffle, execute_receive, execute_receive_nois,
         execute_sudo_toggle_lock, execute_toggle_lock, execute_update_config,
         execute_update_randomness,
     },
+    msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse},
+    query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count},
     state::{
         get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
         MINIMUM_RAFFLE_TIMEOUT, STATIC_RAFFLE_CREATION_FEE,
     },
 };
 use utils::{
-    state::{is_valid_name, Locks, SudoMsg},
+    state::{is_valid_name, Locks, SudoMsg, NATIVE_DENOM},
     types::Response,
 };
 
-#[cfg(feature = "sg")]
-use sg_std::NATIVE_DENOM;
-
-use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse};
-use crate::query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count};
 use cw2::set_contract_version;
 
 #[entry_point]

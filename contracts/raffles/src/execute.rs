@@ -6,29 +6,27 @@ use cw721::{Cw721ExecuteMsg, Cw721ReceiveMsg};
 use cw721_base::Extension;
 use nois::{NoisCallback, ProxyExecuteMsg};
 
+#[cfg(feature = "sg")]
+use {crate::query::is_sg721_owner, sg721::ExecuteMsg as Sg721ExecuteMsg};
+
 use utils::{
     state::{into_cosmos_msg, is_valid_comment, is_valid_name, AssetInfo},
     types::{CosmosMsg, Response},
 };
 
-#[cfg(feature = "sg")]
-use {
-    crate::{
-        error::ContractError,
-        msg::ExecuteMsg,
-        query::{is_nft_owner, is_sg721_owner},
-        state::{
-            get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState,
-            CONFIG, MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, RAFFLE_INFO, RAFFLE_TICKETS,
-            USER_TICKETS,
-        },
-        utils::{
-            can_buy_ticket, get_nois_randomness, get_raffle_owner_finished_messages,
-            get_raffle_owner_messages, get_raffle_winner, get_raffle_winner_messages,
-            is_raffle_owner, ticket_cost,
-        },
+use crate::{
+    error::ContractError,
+    msg::ExecuteMsg,
+    query::is_nft_owner,
+    state::{
+        get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState, CONFIG,
+        MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, RAFFLE_INFO, RAFFLE_TICKETS, USER_TICKETS,
     },
-    sg721::ExecuteMsg as Sg721ExecuteMsg,
+    utils::{
+        can_buy_ticket, get_nois_randomness, get_raffle_owner_finished_messages,
+        get_raffle_owner_messages, get_raffle_winner, get_raffle_winner_messages, is_raffle_owner,
+        ticket_cost,
+    },
 };
 
 pub fn execute_create_raffle(
@@ -46,10 +44,6 @@ pub fn execute_create_raffle(
     if config.locks.lock || config.locks.sudo_lock {
         return Err(ContractError::ContractIsLocked {});
     }
-
-    // TODO:
-    // if multiple info.funds are sent, check that they are both equal to
-    // the static fee and the AssetInfo in all_assets
 
     // checks if the required fee was sent.
     let fee = info
@@ -392,7 +386,6 @@ pub fn _buy_tickets(
     assets: AssetInfo,
 ) -> Result<(), ContractError> {
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
-    let config = CONFIG.load(deps.storage);
 
     // We first check the sent assets match the raffle assets
     let tc = ticket_cost(raffle_info.clone(), ticket_count)?;
@@ -583,7 +576,6 @@ pub fn execute_determine_winner(
     // Loads the raffle id and makes sure the raffle has ended and randomness from nois has been provided.
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
     let raffle_state = get_raffle_state(env.clone(), raffle_info.clone());
-    let config = CONFIG.load(deps.storage);
 
     if raffle_state != RaffleState::Finished {
         return Err(ContractError::WrongStateForClaim {

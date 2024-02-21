@@ -25,12 +25,19 @@ pub struct Cw721Coin {
     pub token_id: String,
 }
 
+#[cfg(feature = "sg")]
 #[cw_serde]
 pub enum AssetInfo {
     Cw721Coin(Cw721Coin),
     Coin(Coin),
-    #[cfg(feature = "sg")]
     Sg721Token(Sg721Token),
+}
+
+#[cfg(not(feature = "sg"))]
+#[cw_serde]
+pub enum AssetInfo {
+    Cw721Coin(Cw721Coin),
+    Coin(Coin),
 }
 
 impl AssetInfo {

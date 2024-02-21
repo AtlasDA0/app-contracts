@@ -11,7 +11,8 @@ use crate::{
     error::ContractError,
     msg::{
         CollateralResponse, MultipleCollateralsAllResponse, MultipleCollateralsResponse,
-        MultipleOffersResponse, OfferResponse, QueryFilters,
+        MultipleOffersResponse, OfferResponse, 
+        // QueryFilters,
     },
     state::{
         get_actual_state, get_offer, lender_offers, BorrowerInfo, CollateralInfo, Config,

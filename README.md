@@ -1,5 +1,7 @@
 # Non-Custodial NFT Loan's & Raffles
-Welcome! You can find the documentation for these smart contracts [here.](https://docs.atlasdao.zone/introduction/welcome)
+Welcome! These are smart contracts which power customizable, on-chain raffles, and non-custodial tokenized loan agreements. 
+
+You can find the documentation for these smart contracts [here.](https://docs.atlasdao.zone/introduction/welcome)
 
 
 <!-- |   Type                            |     Raffles   |   Loans   |
