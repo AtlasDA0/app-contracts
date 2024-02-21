@@ -12,25 +12,28 @@ crate-type = ["cdylib", "rlib"]
 backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
 library = []
+default = ["sg"]
+sg = ["sg-std", "sg721", "sg721-base"]
+vanilla = []
 
 
 [dependencies]
-cosmwasm-std = "1.4.0"
-anyhow = "1.0.79"
-cosmwasm-schema = "1.4.0"
-schemars = "0.8.8"
-serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-sg-multi-test = "3.1.0"
-cw-multi-test = "0.16.0"
-cw721 = "0.18.0"
-sg-std = "3.1.0"
-sg721 = "3.3.0"
-sg721-base              = "3.3.0"
-vending-factory     = "3.3.0"
-vending-minter      = "3.3.0"
-sg2 = "3.3.0"
-nois = "0.8.0"
+cosmwasm-std       = {workspace = true}
+anyhow             = {workspace = true}
+cosmwasm-schema    = {workspace = true}
+schemars           = {workspace = true}
+serde              = {workspace = true}
+sg-multi-test      = {workspace = true}
+cw-multi-test      = {workspace = true}
+cw721              = {workspace = true}
+vending-factory    = {workspace = true}
+vending-minter     = {workspace = true}
+sg2                = {workspace = true}
+nois               = {workspace = true}
 
-raffles = { path = "../contracts/raffles", features=["library"] }
-nft-loans = { path = "../contracts/nft-loan" }
-utils = {path = "../packages/utils"}
+sg721-base         = { workspace = true, optional = true }
+sg-std             = { workspace = true, optional = true }
+sg721              = { workspace = true, optional = true }
+raffles             = { path = "../contracts/raffles", features=["library", "vanilla", "sg"]}
+nft-loans-nc       = { path = "../contracts/nft-loan", features=["vanilla", "sg"]}
+utils              = { path = "../packages/utils"}

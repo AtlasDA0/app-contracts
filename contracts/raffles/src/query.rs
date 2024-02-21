@@ -3,7 +3,10 @@ use cosmwasm_std::{
 };
 use cw721::{Cw721QueryMsg, OwnerOfResponse};
 use cw_storage_plus::Bound;
+
+#[cfg(feature = "sg")]
 use sg721_base::QueryMsg as Sg721QueryMsg;
+
 use utils::state::AssetInfo;
 
 use crate::{
@@ -29,7 +32,7 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         minimum_raffle_duration: config.minimum_raffle_duration,
         minimum_raffle_timeout: config.minimum_raffle_timeout,
         raffle_fee: config.raffle_fee,
-        lock: config.lock,
+        locks: config.locks,
         nois_proxy_addr: config.nois_proxy_addr,
         creation_coins: config.creation_coins,
         nois_proxy_coin: config.nois_proxy_coin,
@@ -233,6 +236,7 @@ pub fn is_nft_owner(
     Ok(())
 }
 
+#[cfg(feature = "sg")]
 pub fn is_sg721_owner(
     deps: Deps,
     sender: Addr,

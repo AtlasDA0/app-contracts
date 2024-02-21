@@ -1,6 +1,6 @@
 [package]
 name = "raffles"
-version = "0.2.0"
+version = "0.4.0"
 authors = []
 edition = "2021"
 publish = false
@@ -12,8 +12,9 @@ license = "Apache-2.0"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-# for quicker tests, cargo test --lib
-# for more explicit tests, cargo test --features=backtraces
+default = ["sg"]
+sg = ["sg-std", "sg721","sg721-base"]
+vanilla = []
 backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
 library = []
@@ -32,8 +33,8 @@ thiserror           = { version = "1.0.23" }
 sha2                = { version = "0.10.6", default-features = false }
 
 # Stargaze libs
-sg-std       = "^3.2"
-sg721        = "^3.3"
-sg721-base   = "^3.3"
+sg-std = {version= "^3.2", optional = true }
+sg721 = {version= "^3.3", optional = true }
+sg721-base = {version= "^3.3", optional = true }
 
-utils        = { path = "../../packages/utils", version = "0.1.0" }
+utils        = { path = "../../packages/utils", version = "0.1.0", feature = "vanilla" }

@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { ExecuteMsg, AssetInfo, Uint128, Decimal, Cw721Coin, Sg721Token, Coin, LoanTerms, InstantiateMsg, QueryMsg } from "./NFTLoan.types";
+import { ExecuteMsg, AssetInfo, Uint128, Decimal, Cw721Coin, Coin, Sg721Token, LoanTerms, InstantiateMsg, QueryMsg } from "./NFTLoan.types";
 export interface NFTLoanReadOnlyInterface {
   contractAddress: string;
   config: () => Promise<ConfigResponse>;
@@ -273,6 +273,11 @@ export interface NFTLoanInterface extends NFTLoanReadOnlyInterface {
     borrower: string;
     loanId: number;
   }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
+  toggleLock: ({
+    lock
+  }: {
+    lock: boolean;
+  }, fee?: number | StdFee | "auto", memo?: string, funds?: Coin[]) => Promise<ExecuteResult>;
   setOwner: ({
     owner
   }: {
@@ -315,6 +320,7 @@ export class NFTLoanClient extends NFTLoanQueryClient implements NFTLoanInterfac
     this.acceptLoan = this.acceptLoan.bind(this);
     this.repayBorrowedFunds = this.repayBorrowedFunds.bind(this);
     this.withdrawDefaultedLoan = this.withdrawDefaultedLoan.bind(this);
+    this.toggleLock = this.toggleLock.bind(this);
     this.setOwner = this.setOwner.bind(this);
     this.setFeeDestination = this.setFeeDestination.bind(this);
     this.setFeeRate = this.setFeeRate.bind(this);
@@ -475,6 +481,17 @@ export class NFTLoanClient extends NFTLoanQueryClient implements NFTLoanInterfac
       withdraw_defaulted_loan: {
         borrower,
         loan_id: loanId
+      }
+    }, fee, memo, funds);
+  };
+  toggleLock = async ({
+    lock
+  }: {
+    lock: boolean;
+  }, fee: number | StdFee | "auto" = "auto", memo?: string, funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      toggle_lock: {
+        lock
       }
     }, fee, memo, funds);
   };

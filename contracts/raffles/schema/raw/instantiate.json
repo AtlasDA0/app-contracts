@@ -5,7 +5,8 @@
   "required": [
     "name",
     "nois_proxy_addr",
-    "nois_proxy_coin"
+    "nois_proxy_coin",
+    "raffle_fee"
   ],
   "properties": {
     "creation_coins": {
@@ -23,7 +24,7 @@
         "null"
       ]
     },
-    "max_participant_number": {
+    "max_ticket_number": {
       "type": [
         "integer",
         "null"
@@ -63,14 +64,7 @@
       ]
     },
     "raffle_fee": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/Decimal"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "$ref": "#/definitions/Decimal"
     }
   },
   "additionalProperties": false,

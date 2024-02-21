@@ -1,24 +1,29 @@
 use cosmwasm_std::{
-    coin, entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
-    QueryResponse, StdResult,
+    coin, ensure, entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
+    QueryResponse, StdResult, Uint128,
 };
-use sg_std::{StargazeMsgWrapper, NATIVE_DENOM};
 
-use crate::error::ContractError;
-use crate::execute::{
-    execute_buy_tickets, execute_cancel_raffle, execute_create_raffle, execute_determine_winner,
-    execute_modify_raffle, execute_receive, execute_receive_nois, execute_toggle_lock,
-    execute_update_config, execute_update_randomness,
+use crate::{
+    error::ContractError,
+    execute::{
+        execute_buy_tickets, execute_cancel_raffle, execute_create_raffle,
+        execute_determine_winner, execute_modify_raffle, execute_receive, execute_receive_nois,
+        execute_sudo_toggle_lock, execute_toggle_lock, execute_update_config,
+        execute_update_randomness,
+    },
+    msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse},
+    query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count},
+    state::{
+        get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
+        MINIMUM_RAFFLE_TIMEOUT, STATIC_RAFFLE_CREATION_FEE,
+    },
 };
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse};
-use crate::query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count};
-use crate::state::{
-    get_raffle_state, load_raffle, Config, CONFIG, MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT,
-    STATIC_RAFFLE_CREATION_FEE,
+use utils::{
+    state::{is_valid_name, Locks, SudoMsg, NATIVE_DENOM},
+    types::Response,
 };
+
 use cw2::set_contract_version;
-
-pub type Response = cosmwasm_std::Response<StargazeMsgWrapper>;
 
 #[entry_point]
 pub fn instantiate(
@@ -35,8 +40,22 @@ pub fn instantiate(
     // define the accepted fee coins
     let creation_coins = match msg.creation_coins {
         Some(cc_msg) => cc_msg,
-        None => vec![coin(STATIC_RAFFLE_CREATION_FEE, NATIVE_DENOM)],
+        None => vec![coin(STATIC_RAFFLE_CREATION_FEE, NATIVE_DENOM)], // TODO: update to handle ibc contract support native denoms
     };
+
+    // fee decimal range
+    ensure!(
+        msg.raffle_fee >= Decimal::zero() && msg.raffle_fee <= Decimal::one(),
+        ContractError::InvalidFeeRate {}
+    );
+    ensure!(
+        msg.nois_proxy_coin.amount >= Uint128::zero(),
+        ContractError::InvalidProxyCoin
+    );
+    // valid name
+    if !is_valid_name(&msg.name) {
+        return Err(ContractError::InvalidName {});
+    }
 
     let config = Config {
         name: msg.name,
@@ -55,14 +74,16 @@ pub fn instantiate(
             .minimum_raffle_timeout
             .unwrap_or(MINIMUM_RAFFLE_TIMEOUT)
             .max(MINIMUM_RAFFLE_TIMEOUT),
-        raffle_fee: msg.raffle_fee.unwrap_or(Decimal::zero()),
-        lock: false,
+        raffle_fee: msg.raffle_fee,
+        locks: Locks {
+            lock: false,
+            sudo_lock: false,
+        },
         nois_proxy_addr,
         nois_proxy_coin: msg.nois_proxy_coin,
         creation_coins,
+        max_tickets_per_raffle: Some(msg.max_ticket_number.unwrap_or(MAX_TICKET_NUMBER)),
     };
-
-    config.validate_fee()?;
 
     CONFIG.save(deps.storage, &config)?;
     set_contract_version(
@@ -91,35 +112,12 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::UpdateConfig {
-            name,
-            owner,
-            fee_addr,
-            minimum_raffle_duration,
-            minimum_raffle_timeout,
-            raffle_fee,
-            nois_proxy_addr,
-            nois_proxy_coin,
-            creation_coins,
-        } => execute_update_config(
-            deps,
-            env,
-            info,
-            name,
-            owner,
-            fee_addr,
-            minimum_raffle_duration,
-            minimum_raffle_timeout,
-            raffle_fee,
-            nois_proxy_addr,
-            nois_proxy_coin,
-            creation_coins,
-        ),
         ExecuteMsg::CreateRaffle {
             owner,
             assets,
             raffle_options,
             raffle_ticket_price,
+            autocycle,
         } => execute_create_raffle(
             deps,
             env,
@@ -128,6 +126,7 @@ pub fn execute(
             assets,
             raffle_ticket_price,
             raffle_options,
+            autocycle,
         ),
         ExecuteMsg::CancelRaffle { raffle_id } => execute_cancel_raffle(deps, env, info, raffle_id),
         ExecuteMsg::ModifyRaffle {
@@ -157,6 +156,32 @@ pub fn execute(
         ExecuteMsg::NoisReceive { callback } => execute_receive_nois(deps, env, info, callback),
         // Admin messages
         ExecuteMsg::ToggleLock { lock } => execute_toggle_lock(deps, env, info, lock),
+        ExecuteMsg::UpdateConfig {
+            name,
+            owner,
+            fee_addr,
+            minimum_raffle_duration,
+            minimum_raffle_timeout,
+            max_tickets_per_raffle,
+            raffle_fee,
+            nois_proxy_addr,
+            nois_proxy_coin,
+            creation_coins,
+        } => execute_update_config(
+            deps,
+            env,
+            info,
+            name,
+            owner,
+            fee_addr,
+            minimum_raffle_duration,
+            minimum_raffle_timeout,
+            max_tickets_per_raffle,
+            raffle_fee,
+            nois_proxy_addr,
+            nois_proxy_coin,
+            creation_coins,
+        ),
     }
 }
 
@@ -193,4 +218,14 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
         }
     };
     Ok(response)
+}
+
+// sudo entry point for governance override
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn sudo(deps: DepsMut, env: Env, msg: SudoMsg) -> Result<Response, ContractError> {
+    match msg {
+        SudoMsg::ToggleLock { lock } => {
+            execute_sudo_toggle_lock(deps, env, lock).map_err(|_| ContractError::ContractBug {})
+        }
+    }
 }

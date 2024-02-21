@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { ExecuteMsg, AssetInfo, Uint128, Timestamp, Uint64, Decimal, Binary, HexBinary, Cw721Coin, Sg721Token, Coin, RaffleOptionsMsg, Cw721ReceiveMsg, NoisCallback, InstantiateMsg, QueryMsg, QueryFilters, Addr, RaffleState, AllRafflesResponse, RaffleResponse, RaffleInfo, RaffleOptions, ArrayOfString, ConfigResponse, Uint32 } from "./Raffle.types";
+import { ExecuteMsg, AssetInfo, Uint128, Timestamp, Uint64, Decimal, Binary, HexBinary, Cw721Coin, Coin, Sg721Token, RaffleOptionsMsg, Cw721ReceiveMsg, NoisCallback, InstantiateMsg, QueryMsg, QueryFilters, Addr, RaffleState, AllRafflesResponse, RaffleResponse, RaffleInfo, RaffleOptions, ArrayOfString, ConfigResponse, Locks, Uint32 } from "./Raffle.types";
 export interface RaffleReadOnlyInterface {
   contractAddress: string;
   config: () => Promise<ConfigResponse>;
@@ -125,11 +125,13 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
   sender: string;
   createRaffle: ({
     assets,
+    autocycle,
     owner,
     raffleOptions,
     raffleTicketPrice
   }: {
     assets: AssetInfo[];
+    autocycle?: boolean;
     owner?: string;
     raffleOptions: RaffleOptionsMsg;
     raffleTicketPrice: AssetInfo;
@@ -142,6 +144,7 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
   updateConfig: ({
     creationCoins,
     feeAddr,
+    maxTicketsPerRaffle,
     minimumRaffleDuration,
     minimumRaffleTimeout,
     name,
@@ -152,6 +155,7 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
   }: {
     creationCoins?: Coin[];
     feeAddr?: string;
+    maxTicketsPerRaffle?: number;
     minimumRaffleDuration?: number;
     minimumRaffleTimeout?: number;
     name?: string;
@@ -232,11 +236,13 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
 
   createRaffle = async ({
     assets,
+    autocycle,
     owner,
     raffleOptions,
     raffleTicketPrice
   }: {
     assets: AssetInfo[];
+    autocycle?: boolean;
     owner?: string;
     raffleOptions: RaffleOptionsMsg;
     raffleTicketPrice: AssetInfo;
@@ -244,6 +250,7 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
     return await this.client.execute(this.sender, this.contractAddress, {
       create_raffle: {
         assets,
+        autocycle,
         owner,
         raffle_options: raffleOptions,
         raffle_ticket_price: raffleTicketPrice
@@ -264,6 +271,7 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
   updateConfig = async ({
     creationCoins,
     feeAddr,
+    maxTicketsPerRaffle,
     minimumRaffleDuration,
     minimumRaffleTimeout,
     name,
@@ -274,6 +282,7 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
   }: {
     creationCoins?: Coin[];
     feeAddr?: string;
+    maxTicketsPerRaffle?: number;
     minimumRaffleDuration?: number;
     minimumRaffleTimeout?: number;
     name?: string;
@@ -286,6 +295,7 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
       update_config: {
         creation_coins: creationCoins,
         fee_addr: feeAddr,
+        max_tickets_per_raffle: maxTicketsPerRaffle,
         minimum_raffle_duration: minimumRaffleDuration,
         minimum_raffle_timeout: minimumRaffleTimeout,
         name,

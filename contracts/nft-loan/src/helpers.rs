@@ -1,15 +1,15 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{to_json_binary, Addr, StdResult, WasmMsg};
-use sg_std::CosmosMsg;
+use utils::types::CosmosMsg;
 
 use crate::msg::ExecuteMsg;
 
-/// CwTemplateContract is a wrapper around Addr that provides a lot of helpers
+/// NftLoanContract is a wrapper around Addr that provides a lot of helpers
 /// for working with this.
 #[cw_serde]
-pub struct CwTemplateContract(pub Addr);
+pub struct NftLoanContract(pub Addr);
 
-impl CwTemplateContract {
+impl NftLoanContract {
     pub fn addr(&self) -> Addr {
         self.0.clone()
     }

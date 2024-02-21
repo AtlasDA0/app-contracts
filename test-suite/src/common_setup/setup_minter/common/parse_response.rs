@@ -29,7 +29,6 @@ pub fn parse_factory_response(res: &AppResponse) -> (Addr, Addr) {
 pub fn build_collection_response(
     res: Result<AppResponse, Error>,
     factory_addr: Addr,
-    loan_escrow: Addr,
 ) -> MinterCollectionResponse {
     match res.is_ok() {
         true => {
@@ -38,7 +37,6 @@ pub fn build_collection_response(
                 minter: Some(minter_addr),
                 collection: Some(collection_addr),
                 factory: Some(factory_addr),
-                loan_escrow: Some(loan_escrow),
                 error: None,
             }
         }
@@ -46,7 +44,6 @@ pub fn build_collection_response(
             minter: None,
             collection: None,
             factory: Some(factory_addr),
-            loan_escrow: Some(loan_escrow),
             error: Some(res.unwrap_err()),
         },
     }

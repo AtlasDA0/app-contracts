@@ -3,7 +3,7 @@ use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
-use nft_loans::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use nft_loans_nc::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 fn main() {
     let mut out_dir = env::current_dir().unwrap();

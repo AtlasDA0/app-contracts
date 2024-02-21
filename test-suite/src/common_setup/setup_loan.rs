@@ -1,23 +1,26 @@
-use crate::common_setup::contract_boxes::{
-    contract_nft_loans, contract_sg721_base, contract_vending_factory, contract_vending_minter,
-    custom_mock_app,
+use crate::common_setup::{
+    contract_boxes::{
+        contract_nft_loans, contract_sg721_base, contract_vending_factory, contract_vending_minter,
+        custom_mock_app,
+    },
+    setup_minter::common::constants::{RAFFLE_CONTRACT, SG721_CONTRACT, VENDING_MINTER},
 };
-use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Decimal, Timestamp, Uint128};
-use cw_multi_test::{BankSudo, Executor, SudoMsg};
-use nft_loans::msg::InstantiateMsg as LoanInstantiateMsg;
-use sg2::msg::CollectionParams;
+use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, Uint128};
+use cw_multi_test::Executor;
+use nft_loans_nc::msg::InstantiateMsg as LoanInstantiateMsg;
 use sg721::CollectionInfo;
 use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
-use vending_factory::state::{ParamsExtension, VendingMinterParams};
+use vending_factory::{
+    msg::{ExecuteMsg as SgVendingFactoryExecuteMsg, VendingMinterCreateMsg},
+    state::{ParamsExtension, VendingMinterParams},
+};
 
 use super::{
-    msg::{LoanCodeIds, LoanSetupParams},
-    setup_minter::{self, vending_minter::setup::setup_minter_contract},
+    helpers::setup_block_time,
+    msg::LoanCodeIds,
+    setup_minter::common::constants::{OWNER_ADDR, TREASURY_ADDR},
 };
-const OWNER_ADDR: &str = "fee";
-const TREASURY_ADDR: &str = "collector";
-const OFFERER_ADDR: &str = "offerer";
 
 pub fn loan_template_code_ids(router: &mut StargazeApp) -> LoanCodeIds {
     let minter_code_id = router.store_code(contract_vending_minter());
@@ -44,37 +47,7 @@ pub fn proper_loan_instantiate() -> (StargazeApp, Addr, Addr) {
     // setup mock blockchain environment
     let mut app = custom_mock_app();
     let chainid = app.block_info().chain_id.clone();
-
-    app.set_block(BlockInfo {
-        height: 10000,
-        time: Timestamp::from_nanos(1647032400000000000),
-        chain_id: chainid,
-    });
-
-    // fund test account
-    app.sudo(SudoMsg::Bank({
-        BankSudo::Mint {
-            to_address: OWNER_ADDR.to_string(),
-            amount: vec![coin(100000000000u128, NATIVE_DENOM.to_string())],
-        }
-    }))
-    .unwrap();
-    // fund test account
-    app.sudo(SudoMsg::Bank({
-        BankSudo::Mint {
-            to_address: OWNER_ADDR.to_string(),
-            amount: vec![coin(100000000000u128, "uscrt".to_string())],
-        }
-    }))
-    .unwrap();
-    app.sudo(SudoMsg::Bank({
-        BankSudo::Mint {
-            to_address: OFFERER_ADDR.to_string(),
-            amount: vec![coin(100000000000u128, NATIVE_DENOM.to_string())],
-        }
-    }))
-    .unwrap();
-
+    setup_block_time(&mut app, 1647032400000000000, Some(10000), &chainid);
     // store wasm code for nft, minter , nft-loan
     let code_ids = loan_template_code_ids(&mut app);
 
@@ -118,6 +91,7 @@ pub fn proper_loan_instantiate() -> (StargazeApp, Addr, Addr) {
             Some(OWNER_ADDR.to_string()),
         )
         .unwrap();
+
     // create nft-loan contract
     let nft_loan_addr = app
         .instantiate_contract(
@@ -127,9 +101,13 @@ pub fn proper_loan_instantiate() -> (StargazeApp, Addr, Addr) {
                 name: "loan-with-insights".to_string(),
                 owner: Some(Addr::unchecked(OWNER_ADDR).to_string()),
                 treasury_addr: Addr::unchecked(TREASURY_ADDR).to_string(),
-                fee_rate: Decimal::percent(5),
-                listing_fee_coins: vec![coin(55, NATIVE_DENOM.to_string()), coin(45, "usstars")]
-                    .into(),
+                fee_rate: Decimal::percent(50),
+                listing_fee_coins: vec![
+                    coin(25, NATIVE_DENOM.to_string()),
+                    coin(50, "uflix".to_string()),
+                    coin(10, "ujuno".to_string()),
+                ]
+                .into(),
             },
             &[],
             "loans",
@@ -138,4 +116,101 @@ pub fn proper_loan_instantiate() -> (StargazeApp, Addr, Addr) {
         .unwrap();
 
     (app, nft_loan_addr, factory_addr)
+}
+
+pub fn configure_loan_assets(
+    app: &mut StargazeApp,
+    owner_addr: Addr,
+    sg_factory_addr: Addr,
+) -> &mut StargazeApp {
+    let router = app;
+    let current_time = router.block_info().time.clone();
+
+    let _create_nft_minter = router.execute_contract(
+        owner_addr.clone(),
+        sg_factory_addr.clone(),
+        &SgVendingFactoryExecuteMsg::CreateMinter {
+            0: VendingMinterCreateMsg {
+                init_msg: vending_factory::msg::VendingMinterInitMsgExtension {
+                    base_token_uri: "ipfs://aldkfjads".to_string(),
+                    payment_address: Some(OWNER_ADDR.to_string()),
+                    start_time: current_time.clone(),
+                    num_tokens: 100,
+                    mint_price: coin(Uint128::new(100000u128).u128(), NATIVE_DENOM),
+                    per_address_limit: 3,
+                    whitelist: None,
+                },
+                collection_params: sg2::msg::CollectionParams {
+                    code_id: 3,
+                    name: "Collection Name".to_string(),
+                    symbol: "COL".to_string(),
+                    info: CollectionInfo {
+                        creator: owner_addr.to_string(),
+                        description: String::from("Atlanauts"),
+                        image: "https://example.com/image.png".to_string(),
+                        external_link: Some("https://example.com/external.html".to_string()),
+                        start_trading_time: None,
+                        explicit_content: Some(false),
+                        royalty_info: None,
+                    },
+                },
+            },
+        },
+        &[Coin {
+            denom: NATIVE_DENOM.to_string(),
+            amount: Uint128::new(100000u128),
+        }],
+    );
+    // println!("{:#?}", create_nft_minter);
+
+    // VENDING_MINTER is minter
+    let mint1 = router.execute_contract(
+        owner_addr.clone(),
+        Addr::unchecked(VENDING_MINTER),
+        &vending_minter::msg::ExecuteMsg::Mint {},
+        &[Coin {
+            denom: NATIVE_DENOM.to_string(),
+            amount: Uint128::new(100000u128),
+        }],
+    );
+    let mint2 = router.execute_contract(
+        owner_addr.clone(),
+        Addr::unchecked(VENDING_MINTER),
+        &vending_minter::msg::ExecuteMsg::Mint {},
+        &[Coin {
+            denom: NATIVE_DENOM.to_string(),
+            amount: Uint128::new(100000u128),
+        }],
+    );
+    assert!((mint1.is_ok() || mint2.is_ok()));
+
+    // token id 63
+    let _grant_approval = router
+        .execute_contract(
+            owner_addr.clone(),
+            Addr::unchecked(SG721_CONTRACT),
+            &sg721_base::msg::ExecuteMsg::<Empty, Empty>::Approve {
+                spender: RAFFLE_CONTRACT.to_string(),
+                token_id: "63".to_string(),
+                expires: None,
+            },
+            &[],
+        )
+        .unwrap();
+
+    // token id 34
+    let _grant_approval = router
+        .execute_contract(
+            owner_addr.clone(),
+            Addr::unchecked(SG721_CONTRACT),
+            &sg721_base::msg::ExecuteMsg::<Empty, Empty>::Approve {
+                spender: RAFFLE_CONTRACT.to_string(),
+                token_id: "34".to_string(),
+                expires: None,
+            },
+            &[],
+        )
+        .unwrap();
+
+    router
 }

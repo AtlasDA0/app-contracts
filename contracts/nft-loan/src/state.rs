@@ -1,15 +1,16 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Coin, Decimal, Env, StdError, StdResult, Storage, Timestamp, Uint128};
+use cosmwasm_std::{
+    ensure, Addr, Coin, Decimal, Env, StdError, StdResult, Storage, Timestamp, Uint128,
+};
 use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, MultiIndex};
-use utils::state::AssetInfo;
+use utils::state::{AssetInfo, Locks};
 
 use crate::error::ContractError;
 
 pub const CONFIG: Item<Config> = Item::new("config");
 pub const COLLATERAL_INFO: Map<(Addr, u64), CollateralInfo> = Map::new("collateral_info");
 pub const BORROWER_INFO: Map<&Addr, BorrowerInfo> = Map::new("borrower_info");
-pub const STATIC_LOAN_LISTING_FEE: u128 = 10; 
-
+pub const STATIC_LOAN_LISTING_FEE: u128 = 10;
 
 #[cw_serde]
 pub struct OwnerStruct {
@@ -31,19 +32,20 @@ pub struct Config {
     pub listing_fee_coins: Vec<Coin>,
     /// Tracks the number of offers made across all loans
     pub global_offer_index: u64,
-
+    /// lock state prevents new collateral listings to be made
+    pub locks: Locks,
 }
 
 #[cw_serde]
 pub struct CollateralInfo {
-    pub terms: Option<LoanTerms>,
-    pub associated_assets: Vec<AssetInfo>,
+    pub terms: Option<LoanTerms>,          // principle, interest, duration
+    pub associated_assets: Vec<AssetInfo>, // collateratal at risk
     pub list_date: Timestamp,
-    pub state: LoanState,
-    pub offer_amount: u64,
-    pub active_offer: Option<String>,
-    pub start_block: Option<u64>,
-    pub comment: Option<String>,
+    pub state: LoanState,                // loan state
+    pub offer_amount: u64,               // # of offers made on loan
+    pub active_offer: Option<String>,    // offer that has been accepted
+    pub start_block: Option<u64>,        // block which offer has been accepter
+    pub comment: Option<String>,         // comment made
     pub loan_preview: Option<AssetInfo>, // The preview can only be a SG721 or a CW721 token.
 }
 
@@ -62,6 +64,52 @@ impl Default for CollateralInfo {
         }
     }
 }
+
+#[cw_serde]
+pub enum LoanState {
+    Published,
+    Started,
+    Defaulted,
+    Ended,
+    Inactive,
+}
+
+#[cw_serde]
+pub enum OfferState {
+    Published,
+    Accepted,
+    Refused,
+    Cancelled,
+}
+
+impl std::fmt::Display for LoanState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LoanState::Published => write!(f, "published"),
+            LoanState::Started => write!(f, "started"),
+            LoanState::Defaulted => write!(f, "defaulted"),
+            LoanState::Ended => write!(f, "ended"),
+            LoanState::Inactive => write!(f, "inactive"),
+        }
+    }
+}
+
+// gets the loan state
+// pub fn get_loan_state(env: Env, loan_info: CollateralInfo) -> LoanState {
+//     if loan_info.start_block.is_none() {
+//         LoanState::Published
+//     } else if loan_info.start_block.is_some() {
+//         LoanState::Started
+//     } else if env.block.height
+//         > loan_info.terms.unwrap().duration_in_blocks + loan_info.start_block.unwrap()
+//     {
+//         LoanState::Defaulted
+//     } else if loan_info.state == LoanState::Inactive {
+//         LoanState::Inactive
+//     } else {
+//         LoanState::Ended
+//     }
+// }
 
 #[cw_serde]
 #[derive(Default)]
@@ -87,23 +135,6 @@ pub struct LoanTerms {
     pub principle: Coin,
     pub interest: Uint128,
     pub duration_in_blocks: u64,
-}
-
-#[cw_serde]
-pub enum LoanState {
-    Published,
-    Started,
-    Defaulted,
-    Ended,
-    Inactive,
-}
-
-#[cw_serde]
-pub enum OfferState {
-    Published,
-    Accepted,
-    Refused,
-    Cancelled,
 }
 
 pub struct LenderOfferIndexes<'a> {

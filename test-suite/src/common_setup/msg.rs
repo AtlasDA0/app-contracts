@@ -9,7 +9,12 @@ pub struct MinterCollectionResponse {
     pub minter: Option<Addr>,
     pub collection: Option<Addr>,
     pub factory: Option<Addr>,
-    pub loan_escrow: Option<Addr>,
+    pub error: Option<Error>,
+}
+
+pub struct CreateRaffleResponse {
+    pub raffle: Option<Addr>,
+    pub owner: Option<Addr>,
     pub error: Option<Error>,
 }
 
@@ -23,7 +28,6 @@ pub struct MinterSetupParams<'a> {
     pub minter_code_id: u64,
     pub factory_code_id: u64,
     pub sg721_code_id: u64,
-    pub loan_code_id: u64,
     pub init_msg: Option<VendingMinterInitMsgExtension>,
 }
 
@@ -64,17 +68,6 @@ pub struct MinterCodeIds {
     pub sg721_code_id: u64,
 }
 
-pub struct RaffleTemplateResponse<T> {
-    pub raffle_response_vec: Vec<CreateRaffleResponse>,
-    pub router: StargazeApp,
-    pub accts: T,
-}
-
-pub struct CreateRaffleResponse {
-    pub raffle: Option<Addr>,
-    pub owner: Option<Addr>,
-    pub error: Option<Error>,
-}
 
 pub struct RaffleAccounts {
     pub creator: Addr,
@@ -85,6 +78,7 @@ pub struct LoanAccounts {
     pub lender: Addr,
 }
 
+#[cw_serde]
 pub struct MinterAccounts {
     pub creator: Addr,
     pub buyer: Addr,
@@ -92,6 +86,12 @@ pub struct MinterAccounts {
 
 pub struct MinterTemplateResponse<T> {
     pub collection_response_vec: Vec<MinterCollectionResponse>,
+    pub router: StargazeApp,
+    pub accts: T,
+}
+
+pub struct RaffleTemplateResponse<T> {
+    pub raffle_response_vec: Vec<CreateRaffleResponse>,
     pub router: StargazeApp,
     pub accts: T,
 }

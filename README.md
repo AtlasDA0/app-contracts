@@ -1,19 +1,40 @@
 # Non-Custodial NFT Loan's & Raffles
-Welcome!
+Welcome! These are smart contracts which power customizable, on-chain raffles, and non-custodial tokenized loan agreements. 
 
-## Testnet
-
-### [NFT Loan](./contracts/nft-loan/README.md)
-- **code-id:** ``
-
-### [Raffles](./contracts//raffles/README.md)
-- **code-id:** `3589`
-- **contract:** `stars147pfl4jnwwt8nz8hnts5grymcf4as9wy0ftfsnqktm3ldff0wn2qxvjre9`
+You can find the documentation for these smart contracts [here.](https://docs.atlasdao.zone/introduction/welcome)
 
 
-## Special Thanks
-A special thank you to the following teams for making this contract a reality! ::)\
-* Illiquidlabs
-* AtlasDAO Members & Contributors
-* Nois Network Community Support
-* Stargaze Devs & Ambassadors
+<!-- |   Type                            |     Raffles   |   Loans   |
+| --------------------------------- | --------| --------------|
+|   *code-id*                       | `3630`  |`3631`|
+| *contract-addr*                  | ``        |``| -->
+
+
+## Testnet: `Elgafar-1`
+### [NFT Loans Non-Custodial](./contracts/nft-loan/README.md)
+- **code-id:** `3640`
+- **contract:** `stars1uqxvll7napqauy4c5flzmf55937jthyyc7t7ddelnz0lystgtjws3qvnvd`
+
+### [On-Chain Raffles](./contracts//raffles/README.md)
+- **code-id:** `3641`
+- **contract:** `stars1ref6hjmvjecf0sscwc2yqctnqzwfgcquw2dxx0gxukwfgah7u7msp44r9t`
+
+
+## Mainnet: `Stargaze-1`
+*Proposal commonwealth discussion: [link](https://commonwealth.im/stargaze/discussion/15181-whitelist-the-atlas-dao-app)*
+- **code-id:** `n/a`
+- **contract-address:** `n/a`
+
+
+### Scripts 
+**Storing the contracts `bash scripts/store.sh`**\
+**Instantiating the contracts - `bash scripts/i.sh LOAN_CODE_ID_# RAFFLE_CODE_ID_#`**\
+**Checking a code-id sha256sum - `bash scripts/verify-code-checksum.sh`**\
+**Checking a contract address code sha256sum  - `bash scripts/verify-contract-checksum.sh`**
+
+### Special Thanks
+Thank you to the following teams for making this contract a reality ::)
+* [Illiquidlabs](https://github.com/illiquidly)
+* [AtlasDAO](https://atlasdao.zone) Members & Contributors
+* [Nois Network](https://nois.network) Community Support
+* [Stargaze](https://stargaze.zone) Devs & Ambassadors

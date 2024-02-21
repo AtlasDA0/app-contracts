@@ -3,7 +3,7 @@ use cosmwasm_std::{Coin, Decimal, StdError, StdResult};
 
 use utils::state::{is_valid_name, AssetInfo};
 
-use crate::state::{BorrowerInfo, CollateralInfo, Config, LoanTerms, OfferInfo};
+use crate::state::{BorrowerInfo, CollateralInfo, Config, LoanState, LoanTerms, OfferInfo};
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -82,8 +82,10 @@ pub enum ExecuteMsg {
         borrower: String,
         loan_id: u64,
     },
+    ToggleLock {
+        lock: bool,
+    },
     // TODO: Encode empathy
-    
     /// Internal state
     SetOwner {
         owner: String,
@@ -96,7 +98,7 @@ pub enum ExecuteMsg {
     },
     SetListingCoins {
         listing_fee_coins: Vec<Coin>,
-    }
+    },
 }
 
 #[cw_serde]
@@ -109,19 +111,25 @@ pub enum QueryMsg {
     BorrowerInfo { borrower: String },
 
     #[returns(CollateralResponse)]
-    CollateralInfo { borrower: String, loan_id: u64 },
+    CollateralInfo {
+        borrower: String,
+        loan_id: u64,
+        // filters: Option<QueryFilters>,
+    },
 
     #[returns(MultipleCollateralsResponse)]
     Collaterals {
         borrower: String,
         start_after: Option<u64>,
         limit: Option<u32>,
+        // filters: Option<QueryFilters>,
     },
 
     #[returns(MultipleCollateralsAllResponse)]
     AllCollaterals {
         start_after: Option<(String, u64)>,
         limit: Option<u32>,
+        // filters: Option<QueryFilters>,
     },
 
     #[returns(OfferResponse)]
@@ -142,33 +150,48 @@ pub enum QueryMsg {
     },
 }
 
+// loan info
 #[cw_serde]
 pub struct CollateralResponse {
     pub borrower: String,
     pub loan_id: u64,
+    pub loan_state: LoanState,
     pub collateral: CollateralInfo,
 }
 
+// array of loan information
 #[cw_serde]
 pub struct MultipleCollateralsResponse {
     pub collaterals: Vec<CollateralResponse>,
     pub next_collateral: Option<u64>,
 }
 
+// array of loan information
 #[cw_serde]
 pub struct MultipleCollateralsAllResponse {
     pub collaterals: Vec<CollateralResponse>,
     pub next_collateral: Option<(String, u64)>,
 }
 
+// loan terms offer response
 #[cw_serde]
 pub struct OfferResponse {
     pub global_offer_id: String,
     pub offer_info: OfferInfo,
 }
 
+// array of loan terms offer responses
 #[cw_serde]
 pub struct MultipleOffersResponse {
     pub offers: Vec<OfferResponse>,
     pub next_offer: Option<String>,
+}
+
+// filters on loan queries
+#[cw_serde]
+pub struct QueryFilters {
+    pub states: Option<Vec<String>>,
+    pub owner: Option<String>,
+    pub borrower: Option<String>,
+    pub lender: Option<String>,
 }

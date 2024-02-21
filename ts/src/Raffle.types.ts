@@ -7,6 +7,7 @@
 export type ExecuteMsg = {
   create_raffle: {
     assets: AssetInfo[];
+    autocycle?: boolean | null;
     owner?: string | null;
     raffle_options: RaffleOptionsMsg;
     raffle_ticket_price: AssetInfo;
@@ -19,6 +20,7 @@ export type ExecuteMsg = {
   update_config: {
     creation_coins?: Coin[] | null;
     fee_addr?: string | null;
+    max_tickets_per_raffle?: number | null;
     minimum_raffle_duration?: number | null;
     minimum_raffle_timeout?: number | null;
     name?: string | null;
@@ -61,9 +63,9 @@ export type ExecuteMsg = {
 export type AssetInfo = {
   cw721_coin: Cw721Coin;
 } | {
-  sg721_token: Sg721Token;
-} | {
   coin: Coin;
+} | {
+  sg721_token: Sg721Token;
 };
 export type Uint128 = string;
 export type Timestamp = Uint64;
@@ -75,18 +77,18 @@ export interface Cw721Coin {
   address: string;
   token_id: string;
 }
-export interface Sg721Token {
-  address: string;
-  token_id: string;
-}
 export interface Coin {
   amount: Uint128;
   denom: string;
   [k: string]: unknown;
 }
+export interface Sg721Token {
+  address: string;
+  token_id: string;
+}
 export interface RaffleOptionsMsg {
   comment?: string | null;
-  max_participant_number?: number | null;
+  max_ticket_number?: number | null;
   max_ticket_per_address?: number | null;
   raffle_duration?: number | null;
   raffle_preview?: number | null;
@@ -106,14 +108,14 @@ export interface NoisCallback {
 export interface InstantiateMsg {
   creation_coins?: Coin[] | null;
   fee_addr?: string | null;
-  max_participant_number?: number | null;
+  max_ticket_number?: number | null;
   minimum_raffle_duration?: number | null;
   minimum_raffle_timeout?: number | null;
   name: string;
   nois_proxy_addr: string;
   nois_proxy_coin: Coin;
   owner?: string | null;
-  raffle_fee?: Decimal | null;
+  raffle_fee: Decimal;
 }
 export type QueryMsg = {
   config: {};
@@ -167,7 +169,7 @@ export interface RaffleInfo {
 }
 export interface RaffleOptions {
   comment?: string | null;
-  max_participant_number?: number | null;
+  max_ticket_number?: number | null;
   max_ticket_per_address?: number | null;
   raffle_duration: number;
   raffle_preview: number;
@@ -179,7 +181,7 @@ export interface ConfigResponse {
   creation_coins: Coin[];
   fee_addr: Addr;
   last_raffle_id: number;
-  lock: boolean;
+  locks: Locks;
   minimum_raffle_duration: number;
   minimum_raffle_timeout: number;
   name: string;
@@ -187,5 +189,9 @@ export interface ConfigResponse {
   nois_proxy_coin: Coin;
   owner: Addr;
   raffle_fee: Decimal;
+}
+export interface Locks {
+  lock: boolean;
+  sudo_lock: boolean;
 }
 export type Uint32 = number;

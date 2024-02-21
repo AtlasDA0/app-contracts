@@ -1,9 +1,8 @@
+use crate::state::{RaffleInfo, RaffleOptionsMsg, RaffleState};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Decimal, HexBinary, StdError, StdResult};
 use nois::NoisCallback;
-use utils::state::{is_valid_name, AssetInfo};
-
-use crate::state::{RaffleInfo, RaffleOptionsMsg, RaffleState};
+use utils::state::{is_valid_name, AssetInfo, Locks};
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -22,9 +21,9 @@ pub struct InstantiateMsg {
     // Minimum cooldown from raffle end to determine winner
     pub minimum_raffle_timeout: Option<u64>,
     // Maximum participant limit for a raffle
-    pub max_participant_number: Option<u32>,
+    pub max_ticket_number: Option<u32>,
     // % fee of raffle ticket sales to fee_addr
-    pub raffle_fee: Option<Decimal>,
+    pub raffle_fee: Decimal,
 
     pub creation_coins: Option<Vec<Coin>>,
 }
@@ -37,6 +36,12 @@ impl InstantiateMsg {
                 "Name is not in the expected format (3-50 UTF-8 bytes)",
             ));
         }
+
+        // Check the fee distribution
+        if self.raffle_fee >= Decimal::one() {
+            return Err(StdError::generic_err("The Fee rate should be lower than 1"));
+        }
+
         Ok(())
     }
 }
@@ -48,6 +53,7 @@ pub enum ExecuteMsg {
         assets: Vec<AssetInfo>,
         raffle_options: RaffleOptionsMsg,
         raffle_ticket_price: AssetInfo,
+        autocycle: Option<bool>,
     },
     CancelRaffle {
         raffle_id: u64,
@@ -58,6 +64,7 @@ pub enum ExecuteMsg {
         fee_addr: Option<String>,
         minimum_raffle_duration: Option<u64>,
         minimum_raffle_timeout: Option<u64>,
+        max_tickets_per_raffle: Option<u32>,
         raffle_fee: Option<Decimal>,
         nois_proxy_addr: Option<String>,
         nois_proxy_coin: Option<Coin>,
@@ -130,7 +137,7 @@ pub struct ConfigResponse {
     pub minimum_raffle_duration: u64, // The minimum interval in which users can buy raffle tickets
     pub minimum_raffle_timeout: u64, // The minimum interval during which users can provide entropy to the contract
     pub raffle_fee: Decimal, // The percentage of the resulting ticket-tokens that will go to the treasury
-    pub lock: bool,          // Wether the contract can accept new raffles
+    pub locks: Locks,        // Wether the contract can accept new raffles
     pub nois_proxy_addr: Addr,
     pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,

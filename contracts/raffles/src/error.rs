@@ -16,11 +16,20 @@ pub enum ContractError {
     #[error("Proxy address is not valid")]
     InvalidProxyAddress,
 
-    #[error("Merkle is immutable.")]
-    MerkleImmutable,
+    #[error("Proxy coin is not valid")]
+    InvalidProxyCoin,
+    
+    #[error("Invalid raffle ticket value set")]
+    InvalidTicketCost,
 
-    #[error("Register the Merkle root before requesting randomness")]
-    MerkleRootAbsent,
+    #[error("One of the creation coins you provided is not valid")]
+    InvalidCreationCoins,
+
+    #[error("Invalid Name")]
+    InvalidName {},
+
+    #[error("The fee_rate you provided is not greater than 0, or less than 1")]
+    InvalidFeeRate {},
 
     #[error("Invalid input")]
     InvalidInput {},
@@ -30,6 +39,21 @@ pub enum ContractError {
 
     #[error("invalid amount:")]
     InvalidAmount(String),
+
+    #[error("Merkle is immutable.")]
+    MerkleImmutable,
+
+    #[error("Register the Merkle root before requesting randomness")]
+    MerkleRootAbsent,
+
+    #[error("Received invalid randomness")]
+    InvalidRandomness,
+
+    #[error("The public key you indicated is invalid")]
+    InvalidPubkey {},
+
+    #[error("The randomness signatur is invalid")]
+    InvalidSignature {},
 
     #[error("Already claimed")]
     Claimed {},
@@ -67,9 +91,6 @@ pub enum ContractError {
 
     #[error("Randomness has already been provided to this raffle")]
     RandomnessAlreadyProvided {},
-
-    #[error("Received invalid randomness")]
-    InvalidRandomness,
 
     #[error("Immutable Randomness")]
     ImmutableRandomness,
@@ -147,14 +168,11 @@ pub enum ContractError {
     #[error("This raffle cannot be cancelled anymore,   Current status : {status:?}")]
     WrongStateForCancel { status: RaffleState },
 
+    #[error("This raffle is not able to be modified.  Current status : {status:?}")]
+    WrongStateForModify { status: RaffleState },
+
     #[error("This raffle has already started.")]
     RaffleAlreadyStarted {},
-
-    #[error("The public key you indicated is invalid")]
-    InvalidPubkey {},
-
-    #[error("The randomness signatur is invalid")]
-    InvalidSignature {},
 
     #[error("Wrong Format for the verify response")]
     ParseReplyError {},
@@ -163,5 +181,5 @@ pub enum ContractError {
     ParameterNotFound {},
 
     #[error("The raffle comment is ({size}) bytes, must be <=  ({max}) bytes")]
-    CommentTooLarge{ size: u64, max: u64 },
+    CommentTooLarge { size: u64, max: u64 },
 }

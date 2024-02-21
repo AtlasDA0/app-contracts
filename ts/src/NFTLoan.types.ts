@@ -61,6 +61,10 @@ export type ExecuteMsg = {
     loan_id: number;
   };
 } | {
+  toggle_lock: {
+    lock: boolean;
+  };
+} | {
   set_owner: {
     owner: string;
   };
@@ -80,9 +84,9 @@ export type ExecuteMsg = {
 export type AssetInfo = {
   cw721_coin: Cw721Coin;
 } | {
-  sg721_token: Sg721Token;
-} | {
   coin: Coin;
+} | {
+  sg721_token: Sg721Token;
 };
 export type Uint128 = string;
 export type Decimal = string;
@@ -90,14 +94,14 @@ export interface Cw721Coin {
   address: string;
   token_id: string;
 }
-export interface Sg721Token {
-  address: string;
-  token_id: string;
-}
 export interface Coin {
   amount: Uint128;
   denom: string;
   [k: string]: unknown;
+}
+export interface Sg721Token {
+  address: string;
+  token_id: string;
 }
 export interface LoanTerms {
   duration_in_blocks: number;

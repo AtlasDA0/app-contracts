@@ -1,580 +1,537 @@
 #[cfg(test)]
 mod tests {
+
     use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Empty, HexBinary, Uint128};
     use cw721::OwnerOfResponse;
-    use cw_multi_test::{BankSudo, Executor, SudoMsg};
+    use cw_multi_test::Executor;
     use nois::NoisCallback;
-    use raffles::{
-        error::ContractError,
-        msg::{ExecuteMsg, InstantiateMsg, RaffleResponse},
-        state::{RaffleOptionsMsg, RaffleState, NOIS_AMOUNT},
-    };
-    use sg721::CollectionInfo;
-    use sg_std::NATIVE_DENOM;
-    use utils::state::{AssetInfo, Sg721Token};
-    use vending_factory::msg::VendingMinterCreateMsg;
+    #[cfg(feature = "sg")]
+    use sg721_base::QueryMsg as Sg721QueryMsg;
+    use std::vec;
+    use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
 
-    use crate::common_setup::{
-        contract_boxes::contract_raffles,
-        helpers::assert_error,
-        setup_minter::common::constants::{
-            CREATION_FEE_AMNT, NOIS_PROXY_ADDR, RAFFLE_NAME, SG721_CONTRACT, VENDING_MINTER,
+    use raffles::{
+        msg::{ExecuteMsg, QueryMsg as RaffleQueryMsg, RaffleResponse},
+        state::{Config, RaffleState, ATLAS_DAO_STARGAZE_TREASURY},
+    };
+
+    use crate::{
+        common_setup::{
+            helpers::setup_block_time,
+            setup_accounts_and_block::{setup_accounts, setup_raffle_participants},
+            setup_minter::common::constants::{
+                FACTORY_ADDR, NOIS_PROXY_ADDR, SG721_CONTRACT, VENDING_MINTER,
+            },
+            setup_raffle::{configure_raffle_assets, proper_raffle_instantiate},
+        },
+        raffle::setup::{
+            execute_msg::{buy_tickets_template, create_raffle_setup},
+            test_msgs::{CreateRaffleParams, PurchaseTicketsParams},
         },
     };
-    use sg721_base::QueryMsg as Sg721QueryMsg;
 
-    const OWNER_ADDR: &str = "fee";
+    #[test]
+    fn two_raffle_participants() {
+        // create testing app
+        let (mut app, raffle_addr, _) = proper_raffle_instantiate();
+        let (owner_addr, one, two) = setup_accounts(&mut app);
+        configure_raffle_assets(
+            &mut app,
+            owner_addr.clone(),
+            Addr::unchecked(FACTORY_ADDR),
+            true,
+        );
+        let (_, _, _, _, _, _) = setup_raffle_participants(&mut app);
 
-    mod init {
-        use crate::common_setup::{helpers::setup_block_time, setup_raffle::proper_instantiate};
+        let params = CreateRaffleParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            owner_addr: owner_addr.clone(),
+            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            ticket_price: Uint128::new(10),
+            max_ticket_per_addr: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+                address: SG721_CONTRACT.to_string(),
+                token_id: "63".to_string(),
+            })],
+            duration: None,
+        };
 
-        use super::*;
-        #[test]
-        fn can_init() {
-            // create testing app
-            let (mut app, raffle_addr, factory_addr) = proper_instantiate();
-            let query_config: raffles::msg::ConfigResponse = app
-                .wrap()
-                .query_wasm_smart(raffle_addr.clone(), &raffles::msg::QueryMsg::Config {})
-                .unwrap();
-            assert_eq!(query_config.owner, Addr::unchecked("fee"));
+        // create a raffle
+        create_raffle_setup(params);
 
-            let current_time = app.block_info().time.clone();
-            let current_block = app.block_info().height.clone();
-            let chainid = app.block_info().chain_id.clone();
-
-            // fund test account
-            app.sudo(SudoMsg::Bank({
-                BankSudo::Mint {
-                    to_address: OWNER_ADDR.to_string(),
-                    amount: vec![coin(200000000000u128, "ustars".to_string())],
-                }
-            }))
-            .unwrap();
-            app.sudo(SudoMsg::Bank({
-                BankSudo::Mint {
-                    to_address: "wallet-1".to_string(),
-                    amount: vec![coin(100000000000u128, "ustars".to_string())],
-                }
-            }))
-            .unwrap();
-            app.sudo(SudoMsg::Bank({
-                BankSudo::Mint {
-                    to_address: "wallet-2".to_string(),
-                    amount: vec![coin(100000000000u128, "ustars".to_string())],
-                }
-            }))
-            .unwrap();
-            app.sudo(SudoMsg::Bank({
-                BankSudo::Mint {
-                    to_address: "wallet-3".to_string(),
-                    amount: vec![coin(100000000000u128, "ustars".to_string())],
-                }
-            }))
-            .unwrap();
-            app.sudo(SudoMsg::Bank({
-                BankSudo::Mint {
-                    to_address: "wallet-4".to_string(),
-                    amount: vec![coin(100000000000u128, "ustars".to_string())],
-                }
-            }))
-            .unwrap();
-            app.sudo(SudoMsg::Bank({
-                BankSudo::Mint {
-                    to_address: "wallet-5".to_string(),
-                    amount: vec![coin(100000000000u128, "ustars".to_string())],
-                }
-            }))
-            .unwrap();
-            // fund raffle contract for nois_proxy fee
-            app.sudo(SudoMsg::Bank({
-                BankSudo::Mint {
-                    to_address: raffle_addr.clone().to_string(),
-                    amount: vec![coin(100000000000u128, "ustars".to_string())],
-                }
-            }))
+        let _res: Config = app
+            .wrap()
+            .query_wasm_smart(raffle_addr.clone(), &RaffleQueryMsg::Config {})
             .unwrap();
 
-            let raffle_code_id = app.store_code(contract_raffles());
+        // println!("{:#?}", res);
 
-            // create nft minter
-            let _create_nft_minter = app.execute_contract(
-                Addr::unchecked(OWNER_ADDR),
-                factory_addr.clone(),
-                &vending_factory::msg::ExecuteMsg::CreateMinter {
-                    0: VendingMinterCreateMsg {
-                        init_msg: vending_factory::msg::VendingMinterInitMsgExtension {
-                            base_token_uri: "ipfs://aldkfjads".to_string(),
-                            payment_address: Some(OWNER_ADDR.to_string()),
-                            start_time: current_time.clone(),
-                            num_tokens: 100,
-                            mint_price: coin(Uint128::new(100000u128).u128(), NATIVE_DENOM),
-                            per_address_limit: 3,
-                            whitelist: None,
-                        },
-                        collection_params: sg2::msg::CollectionParams {
-                            code_id: 4,
-                            name: "Collection Name".to_string(),
-                            symbol: "COL".to_string(),
-                            info: CollectionInfo {
-                                creator: "creator".to_string(),
-                                description: String::from("Atlanauts"),
-                                image: "https://example.com/image.png".to_string(),
-                                external_link: Some(
-                                    "https://example.com/external.html".to_string(),
-                                ),
-                                start_trading_time: None,
-                                explicit_content: Some(false),
-                                royalty_info: None,
-                            },
-                        },
+        // confirm raffle is new owner of nft
+        let res: OwnerOfResponse = app
+            .wrap()
+            .query_wasm_smart(
+                SG721_CONTRACT.to_string(),
+                &Sg721QueryMsg::OwnerOf {
+                    token_id: "63".to_string(),
+                    include_expired: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(res.owner, raffle_addr.clone().to_string());
+
+        // addr_one buys ticket
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            msg_senders: vec![one.clone()],
+            raffle_id: 0,
+            num_tickets: 1,
+            funds_send: vec![coin(10, "ustars")].into(),
+        };
+        buy_tickets_template(params).unwrap();
+        // addr_two buys ticket
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            msg_senders: vec![two.clone()],
+            raffle_id: 0,
+            num_tickets: 1,
+            funds_send: vec![coin(10, "ustars")].into(),
+        };
+        buy_tickets_template(params).unwrap();
+
+        // confirm correct number of tickets saved to raffle state
+        let res: u32 = app
+            .wrap()
+            .query_wasm_smart(
+                raffle_addr.clone(),
+                &RaffleQueryMsg::TicketCount {
+                    owner: one.to_string(),
+                    raffle_id: 0,
+                },
+            )
+            .unwrap();
+        assert_eq!(res, 1);
+
+        // confirm correct amount of tokens were sent to contract address
+        // we expect 100000000012 ustars:
+        // 100000000000 - initial balance of raffle contract
+        // 000000000004 - single raffle creation fee
+        // 0000000000020 - two tickets @ 10 ustars each
+        let res = app
+            .wrap()
+            .query_balance(raffle_addr.clone(), NATIVE_DENOM.to_string());
+        assert_eq!(res.unwrap().amount, Uint128::new(100000000024));
+
+        // move forward in time
+        let current_time = app.block_info().time.clone();
+        let current_block = app.block_info().height.clone();
+        let chainid = app.block_info().chain_id.clone();
+        setup_block_time(
+            &mut app,
+            current_time.clone().plus_seconds(130).nanos(),
+            Some(current_block.clone() + 100),
+            &chainid.clone(),
+        );
+
+        // simulates the response from nois_proxy
+        let _good_receive_randomness = app
+            .execute_contract(
+                Addr::unchecked(NOIS_PROXY_ADDR),
+                raffle_addr.clone(),
+                &ExecuteMsg::NoisReceive {
+                    callback: NoisCallback {
+                        job_id: "raffle-0".to_string(),
+                        published: current_time.clone(),
+                        randomness: HexBinary::from_hex(
+                            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
+                        )
+                        .unwrap(),
                     },
                 },
-                &[Coin {
-                    denom: NATIVE_DENOM.to_string(),
-                    amount: Uint128::new(100000u128),
-                }],
-            );
-            // println!("{:#?}", create_nft_minter);
+                &[],
+            )
+            .unwrap();
+        // confirm randomness was updated into state
+        let res: RaffleResponse = app
+            .wrap()
+            .query_wasm_smart(
+                raffle_addr.clone(),
+                &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
+            )
+            .unwrap();
 
-            // VENDING_MINTER is minter
-            let _mint_nft_tokens = app
-                .execute_contract(
-                    Addr::unchecked(OWNER_ADDR),
-                    Addr::unchecked(VENDING_MINTER),
-                    &vending_minter::msg::ExecuteMsg::Mint {},
-                    &[Coin {
-                        denom: NATIVE_DENOM.to_string(),
-                        amount: Uint128::new(100000u128),
-                    }],
-                )
-                .unwrap();
-            // println!("{:#?}", _mint_nft_tokens);
+        assert!(
+            res.raffle_info.unwrap().randomness.is_some(),
+            "randomness should have been updated into the raffle state"
+        );
 
-            // token id 41
-            let _grant_approval = app
-                .execute_contract(
-                    Addr::unchecked(OWNER_ADDR),
-                    Addr::unchecked(SG721_CONTRACT),
-                    &sg721_base::msg::ExecuteMsg::<Empty, Empty>::Approve {
-                        spender: raffle_addr.clone().to_string(),
-                        token_id: "41".to_string(),
-                        expires: None,
+        // determine the raffle winner, send tokens to winner
+        let _claim_ticket = app
+            .execute_contract(
+                one.clone(),
+                raffle_addr.clone(),
+                &ExecuteMsg::DetermineWinner { raffle_id: 0 },
+                &[],
+            )
+            .unwrap();
+        let res: RaffleResponse = app
+            .wrap()
+            .query_wasm_smart(
+                raffle_addr.clone(),
+                &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
+            )
+            .unwrap();
+        assert_eq!(res.raffle_state, RaffleState::Claimed);
+
+        // confirm owner of nft is now raffle winner
+        let res: OwnerOfResponse = app
+            .wrap()
+            .query_wasm_smart(
+                SG721_CONTRACT.to_string(),
+                &Sg721QueryMsg::OwnerOf {
+                    token_id: "63".to_string(),
+                    include_expired: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(res.owner, two.to_string());
+
+        // confirm raffle owner and treasury set recieve correct amount of tokens
+        let owner_balance = app
+            .wrap()
+            .query_balance(owner_addr.clone(), NATIVE_DENOM.to_string());
+        let treasury_balance = app
+            .wrap()
+            .query_balance(ATLAS_DAO_STARGAZE_TREASURY, NATIVE_DENOM.to_string());
+        // at 50%, owner should recieve 10 & treasury should recieve 10 tokens
+        assert_eq!(owner_balance.unwrap().amount, Uint128::new(100000000000010));
+        assert_eq!(treasury_balance.unwrap().amount, Uint128::new(10));
+    }
+
+    #[test]
+    fn one_raffle_participants() {
+        // create testing app
+        let (mut app, raffle_addr, _) = proper_raffle_instantiate();
+        let (owner_addr, one, _) = setup_accounts(&mut app);
+        configure_raffle_assets(
+            &mut app,
+            owner_addr.clone(),
+            Addr::unchecked(FACTORY_ADDR),
+            true,
+        );
+        let (_, _, _, _, _, _) = setup_raffle_participants(&mut app);
+
+        let params = CreateRaffleParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            owner_addr: owner_addr.clone(),
+            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            ticket_price: Uint128::new(10),
+            max_ticket_per_addr: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+                address: SG721_CONTRACT.to_string(),
+                token_id: "63".to_string(),
+            })],
+            duration: None,
+        };
+        // create a raffle
+        create_raffle_setup(params);
+
+        // addr_one buys ticket
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            msg_senders: vec![one.clone()],
+            raffle_id: 0,
+            num_tickets: 1,
+            funds_send: vec![coin(10, "ustars")].into(),
+        };
+        buy_tickets_template(params).unwrap();
+
+        // confirm correct amount of tokens were sent to contract address
+        // we expect 100000000012 ustars:
+        // 100000000000 - initial balance of raffle contract
+        // 000000000004 - single raffle creation fee
+        // 000000000010 - 1 tickets @ 10 ustars
+        let res = app
+            .wrap()
+            .query_balance(raffle_addr.clone(), NATIVE_DENOM.to_string());
+        assert_eq!(res.unwrap().amount, Uint128::new(100000000014));
+
+        // move forward in time
+        let current_time = app.block_info().time.clone();
+        let current_block = app.block_info().height.clone();
+        let chainid = app.block_info().chain_id.clone();
+        setup_block_time(
+            &mut app,
+            current_time.clone().plus_seconds(130).nanos(),
+            Some(current_block.clone() + 100),
+            &chainid.clone(),
+        );
+
+        // simulates the response from nois_proxy
+        let _good_receive_randomness = app
+            .execute_contract(
+                Addr::unchecked(NOIS_PROXY_ADDR),
+                raffle_addr.clone(),
+                &ExecuteMsg::NoisReceive {
+                    callback: NoisCallback {
+                        job_id: "raffle-0".to_string(),
+                        published: current_time.clone(),
+                        randomness: HexBinary::from_hex(
+                            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
+                        )
+                        .unwrap(),
                     },
-                    &[],
-                )
-                .unwrap();
-            // println!("{:#?}", _grant_approval);
+                },
+                &[],
+            )
+            .unwrap();
 
-            // create nois_proxy
+        // determine the raffle winner, send tokens to winner
+        let _claim_ticket = app
+            .execute_contract(
+                one.clone(),
+                raffle_addr.clone(),
+                &ExecuteMsg::DetermineWinner { raffle_id: 0 },
+                &[],
+            )
+            .unwrap();
+        let res: RaffleResponse = app
+            .wrap()
+            .query_wasm_smart(
+                raffle_addr.clone(),
+                &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
+            )
+            .unwrap();
+        assert_eq!(res.raffle_state, RaffleState::Claimed);
 
-            // let good_nois_proxy
+        // confirm owner of nft is now raffle winner
+        let res: OwnerOfResponse = app
+            .wrap()
+            .query_wasm_smart(
+                SG721_CONTRACT.to_string(),
+                &Sg721QueryMsg::OwnerOf {
+                    token_id: "63".to_string(),
+                    include_expired: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(res.owner, one.to_string());
 
-            // create a raffle
-            let _good_create_raffle = app
-                .execute_contract(
-                    Addr::unchecked(OWNER_ADDR),
-                    raffle_addr.clone(),
-                    &raffles::msg::ExecuteMsg::CreateRaffle {
-                        owner: Some(OWNER_ADDR.to_string()),
-                        assets: vec![AssetInfo::Sg721Token(Sg721Token {
-                            address: SG721_CONTRACT.to_string(),
-                            token_id: "41".to_string(),
-                        })],
-                        raffle_options: RaffleOptionsMsg {
-                            raffle_start_timestamp: Some(current_time.clone()),
-                            raffle_duration: None,
-                            raffle_timeout: None,
-                            comment: None,
-                            max_participant_number: None,
-                            max_ticket_per_address: None,
-                            raffle_preview: None,
-                        },
-                        raffle_ticket_price: AssetInfo::Coin(Coin {
-                            denom: "ustars".to_string(),
-                            amount: Uint128::new(4u128),
-                        }),
+        // confirm raffle owner and treasury set recieve correct amount of tokens
+        let res1 = app
+            .wrap()
+            .query_balance(owner_addr.clone(), NATIVE_DENOM.to_string());
+        let res2 = app
+            .wrap()
+            .query_balance(ATLAS_DAO_STARGAZE_TREASURY, NATIVE_DENOM.to_string());
+        // at 50%, owner should recieve 5 & treasury should recieve 5 tokens
+        assert_eq!(res1.unwrap().amount, Uint128::new(100000000000005));
+        assert_eq!(res2.unwrap().amount, Uint128::new(5));
+    }
+
+    #[test]
+    fn two_raffles_two_participants() {
+        let (mut app, raffle_addr, _) = proper_raffle_instantiate();
+        let (owner_addr, one, two) = setup_accounts(&mut app);
+        let (three, _, _, _, _, _) = setup_raffle_participants(&mut app);
+
+        // configure nft tokens for raffle 1
+        configure_raffle_assets(
+            &mut app,
+            owner_addr.clone(),
+            Addr::unchecked(FACTORY_ADDR),
+            true,
+        );
+
+        // configure nft tokens for raffle 2
+        let mint_nft_tokens = app.execute_contract(
+            owner_addr.clone(),
+            Addr::unchecked(VENDING_MINTER),
+            &vending_minter::msg::ExecuteMsg::Mint {},
+            &[Coin {
+                denom: NATIVE_DENOM.to_string(),
+                amount: Uint128::new(100000u128),
+            }],
+        );
+        assert!(mint_nft_tokens.is_ok());
+
+        // // token id 34
+        let _grant_approval = app
+            .execute_contract(
+                owner_addr.clone(),
+                Addr::unchecked(SG721_CONTRACT),
+                &sg721_base::msg::ExecuteMsg::<Empty, Empty>::Approve {
+                    spender: raffle_addr.to_string(),
+                    token_id: "34".to_string(),
+                    expires: None,
+                },
+                &[],
+            )
+            .unwrap();
+
+        // creates raffle1
+        let params1 = CreateRaffleParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            owner_addr: owner_addr.clone(),
+            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            ticket_price: Uint128::new(10),
+            max_ticket_per_addr: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+                address: SG721_CONTRACT.to_string(),
+                token_id: "63".to_string(),
+            })],
+            duration: Some(50),
+        };
+        create_raffle_setup(params1);
+
+        // creates raffle2
+        let params2 = CreateRaffleParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            owner_addr: owner_addr.clone(),
+            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            ticket_price: Uint128::new(20),
+            max_ticket_per_addr: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+                address: SG721_CONTRACT.to_string(),
+                token_id: "34".to_string(),
+            })],
+            duration: Some(50),
+        };
+        create_raffle_setup(params2);
+
+        let res: Config = app
+            .wrap()
+            .query_wasm_smart(raffle_addr.to_string(), &RaffleQueryMsg::Config {})
+            .unwrap();
+        // confirm raffles were created
+        assert_eq!(res.last_raffle_id, Some(1));
+
+        // purchase raffle tickets
+        // addr_one buys 10 tickets from raffle 1
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            msg_senders: vec![one.clone()],
+            raffle_id: 0,
+            num_tickets: 10,
+            funds_send: vec![coin(100, "ustars")].into(),
+        };
+        buy_tickets_template(params).unwrap();
+        // addr_one buys 5 tickets from raffle 2
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            msg_senders: vec![one.clone()],
+            raffle_id: 1,
+            num_tickets: 5,
+            funds_send: vec![coin(100, "ustars")].into(),
+        };
+        buy_tickets_template(params).unwrap();
+        // addr_two buys 10 tickets from raffle 2
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            msg_senders: vec![two.clone()],
+            raffle_id: 1,
+            num_tickets: 10,
+            funds_send: vec![coin(200, "ustars")].into(),
+        };
+        buy_tickets_template(params).unwrap();
+        // addr_three buys 5 tickets from raffle 2
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            msg_senders: vec![three.clone()],
+            raffle_id: 1,
+            num_tickets: 5,
+            funds_send: vec![coin(100, "ustars")].into(),
+        };
+        buy_tickets_template(params).unwrap();
+        // addr_three buys 5 tickets from raffle 1
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: raffle_addr.clone(),
+            msg_senders: vec![three.clone()],
+            raffle_id: 0,
+            num_tickets: 5,
+            funds_send: vec![coin(50, "ustars")].into(),
+        };
+        buy_tickets_template(params).unwrap();
+
+        // move forward in time
+        let current_time = app.block_info().time.clone();
+        let current_block = app.block_info().height.clone();
+        let chainid = app.block_info().chain_id.clone();
+        app.set_block(BlockInfo {
+            height: current_block.clone() + 50,
+            time: current_time.clone().plus_seconds(1000),
+            chain_id: chainid.clone(),
+        });
+
+        // get randomness for raffle-0
+        let _good_receive_randomness = app
+            .execute_contract(
+                Addr::unchecked(NOIS_PROXY_ADDR),
+                raffle_addr.clone(),
+                &ExecuteMsg::NoisReceive {
+                    callback: NoisCallback {
+                        job_id: "raffle-0".to_string(),
+                        published: current_time.clone(),
+                        randomness: HexBinary::from_hex(
+                            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
+                        )
+                        .unwrap(),
                     },
-                    &[coin(4, "ustars")],
-                )
-                .unwrap();
-            // println!("{:#?}", _good_create_raffle);
+                },
+                &[],
+            )
+            .unwrap();
 
-            // confirm owner is set
-            let res: raffles::msg::RaffleResponse = app
-                .wrap()
-                .query_wasm_smart(
-                    raffle_addr.clone(),
-                    &raffles::msg::QueryMsg::RaffleInfo { raffle_id: 0 },
-                )
-                .unwrap();
-            assert_eq!(res.raffle_info.unwrap().owner, "fee");
-
-            // error if no creation fee provided when creating raffle
-            let create_raffle_no_creation_fee_error = app
-                .execute_contract(
-                    Addr::unchecked(OWNER_ADDR),
-                    raffle_addr.clone(),
-                    &raffles::msg::ExecuteMsg::CreateRaffle {
-                        owner: Some(OWNER_ADDR.to_string()),
-                        assets: vec![AssetInfo::Sg721Token(Sg721Token {
-                            address: SG721_CONTRACT.to_string(),
-                            token_id: "41".to_string(),
-                        })],
-                        raffle_options: RaffleOptionsMsg {
-                            raffle_start_timestamp: None,
-                            raffle_duration: Some(30),
-                            raffle_timeout: None,
-                            comment: None,
-                            max_participant_number: None,
-                            max_ticket_per_address: None,
-                            raffle_preview: None,
-                        },
-                        raffle_ticket_price: AssetInfo::Coin(Coin {
-                            denom: "ustars".to_string(),
-                            amount: Uint128::new(100u128),
-                        }),
+        // get randomness for raffle-1
+        let _good_receive_randomness = app
+            .execute_contract(
+                Addr::unchecked(NOIS_PROXY_ADDR),
+                raffle_addr.clone(),
+                &ExecuteMsg::NoisReceive {
+                    callback: NoisCallback {
+                        job_id: "raffle-1".to_string(),
+                        published: current_time.clone(),
+                        randomness: HexBinary::from_hex(
+                            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa130",
+                        )
+                        .unwrap(),
                     },
-                    &[],
-                )
-                .unwrap_err();
-            // println!("{:#?}", create_raffle_no_creation_fee_error);
+                },
+                &[],
+            )
+            .unwrap();
 
-            assert_error(
-                Err(create_raffle_no_creation_fee_error),
-                ContractError::InvalidRaffleFee {}.to_string(),
-            );
+        // determine winner raffle-0
+        // determine the raffle winner, send tokens to winner
+        let _claim_ticket = app
+            .execute_contract(
+                one.clone(),
+                raffle_addr.clone(),
+                &ExecuteMsg::DetermineWinner { raffle_id: 0 },
+                &[],
+            )
+            .unwrap();
 
-            //  error if unauthorized to cancel a raffle
-            let invalid_cancel_raffle = app
-                .execute_contract(
-                    Addr::unchecked("not-owner"),
-                    raffle_addr.clone(),
-                    &raffles::msg::ExecuteMsg::CancelRaffle { raffle_id: 0 },
-                    &[],
-                )
-                .unwrap_err();
-            // println!("{:#?}", invalid_cancel_raffle);
-            assert_error(
-                Err(invalid_cancel_raffle),
-                ContractError::Unauthorized {}.to_string(),
-            );
-
-            // err if no nois_proxy address is provided
-            let invalid_proxy = app
-                .instantiate_contract(
-                    raffle_code_id,
-                    Addr::unchecked(OWNER_ADDR),
-                    &InstantiateMsg {
-                        name: RAFFLE_NAME.to_string(),
-                        nois_proxy_addr: "".to_string(),
-                        nois_proxy_coin: coin(NOIS_AMOUNT.into(), NATIVE_DENOM.to_string()),
-                        owner: Some(OWNER_ADDR.to_string()),
-                        fee_addr: Some(OWNER_ADDR.to_owned()),
-                        minimum_raffle_duration: None,
-                        minimum_raffle_timeout: None,
-                        max_participant_number: None,
-                        raffle_fee: None,
-                        creation_coins: vec![
-                            coin(CREATION_FEE_AMNT, NATIVE_DENOM.to_string()),
-                            coin(CREATION_FEE_AMNT, "usstars".to_string()),
-                        ]
-                        .into(),
-                    },
-                    &[],
-                    "raffle",
-                    None,
-                )
-                .unwrap_err();
-            // println!("{:#?}", invalid_proxy);
-            assert_error(
-                Err(invalid_proxy),
-                ContractError::InvalidProxyAddress {}.to_string(),
-            );
-
-            // errors if no funds are sent
-            let invalid_raffle_purchase = app
-                .execute_contract(
-                    Addr::unchecked(OWNER_ADDR),
-                    raffle_addr.clone(),
-                    &raffles::msg::ExecuteMsg::BuyTicket {
-                        raffle_id: 1,
-                        ticket_count: 1,
-                        sent_assets: AssetInfo::Coin(Coin {
-                            denom: "ustars".to_string(),
-                            amount: Uint128::new(69u128),
-                        }),
-                    },
-                    &[],
-                )
-                .unwrap_err();
-            // println!("{:#?}", invalid_raffle_purchase);
-            assert_error(
-                Err(invalid_raffle_purchase),
-                ContractError::AssetMismatch {}.to_string(),
-            );
-
-            // errors if unauthorized to lock contract
-            let invalid_toggle_lock = app
-                .execute_contract(
-                    Addr::unchecked("not-owner"),
-                    raffle_addr.clone(),
-                    &raffles::msg::ExecuteMsg::ToggleLock { lock: true },
-                    &[],
-                )
-                .unwrap_err();
-            // println!("{:#?}", invalid_toggle_lock);
-            assert_error(
-                Err(invalid_toggle_lock),
-                ContractError::Unauthorized {}.to_string(),
-            );
-
-            // invalid modify raffle
-            let invalid_modify_raffle = app
-                .execute_contract(
-                    Addr::unchecked("not-admin"),
-                    raffle_addr.clone(),
-                    &raffles::msg::ExecuteMsg::ModifyRaffle {
-                        raffle_id: 0,
-                        raffle_ticket_price: None,
-                        raffle_options: RaffleOptionsMsg {
-                            raffle_start_timestamp: None,
-                            raffle_duration: None,
-                            raffle_timeout: None,
-                            comment: Some("rust is dooope".to_string()),
-                            max_participant_number: None,
-                            max_ticket_per_address: None,
-                            raffle_preview: None,
-                        },
-                    },
-                    &[],
-                )
-                .unwrap_err();
-            // println!("{:#?}", invalid_modify_raffle);
-            assert_error(
-                Err(invalid_modify_raffle),
-                ContractError::Unauthorized {}.to_string(),
-            );
-
-            // buy tickets
-            let _ticket_purchase1 = app
-                .execute_contract(
-                    Addr::unchecked("wallet-1"),
-                    raffle_addr.clone(),
-                    &raffles::msg::ExecuteMsg::BuyTicket {
-                        raffle_id: 0,
-                        ticket_count: 16,
-                        sent_assets: AssetInfo::Coin(Coin {
-                            denom: NATIVE_DENOM.to_string(),
-                            amount: Uint128::new(64u128),
-                        }),
-                    },
-                    &[Coin {
-                        denom: NATIVE_DENOM.to_string(),
-                        amount: Uint128::new(64u128),
-                    }],
-                )
-                .unwrap();
-            // println!("{:#?}", _ticket_purchase1);
-            let _ticket_purchase2 = app
-                .execute_contract(
-                    Addr::unchecked("wallet-2"),
-                    raffle_addr.clone(),
-                    &raffles::msg::ExecuteMsg::BuyTicket {
-                        raffle_id: 0,
-                        ticket_count: 16,
-                        sent_assets: AssetInfo::Coin(Coin {
-                            denom: NATIVE_DENOM.to_string(),
-                            amount: Uint128::new(64u128),
-                        }),
-                    },
-                    &[Coin {
-                        denom: NATIVE_DENOM.to_string(),
-                        amount: Uint128::new(64u128),
-                    }],
-                )
-                .unwrap();
-            // println!("{:#?}", _ticket_purchase2);
-            let _ticket_purchase3 = app
-                .execute_contract(
-                    Addr::unchecked("wallet-3"),
-                    raffle_addr.clone(),
-                    &raffles::msg::ExecuteMsg::BuyTicket {
-                        raffle_id: 0,
-                        ticket_count: 16,
-                        sent_assets: AssetInfo::Coin(Coin {
-                            denom: NATIVE_DENOM.to_string(),
-                            amount: Uint128::new(64u128),
-                        }),
-                    },
-                    &[Coin {
-                        denom: NATIVE_DENOM.to_string(),
-                        amount: Uint128::new(64u128),
-                    }],
-                )
-                .unwrap();
-            // println!("{:#?}", _ticket_purchase3);
-            let _ticket_purchase4 = app
-                .execute_contract(
-                    Addr::unchecked("wallet-4"),
-                    raffle_addr.clone(),
-                    &raffles::msg::ExecuteMsg::BuyTicket {
-                        raffle_id: 0,
-                        ticket_count: 16,
-                        sent_assets: AssetInfo::Coin(Coin {
-                            denom: NATIVE_DENOM.to_string(),
-                            amount: Uint128::new(64u128),
-                        }),
-                    },
-                    &[Coin {
-                        denom: NATIVE_DENOM.to_string(),
-                        amount: Uint128::new(64u128),
-                    }],
-                )
-                .unwrap();
-            // println!("{:#?}", _ticket_purchase4);
-            let _ticket_purchase5 = app
-                .execute_contract(
-                    Addr::unchecked("wallet-5"),
-                    raffle_addr.clone(),
-                    &raffles::msg::ExecuteMsg::BuyTicket {
-                        raffle_id: 0,
-                        ticket_count: 16,
-                        sent_assets: AssetInfo::Coin(Coin {
-                            denom: NATIVE_DENOM.to_string(),
-                            amount: Uint128::new(64u128),
-                        }),
-                    },
-                    &[Coin {
-                        denom: NATIVE_DENOM.to_string(),
-                        amount: Uint128::new(64u128),
-                    }],
-                )
-                .unwrap();
-            // println!("{:#?}", _ticket_purchase5);
-
-            let res: u32 = app
-                .wrap()
-                .query_wasm_smart(
-                    raffle_addr.clone(),
-                    &raffles::msg::QueryMsg::TicketCount {
-                        owner: Addr::unchecked("wallet-1").to_string(),
-                        raffle_id: 0,
-                    },
-                )
-                .unwrap();
-            assert_eq!(res, 16);
-
-            // move forward in time
-            setup_block_time(
-                &mut app,
-                current_time.clone().plus_seconds(130).nanos(),
-                Some(current_block.clone() + 100),
-                &chainid.clone(),
-            );
-
-            // try to claim ticket before randomness is requested
-            let claim_but_no_randomness_yet = app
-                .execute_contract(
-                    Addr::unchecked("wallet-1".to_string()),
-                    raffle_addr.clone(),
-                    &ExecuteMsg::DetermineWinner { raffle_id: 0 },
-                    &[],
-                )
-                .unwrap_err();
-
-            // println!("{:#?}", claim_but_no_randomness_yet);
-            assert_error(
-                Err(claim_but_no_randomness_yet),
-                ContractError::WrongStateForClaim {
-                    status: RaffleState::Closed,
-                }
-                .to_string(),
-            );
-
-            // ensure only nois_proxy provides randomness
-            let bad_recieve_randomness = app
-                .execute_contract(
-                    Addr::unchecked("wallet-1"),
-                    raffle_addr.clone(),
-                    &ExecuteMsg::NoisReceive {
-                        callback: NoisCallback {
-                            job_id: "raffle-0".to_string(),
-                            published: current_time.clone(),
-                            randomness: HexBinary::from_hex(
-                                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
-                            )
-                            .unwrap(),
-                        },
-                    },
-                    &[],
-                )
-                .unwrap_err();
-            // println!("{:#?}", bad_recieve_randomness);
-            assert_error(
-                Err(bad_recieve_randomness),
-                ContractError::UnauthorizedReceive.to_string(),
-            );
-
-            // simulates the response from nois_proxy
-            let _good_receive_randomness = app
-                .execute_contract(
-                    Addr::unchecked(NOIS_PROXY_ADDR),
-                    raffle_addr.clone(),
-                    &ExecuteMsg::NoisReceive {
-                        callback: NoisCallback {
-                            job_id: "raffle-0".to_string(),
-                            published: current_time.clone(),
-                            randomness: HexBinary::from_hex(
-                                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
-                            )
-                            .unwrap(),
-                        },
-                    },
-                    &[],
-                )
-                .unwrap();
-
-            let res: RaffleResponse = app
-                .wrap()
-                .query_wasm_smart(
-                    raffle_addr.clone(),
-                    &raffles::msg::QueryMsg::RaffleInfo { raffle_id: 0 },
-                )
-                .unwrap();
-            println!("{:#?}", res);
-
-            // determine the raffle winner, send tokens to winner
-            let _claim_ticket = app
-                .execute_contract(
-                    Addr::unchecked("wallet-1".to_string()),
-                    raffle_addr.clone(),
-                    &ExecuteMsg::DetermineWinner { raffle_id: 0 },
-                    &[],
-                )
-                .unwrap();
-            // println!("{:#?}", _claim_ticket);
-            let res: RaffleResponse = app
-                .wrap()
-                .query_wasm_smart(
-                    raffle_addr.clone(),
-                    &raffles::msg::QueryMsg::RaffleInfo { raffle_id: 0 },
-                )
-                .unwrap();
-            assert_eq!(res.raffle_state, RaffleState::Claimed);
-
-            // confirm owner of nft is now raffle winner
-            let res: OwnerOfResponse = app
-                .wrap()
-                .query_wasm_smart(
-                    SG721_CONTRACT.to_string(),
-                    &Sg721QueryMsg::OwnerOf {
-                        token_id: "41".to_string(),
-                        include_expired: None,
-                    },
-                )
-                .unwrap();
-            assert_eq!(res.owner, "wallet-2".to_string())
-        }
+        // determine winner raffle-1
+        // determine the raffle winner, send tokens to winner
+        let _claim_ticket = app
+            .execute_contract(
+                one.clone(),
+                raffle_addr.clone(),
+                &ExecuteMsg::DetermineWinner { raffle_id: 1 },
+                &[],
+            )
+            .unwrap();
     }
 }
