@@ -46,17 +46,28 @@
 ### `SetFeeRate`**admin-only*
 *admin function to set new fee rate for % from interests on loans*
 ### Queries
+It is useful to note that `CollateralInfo` is stored and queried with the borrowers address & a loan id as keys for loan info.
 
+The contract stores
 ### `Config`
 *returns contract params*
 ### `BorrowerInfo`
-****
+*returns the last loan id made by a borrower. Requires the borrowers address.*
 ### `CollateralInfo`
+*queries and returns current state of a specific loan listing. Requires the borrowers address & the loan id.*
 ### `Collaterals`
+*returns all of a borrowers collateral listings. Requires the borrowers address*
 ### `AllCollaterals`
+*returns all collaterals* 
 ### `OfferInfo`
+*returns info about a loan offer. Requires the global_offer_id*
 ### `Offers`
+*returns offers for a loan given the borrower & the loan id*
 ### `LenderOffers`
-
+*returns all offers made by a specific address*
 
 ## Migrate
+
+## Sudo 
+### Toggle lock
+*prevents new loan listings from being created & loan terms accepted. does not prevent loans from defaulting or being repaid. cannot be triggered by contract admins.*

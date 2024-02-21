@@ -11,8 +11,8 @@ pub fn contract_raffles() -> Box<dyn Contract<StargazeMsgWrapper>> {
         raffles::contract::execute,
         raffles::contract::instantiate,
         raffles::contract::query,
-    );
-    // .with_sudo(vending_factory::contract::sudo);
+    )
+    .with_sudo(raffles::contract::sudo);
     Box::new(contract)
 }
 
@@ -50,7 +50,7 @@ pub fn contract_nft_loans() -> Box<dyn Contract<StargazeMsgWrapper>> {
         nft_loans_nc::contract::execute,
         nft_loans_nc::contract::instantiate,
         nft_loans_nc::contract::query,
-    );
-    // .with_sudo(vending_factory::contract::sudo);
+    )
+    .with_sudo(nft_loans_nc::contract::sudo);
     Box::new(contract)
 }

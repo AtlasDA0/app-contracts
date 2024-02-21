@@ -20,6 +20,7 @@ export type ExecuteMsg = {
   update_config: {
     creation_coins?: Coin[] | null;
     fee_addr?: string | null;
+    max_tickets_per_raffle?: number | null;
     minimum_raffle_duration?: number | null;
     minimum_raffle_timeout?: number | null;
     name?: string | null;
@@ -180,7 +181,7 @@ export interface ConfigResponse {
   creation_coins: Coin[];
   fee_addr: Addr;
   last_raffle_id: number;
-  lock: boolean;
+  locks: Locks;
   minimum_raffle_duration: number;
   minimum_raffle_timeout: number;
   name: string;
@@ -188,5 +189,9 @@ export interface ConfigResponse {
   nois_proxy_coin: Coin;
   owner: Addr;
   raffle_fee: Decimal;
+}
+export interface Locks {
+  lock: boolean;
+  sudo_lock: boolean;
 }
 export type Uint32 = number;

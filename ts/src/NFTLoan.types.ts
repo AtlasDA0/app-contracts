@@ -61,6 +61,10 @@ export type ExecuteMsg = {
     loan_id: number;
   };
 } | {
+  toggle_lock: {
+    lock: boolean;
+  };
+} | {
   set_owner: {
     owner: string;
   };

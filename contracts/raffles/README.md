@@ -1,30 +1,25 @@
 # Sg-Raffles
-
 This handles the creation & lifecycle of raffles on Stargaze.
 
-
 ## InstantiateMsg
-
 ```json
 {
     "name": "sg-raffles",
     "nois_proxy_addr": "stars1atcndw8yfrulzux6vg6wtw2c0u4y5wvy9423255h472f4x3gn8dq0v8j45",
     "nois_proxy_amount": "50",
     "nois_proxy_denom": "ustars",
-    "creation_fee_amount": "100000000", // static raffle fee
-    "creation_fee_denom": [
-        "ustars",
-        "ibc/ACCAF790E082E772691A20B0208FB972AD3A01C2DE0D7E8C479CCABF6C9F39B1"
-    ],
+    "creation_fee_coins": [ // static raffle fee coin options 
+        {"amount": "420000000", "denom": "ustars"},
+        {"amount": "69", "denom": "ibc/ACCAF790E082E772691A20B0208FB972AD3A01C2DE0D7E8C479CCABF6C9F39B1"},
+        {"amount": "1", "denom": "uatom"},
+        ], 
     "fee_addr": "stars1n5x097nd7v8dv8ng4x4xeux5xdv6jas62qslh3",
-    "max_ticket_number": 1,
-    "minimum_raffle_duration": 120 // in seconds 
+    "max_ticket_number": 1,  // max amount of tickets per raffle
+    "minimum_raffle_duration": 120, // in seconds 
 }
-
 ```
 
-## Contract Actions
-
+//## Contract Actions
 ### `UpdateConfig`  **admin-only*
 *update raffle contract params*
 ### `CreateRaffle`
@@ -54,7 +49,6 @@ manually request randomness for raffle id
 *internal function to recieve nois randomness only from verified source*
 ### `ToggleLock`   **admin-only* 
 *admin function to lock contract actions*
-
 ## QueryMsg
 ### `Config`
 *returns contract global configuration*
@@ -74,3 +68,7 @@ manually request randomness for raffle id
 
 ## Migrate
 
+
+## Sudo 
+### Toggle lock
+*prevents new raffles from being created. does not prevent tickets being purchased, or winners being determined.*

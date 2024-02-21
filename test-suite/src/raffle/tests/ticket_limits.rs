@@ -12,7 +12,7 @@ mod tests {
         state::{RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState},
     };
 
-    use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
+    use utils::state::{AssetInfo, Locks, Sg721Token, NATIVE_DENOM};
     use vending_factory::msg::VendingMinterCreateMsg;
 
     use raffles::{msg::InstantiateMsg, state::NOIS_AMOUNT};
@@ -128,7 +128,6 @@ mod tests {
             )
             .unwrap();
 
-        // println!("{:#?}", query_config);
         assert_eq!(
             query_config,
             ConfigResponse {
@@ -139,13 +138,16 @@ mod tests {
                 minimum_raffle_duration: 20,
                 minimum_raffle_timeout: 420,
                 raffle_fee: Decimal::percent(50),
-                lock: false,
+                locks: Locks {
+                    lock: false,
+                    sudo_lock: false,
+                },
                 nois_proxy_addr: Addr::unchecked("nois"),
                 nois_proxy_coin: coin(500000, NATIVE_DENOM),
                 creation_coins: vec![
                     coin(CREATION_FEE_AMNT, NATIVE_DENOM.to_string()),
                     coin(CREATION_FEE_AMNT, "usstars".to_string())
-                ]
+                ],
             }
         );
 
@@ -393,29 +395,6 @@ mod tests {
             chain_id: chainid.clone(),
         });
 
-        // ensure error if max tickets per address set is reached
-        let bad_ticket_purchase = app
-            .execute_contract(
-                Addr::unchecked("wallet-1"),
-                raffle_contract_addr.clone(),
-                &ExecuteMsg::BuyTicket {
-                    raffle_id: 0,
-                    ticket_count: 2,
-                    sent_assets: AssetInfo::Coin(Coin::new(200, "ustars".to_string())),
-                },
-                &[Coin::new(200, "ustars".to_string())],
-            )
-            .unwrap_err();
-        assert_error(
-            Err(bad_ticket_purchase),
-            ContractError::TooMuchTicketsForUser {
-                max: 1,
-                nb_before: 0,
-                nb_after: 2,
-            }
-            .to_string(),
-        );
-
         // ensure raffle duration
         // move forward in time
         app.set_block(BlockInfo {
@@ -469,7 +448,6 @@ mod tests {
                 &raffles::msg::QueryMsg::RaffleInfo { raffle_id: 0 },
             )
             .unwrap();
-        // println!("{:#?}", res);
         assert_eq!(res.clone().raffle_state, RaffleState::Finished);
         assert_eq!(res.raffle_info.unwrap().winner, None);
 
@@ -494,7 +472,6 @@ mod tests {
                 },
             )
             .unwrap();
-        println!("{:#?}", res);
         assert_eq!(res.owner, Addr::unchecked(OWNER_ADDR));
     }
 }

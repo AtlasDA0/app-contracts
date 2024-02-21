@@ -1,11 +1,6 @@
 use std::vec;
 
-use super::{
-    helpers::setup_block_time,
-    msg::{MinterCodeIds, RaffleCodeIds},
-    setup_accounts_and_block::setup_accounts,
-    setup_minter::vending_minter::setup::vending_minter_code_ids,
-};
+use super::{helpers::setup_block_time, msg::RaffleCodeIds};
 use crate::common_setup::{
     contract_boxes::{
         contract_raffles, contract_sg721_base, contract_vending_factory, contract_vending_minter,
@@ -15,16 +10,15 @@ use crate::common_setup::{
         NOIS_PROXY_ADDR, OWNER_ADDR, RAFFLE_CONTRACT, RAFFLE_NAME, SG721_CONTRACT, VENDING_MINTER,
     },
 };
-use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, Timestamp, Uint128};
+use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
 use raffles::{
-    msg::{ExecuteMsg, InstantiateMsg, QueryMsg as RaffleQueryMsg},
-    state::{RaffleOptionsMsg, NOIS_AMOUNT},
+    msg::InstantiateMsg,
+    state::{ATLAS_DAO_STARGAZE_TREASURY, NOIS_AMOUNT},
 };
 use sg721::CollectionInfo;
 use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
-use utils::state::{AssetInfo, Sg721Token};
 use vending_factory::{
     msg::{ExecuteMsg as SgVendingFactoryExecuteMsg, VendingMinterCreateMsg},
     state::{ParamsExtension, VendingMinterParams},
@@ -78,6 +72,7 @@ pub fn proper_raffle_instantiate() -> (StargazeApp, Addr, Addr) {
         )
         .unwrap();
 
+    // create raffle contract
     let raffle_contract_addr = app
         .instantiate_contract(
             code_ids.raffle_code_id,
@@ -87,11 +82,11 @@ pub fn proper_raffle_instantiate() -> (StargazeApp, Addr, Addr) {
                 nois_proxy_addr: NOIS_PROXY_ADDR.to_string(),
                 nois_proxy_coin: coin(NOIS_AMOUNT.into(), NATIVE_DENOM.to_string()),
                 owner: Some(OWNER_ADDR.to_string()),
-                fee_addr: Some(OWNER_ADDR.to_owned()),
+                fee_addr: Some(ATLAS_DAO_STARGAZE_TREASURY.to_owned()),
                 minimum_raffle_duration: None,
                 minimum_raffle_timeout: None,
                 max_ticket_number: None,
-                raffle_fee: Decimal::percent(0),
+                raffle_fee: Decimal::percent(50),
                 creation_coins: vec![
                     coin(4, NATIVE_DENOM.to_string()),
                     coin(20, "ustars".to_string()),
@@ -123,46 +118,48 @@ pub fn configure_raffle_assets(
     app: &mut StargazeApp,
     owner_addr: Addr,
     sg_factory_addr: Addr,
+    create_minter: bool,
 ) -> &mut StargazeApp {
     let router = app;
     let current_time = router.block_info().time.clone();
 
-    let _create_nft_minter = router.execute_contract(
-        owner_addr.clone(),
-        sg_factory_addr.clone(),
-        &SgVendingFactoryExecuteMsg::CreateMinter {
-            0: VendingMinterCreateMsg {
-                init_msg: vending_factory::msg::VendingMinterInitMsgExtension {
-                    base_token_uri: "ipfs://aldkfjads".to_string(),
-                    payment_address: Some(OWNER_ADDR.to_string()),
-                    start_time: current_time.clone(),
-                    num_tokens: 100,
-                    mint_price: coin(Uint128::new(100000u128).u128(), NATIVE_DENOM),
-                    per_address_limit: 3,
-                    whitelist: None,
-                },
-                collection_params: sg2::msg::CollectionParams {
-                    code_id: 4,
-                    name: "Collection Name".to_string(),
-                    symbol: "COL".to_string(),
-                    info: CollectionInfo {
-                        creator: owner_addr.to_string(),
-                        description: String::from("Atlanauts"),
-                        image: "https://example.com/image.png".to_string(),
-                        external_link: Some("https://example.com/external.html".to_string()),
-                        start_trading_time: None,
-                        explicit_content: Some(false),
-                        royalty_info: None,
+    if create_minter {
+        let _create_nft_minter = router.execute_contract(
+            owner_addr.clone(),
+            sg_factory_addr.clone(),
+            &SgVendingFactoryExecuteMsg::CreateMinter {
+                0: VendingMinterCreateMsg {
+                    init_msg: vending_factory::msg::VendingMinterInitMsgExtension {
+                        base_token_uri: "ipfs://aldkfjads".to_string(),
+                        payment_address: Some(OWNER_ADDR.to_string()),
+                        start_time: current_time.clone(),
+                        num_tokens: 100,
+                        mint_price: coin(Uint128::new(100000u128).u128(), NATIVE_DENOM),
+                        per_address_limit: 3,
+                        whitelist: None,
+                    },
+                    collection_params: sg2::msg::CollectionParams {
+                        code_id: 4,
+                        name: "Collection Name".to_string(),
+                        symbol: "COL".to_string(),
+                        info: CollectionInfo {
+                            creator: owner_addr.to_string(),
+                            description: String::from("Atlanauts"),
+                            image: "https://example.com/image.png".to_string(),
+                            external_link: Some("https://example.com/external.html".to_string()),
+                            start_trading_time: None,
+                            explicit_content: Some(false),
+                            royalty_info: None,
+                        },
                     },
                 },
             },
-        },
-        &[Coin {
-            denom: NATIVE_DENOM.to_string(),
-            amount: Uint128::new(100000u128),
-        }],
-    );
-    // println!("{:#?}", create_nft_minter);
+            &[Coin {
+                denom: NATIVE_DENOM.to_string(),
+                amount: Uint128::new(100000u128),
+            }],
+        );
+    }
 
     // VENDING_MINTER is minter
     let mint_nft_tokens = router.execute_contract(
@@ -175,7 +172,6 @@ pub fn configure_raffle_assets(
         }],
     );
     assert!(mint_nft_tokens.is_ok());
-    // println!("{:#?}", mint_nft_tokens.unwrap());
 
     // token id 63
     let _grant_approval = router
@@ -190,20 +186,6 @@ pub fn configure_raffle_assets(
             &[],
         )
         .unwrap();
-
-    // token id 63
-    // let _grant_approval = router
-    //     .execute_contract(
-    //         owner_addr.clone(),
-    //         Addr::unchecked(SG721_CONTRACT),
-    //         &sg721_base::msg::ExecuteMsg::<Empty, Empty>::Approve {
-    //             spender: RAFFLE_CONTRACT.to_string(),
-    //             token_id: "63".to_string(),
-    //             expires: None,
-    //         },
-    //         &[],
-    //     )
-    //     .unwrap();
 
     router
 }
@@ -224,56 +206,4 @@ pub fn raffle_template_code_ids(router: &mut StargazeApp) -> RaffleCodeIds {
         factory_code_id,
         sg721_code_id,
     }
-}
-
-pub fn create_raffle_setup(
-    app: &mut StargazeApp,
-    raffle_addr: Addr,
-    owner_addr: Addr,
-) -> &mut StargazeApp {
-    let router = app;
-    let current_time = router.block_info().time.clone();
-
-    // create a raffle
-    let good_create_raffle = router.execute_contract(
-        owner_addr.clone(),
-        raffle_addr.clone(),
-        &ExecuteMsg::CreateRaffle {
-            owner: Some(owner_addr.clone().to_string()),
-            assets: vec![AssetInfo::Sg721Token(Sg721Token {
-                address: SG721_CONTRACT.to_string(),
-                token_id: "63".to_string(),
-            })],
-            raffle_options: RaffleOptionsMsg {
-                raffle_start_timestamp: Some(current_time.clone()),
-                raffle_duration: None,
-                raffle_timeout: None,
-                comment: None,
-                max_ticket_number: None,
-                max_ticket_per_address: None,
-                raffle_preview: None,
-            },
-            raffle_ticket_price: AssetInfo::Coin(Coin {
-                denom: "ustars".to_string(),
-                amount: Uint128::new(4u128),
-            }),
-            autocycle: Some(false),
-        },
-        &[coin(4, "ustars")],
-    );
-    // confirm owner is set
-    assert!(
-        good_create_raffle.is_ok(),
-        "There is an issue creating a raffle"
-    );
-    let res: raffles::msg::RaffleResponse = router
-        .wrap()
-        .query_wasm_smart(
-            raffle_addr.clone(),
-            &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
-        )
-        .unwrap();
-    assert_eq!(res.clone().raffle_info.unwrap().owner, "owner");
-
-    router
 }

@@ -18,8 +18,8 @@ use {
         },
     },
     cosmwasm_std::{
-        coins, Addr, BankMsg, Coin, Decimal, DepsMut, Empty, Env, MessageInfo, StdError, StdResult,
-        Storage,
+        coins, ensure_eq, Addr, BankMsg, Coin, Decimal, DepsMut, Empty, Env, MessageInfo, StdError,
+        StdResult, Storage,
     },
     cw721::Cw721ExecuteMsg,
     cw721_base::Extension,
@@ -49,6 +49,12 @@ pub fn list_collaterals(
     loan_preview: Option<AssetInfo>,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
+
+    // prevent new listings from being made when contract is frozen
+    if config.clone().locks.lock || config.locks.sudo_lock {
+        return Err(ContractError::ContractIsLocked {});
+    }
+
     // set the borrower
     let borrower = info.sender;
 
@@ -161,6 +167,7 @@ pub fn list_collaterals(
         .add_attribute("loan_id", loan_id.to_string()))
 }
 
+// modify a listing, if possible
 pub fn modify_collaterals(
     deps: DepsMut,
     env: Env,
@@ -278,7 +285,6 @@ pub fn accept_loan(
     Ok(res.add_attribute("action_type", "accept_loan"))
 }
 
-// Internal function to create raffle
 // It verifies an offer can be made for the current loan
 // It verifies the sent funds match the principle indicated in the terms
 // And then saves the new offer in the internal storage
@@ -291,6 +297,13 @@ fn _make_offer_raw(
     terms: LoanTerms,
     comment: Option<String>,
 ) -> Result<(String, u64), ContractError> {
+    let mut contract_config = CONFIG.load(storage)?;
+
+    // prevents loan from being accepted or made if contract is locked
+    if contract_config.clone().locks.lock || contract_config.locks.sudo_lock {
+        return Err(ContractError::ContractIsLocked {});
+    }
+
     let mut collateral: CollateralInfo =
         COLLATERAL_INFO.load(storage, (borrower.clone(), loan_id))?;
     is_loan_counterable(&collateral)?;
@@ -308,7 +321,6 @@ fn _make_offer_raw(
     let offer_id = collateral.offer_amount;
 
     // We save this new offer
-    let mut contract_config = CONFIG.load(storage)?;
     contract_config.global_offer_index += 1;
     let global_offers = lender_offers();
     global_offers.save(
@@ -332,6 +344,7 @@ fn _make_offer_raw(
     Ok((contract_config.global_offer_index.to_string(), offer_id))
 }
 
+// internal function that begins actually starts the loanl if possible
 fn _accept_offer_raw(
     deps: DepsMut,
     env: Env,
@@ -447,6 +460,13 @@ pub fn accept_offer(
     info: MessageInfo,
     global_offer_id: String,
 ) -> Result<Response, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+
+    // prevent offers from being accepted when contract is frozen
+    if config.clone().locks.lock || config.locks.sudo_lock {
+        return Err(ContractError::ContractIsLocked {});
+    }
+
     // We make sure the caller is the borrower
     is_offer_borrower(deps.storage, info.sender, &global_offer_id)?;
 
@@ -677,7 +697,8 @@ pub fn repay_borrowed_funds(
         .add_attribute("action", "repay_loan")
         .add_attribute("borrower", borrower)
         .add_attribute("lender", offer_info.lender)
-        .add_attribute("loan_id", loan_id.to_string()))
+        .add_attribute("loan_id", loan_id.to_string())
+        .add_attribute("interest", interests))
 }
 
 /// Withdraw the collateral from a defaulted loan
@@ -749,4 +770,42 @@ pub fn _withdraw_asset(asset: &AssetInfo, _sender: Addr, recipient: Addr) -> Std
         ),
         _ => Err(StdError::generic_err("msg")),
     }
+}
+
+// admin can lock contract
+pub fn execute_toggle_lock(
+    deps: DepsMut,
+    info: MessageInfo,
+    _env: Env,
+    lock: bool,
+) -> Result<Response, ContractError> {
+    let mut config = CONFIG.load(deps.storage)?;
+
+    // check the calling address is the authorised multisig
+    ensure_eq!(info.sender, config.owner, ContractError::Unauthorized {});
+
+    config.locks.lock = lock;
+    CONFIG.save(deps.storage, &config)?;
+
+    Ok(Response::new()
+        .add_attribute("action", "sudo_update_status")
+        .add_attribute("parameter", "contract_lock")
+        .add_attribute("value", lock.to_string()))
+}
+
+// governance can lock contract
+pub fn execute_sudo_toggle_lock(
+    deps: DepsMut,
+    _env: Env,
+    lock: bool,
+) -> Result<Response, ContractError> {
+    let mut config = CONFIG.load(deps.storage)?;
+
+    config.locks.sudo_lock = lock;
+    CONFIG.save(deps.storage, &config)?;
+
+    Ok(Response::new()
+        .add_attribute("action", "sudo_update_status")
+        .add_attribute("parameter", "contract_lock")
+        .add_attribute("value", lock.to_string()))
 }

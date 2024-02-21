@@ -4,24 +4,25 @@ use cosmwasm_std::{
 };
 
 use crate::{
+    error::ContractError,
     execute::{
         execute_buy_tickets, execute_cancel_raffle, execute_create_raffle,
         execute_determine_winner, execute_modify_raffle, execute_receive, execute_receive_nois,
-        execute_toggle_lock, execute_update_config, execute_update_randomness,
+        execute_sudo_toggle_lock, execute_toggle_lock, execute_update_config,
+        execute_update_randomness,
     },
+    msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse},
+    query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count},
     state::{
         get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
         MINIMUM_RAFFLE_TIMEOUT, STATIC_RAFFLE_CREATION_FEE,
     },
 };
-use utils::{state::is_valid_name, types::Response};
+use utils::{
+    state::{is_valid_name, Locks, SudoMsg, NATIVE_DENOM},
+    types::Response,
+};
 
-#[cfg(feature = "sg")]
-use sg_std::NATIVE_DENOM;
-
-use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse};
-use crate::query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count};
 use cw2::set_contract_version;
 
 #[entry_point]
@@ -74,11 +75,14 @@ pub fn instantiate(
             .unwrap_or(MINIMUM_RAFFLE_TIMEOUT)
             .max(MINIMUM_RAFFLE_TIMEOUT),
         raffle_fee: msg.raffle_fee,
-        lock: false,
+        locks: Locks {
+            lock: false,
+            sudo_lock: false,
+        },
         nois_proxy_addr,
         nois_proxy_coin: msg.nois_proxy_coin,
         creation_coins,
-        maximum_participant_number: Some(msg.max_ticket_number.unwrap_or(MAX_TICKET_NUMBER)),
+        max_tickets_per_raffle: Some(msg.max_ticket_number.unwrap_or(MAX_TICKET_NUMBER)),
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -158,7 +162,7 @@ pub fn execute(
             fee_addr,
             minimum_raffle_duration,
             minimum_raffle_timeout,
-            maximum_participant_number,
+            max_tickets_per_raffle,
             raffle_fee,
             nois_proxy_addr,
             nois_proxy_coin,
@@ -172,7 +176,7 @@ pub fn execute(
             fee_addr,
             minimum_raffle_duration,
             minimum_raffle_timeout,
-            maximum_participant_number,
+            max_tickets_per_raffle,
             raffle_fee,
             nois_proxy_addr,
             nois_proxy_coin,
@@ -214,4 +218,14 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
         }
     };
     Ok(response)
+}
+
+// sudo entry point for governance override
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn sudo(deps: DepsMut, env: Env, msg: SudoMsg) -> Result<Response, ContractError> {
+    match msg {
+        SudoMsg::ToggleLock { lock } => {
+            execute_sudo_toggle_lock(deps, env, lock).map_err(|_| ContractError::ContractBug {})
+        }
+    }
 }

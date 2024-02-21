@@ -90,6 +90,11 @@ export interface NFTLoanMessage {
     borrower: string;
     loanId: number;
   }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
+  toggleLock: ({
+    lock
+  }: {
+    lock: boolean;
+  }, funds?: Coin[]) => MsgExecuteContractEncodeObject;
   setOwner: ({
     owner
   }: {
@@ -129,6 +134,7 @@ export class NFTLoanMessageComposer implements NFTLoanMessage {
     this.acceptLoan = this.acceptLoan.bind(this);
     this.repayBorrowedFunds = this.repayBorrowedFunds.bind(this);
     this.withdrawDefaultedLoan = this.withdrawDefaultedLoan.bind(this);
+    this.toggleLock = this.toggleLock.bind(this);
     this.setOwner = this.setOwner.bind(this);
     this.setFeeDestination = this.setFeeDestination.bind(this);
     this.setFeeRate = this.setFeeRate.bind(this);
@@ -374,6 +380,25 @@ export class NFTLoanMessageComposer implements NFTLoanMessage {
           withdraw_defaulted_loan: {
             borrower,
             loan_id: loanId
+          }
+        })),
+        funds
+      })
+    };
+  };
+  toggleLock = ({
+    lock
+  }: {
+    lock: boolean;
+  }, funds?: Coin[]): MsgExecuteContractEncodeObject => {
+    return {
+      typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+      value: MsgExecuteContract.fromPartial({
+        sender: this.sender,
+        contract: this.contractAddress,
+        msg: toUtf8(JSON.stringify({
+          toggle_lock: {
+            lock
           }
         })),
         funds

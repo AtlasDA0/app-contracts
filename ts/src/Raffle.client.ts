@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import { ExecuteMsg, AssetInfo, Uint128, Timestamp, Uint64, Decimal, Binary, HexBinary, Cw721Coin, Coin, Sg721Token, RaffleOptionsMsg, Cw721ReceiveMsg, NoisCallback, InstantiateMsg, QueryMsg, QueryFilters, Addr, RaffleState, AllRafflesResponse, RaffleResponse, RaffleInfo, RaffleOptions, ArrayOfString, ConfigResponse, Uint32 } from "./Raffle.types";
+import { ExecuteMsg, AssetInfo, Uint128, Timestamp, Uint64, Decimal, Binary, HexBinary, Cw721Coin, Coin, Sg721Token, RaffleOptionsMsg, Cw721ReceiveMsg, NoisCallback, InstantiateMsg, QueryMsg, QueryFilters, Addr, RaffleState, AllRafflesResponse, RaffleResponse, RaffleInfo, RaffleOptions, ArrayOfString, ConfigResponse, Locks, Uint32 } from "./Raffle.types";
 export interface RaffleReadOnlyInterface {
   contractAddress: string;
   config: () => Promise<ConfigResponse>;
@@ -144,6 +144,7 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
   updateConfig: ({
     creationCoins,
     feeAddr,
+    maxTicketsPerRaffle,
     minimumRaffleDuration,
     minimumRaffleTimeout,
     name,
@@ -154,6 +155,7 @@ export interface RaffleInterface extends RaffleReadOnlyInterface {
   }: {
     creationCoins?: Coin[];
     feeAddr?: string;
+    maxTicketsPerRaffle?: number;
     minimumRaffleDuration?: number;
     minimumRaffleTimeout?: number;
     name?: string;
@@ -269,6 +271,7 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
   updateConfig = async ({
     creationCoins,
     feeAddr,
+    maxTicketsPerRaffle,
     minimumRaffleDuration,
     minimumRaffleTimeout,
     name,
@@ -279,6 +282,7 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
   }: {
     creationCoins?: Coin[];
     feeAddr?: string;
+    maxTicketsPerRaffle?: number;
     minimumRaffleDuration?: number;
     minimumRaffleTimeout?: number;
     name?: string;
@@ -291,6 +295,7 @@ export class RaffleClient extends RaffleQueryClient implements RaffleInterface {
       update_config: {
         creation_coins: creationCoins,
         fee_addr: feeAddr,
+        max_tickets_per_raffle: maxTicketsPerRaffle,
         minimum_raffle_duration: minimumRaffleDuration,
         minimum_raffle_timeout: minimumRaffleTimeout,
         name,

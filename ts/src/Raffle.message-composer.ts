@@ -7,7 +7,7 @@
 import { MsgExecuteContractEncodeObject } from "cosmwasm";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
-import { ExecuteMsg, AssetInfo, Uint128, Timestamp, Uint64, Decimal, Binary, HexBinary, Cw721Coin, Coin, Sg721Token, RaffleOptionsMsg, Cw721ReceiveMsg, NoisCallback, InstantiateMsg, QueryMsg, QueryFilters, Addr, RaffleState, AllRafflesResponse, RaffleResponse, RaffleInfo, RaffleOptions, ArrayOfString, ConfigResponse, Uint32 } from "./Raffle.types";
+import { ExecuteMsg, AssetInfo, Uint128, Timestamp, Uint64, Decimal, Binary, HexBinary, Cw721Coin, Coin, Sg721Token, RaffleOptionsMsg, Cw721ReceiveMsg, NoisCallback, InstantiateMsg, QueryMsg, QueryFilters, Addr, RaffleState, AllRafflesResponse, RaffleResponse, RaffleInfo, RaffleOptions, ArrayOfString, ConfigResponse, Locks, Uint32 } from "./Raffle.types";
 export interface RaffleMessage {
   contractAddress: string;
   sender: string;
@@ -32,6 +32,7 @@ export interface RaffleMessage {
   updateConfig: ({
     creationCoins,
     feeAddr,
+    maxTicketsPerRaffle,
     minimumRaffleDuration,
     minimumRaffleTimeout,
     name,
@@ -42,6 +43,7 @@ export interface RaffleMessage {
   }: {
     creationCoins?: Coin[];
     feeAddr?: string;
+    maxTicketsPerRaffle?: number;
     minimumRaffleDuration?: number;
     minimumRaffleTimeout?: number;
     name?: string;
@@ -170,6 +172,7 @@ export class RaffleMessageComposer implements RaffleMessage {
   updateConfig = ({
     creationCoins,
     feeAddr,
+    maxTicketsPerRaffle,
     minimumRaffleDuration,
     minimumRaffleTimeout,
     name,
@@ -180,6 +183,7 @@ export class RaffleMessageComposer implements RaffleMessage {
   }: {
     creationCoins?: Coin[];
     feeAddr?: string;
+    maxTicketsPerRaffle?: number;
     minimumRaffleDuration?: number;
     minimumRaffleTimeout?: number;
     name?: string;
@@ -197,6 +201,7 @@ export class RaffleMessageComposer implements RaffleMessage {
           update_config: {
             creation_coins: creationCoins,
             fee_addr: feeAddr,
+            max_tickets_per_raffle: maxTicketsPerRaffle,
             minimum_raffle_duration: minimumRaffleDuration,
             minimum_raffle_timeout: minimumRaffleTimeout,
             name,
