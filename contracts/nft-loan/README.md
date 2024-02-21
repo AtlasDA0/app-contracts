@@ -46,8 +46,9 @@
 ### `SetFeeRate`**admin-only*
 *admin function to set new fee rate for % from interests on loans*
 ### Queries
-The contract stores 
+It is useful to note that `CollateralInfo` is stored and queried with the borrowers address & a loan id as keys for loan info.
 
+The contract stores
 ### `Config`
 *returns contract params*
 ### `BorrowerInfo`
@@ -66,3 +67,7 @@ The contract stores
 *returns all offers made by a specific address*
 
 ## Migrate
+
+## Sudo 
+### Toggle lock
+*prevents new loan listings from being created & loan terms accepted. does not prevent loans from defaulting or being repaid. cannot be triggered by contract admins.*

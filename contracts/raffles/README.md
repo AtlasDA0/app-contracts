@@ -68,3 +68,7 @@ manually request randomness for raffle id
 
 ## Migrate
 
+
+## Sudo 
+### Toggle lock
+*prevents new raffles from being created. does not prevent tickets being purchased, or winners being determined.*

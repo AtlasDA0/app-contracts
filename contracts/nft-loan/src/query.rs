@@ -11,7 +11,7 @@ use crate::{
     error::ContractError,
     msg::{
         CollateralResponse, MultipleCollateralsAllResponse, MultipleCollateralsResponse,
-        MultipleOffersResponse, OfferResponse,
+        MultipleOffersResponse, OfferResponse, QueryFilters,
     },
     state::{
         get_actual_state, get_offer, lender_offers, BorrowerInfo, CollateralInfo, Config,
@@ -128,6 +128,7 @@ pub fn query_borrower_info(deps: Deps, borrower: String) -> StdResult<BorrowerIn
         .map_err(|_| StdError::generic_err("UnknownBorrower"))
 }
 
+// queries a loan given an address and loan id
 pub fn query_collateral_info(
     deps: Deps,
     _env: Env,
@@ -145,6 +146,7 @@ pub fn query_collaterals(
     borrower: String,
     start_after: Option<u64>,
     limit: Option<u32>,
+    // filters: Option<QueryFilters>,
 ) -> StdResult<MultipleCollateralsResponse> {
     let borrower = deps.api.addr_validate(&borrower)?;
     let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
@@ -155,10 +157,11 @@ pub fn query_collaterals(
         .range(deps.storage, None, start, Order::Descending)
         .map(|result| {
             result
-                .map(|(loan_id, el)| CollateralResponse {
+                .map(|(loan_id, loan_info)| CollateralResponse {
                     borrower: borrower.to_string(),
                     loan_id,
-                    collateral: el,
+                    collateral: loan_info.clone(),
+                    loan_state: loan_info.state,
                 })
                 .map_err(|err| err)
         })
@@ -188,6 +191,7 @@ pub fn query_all_collaterals(
     deps: Deps,
     start_after: Option<(String, u64)>,
     limit: Option<u32>,
+    // filters: Option<QueryFilters>,
 ) -> StdResult<MultipleCollateralsAllResponse> {
     let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
     let start = start_after
@@ -201,10 +205,11 @@ pub fn query_all_collaterals(
         .range(deps.storage, None, start, Order::Descending)
         .map(|result| {
             result
-                .map(|(loan_id, el)| CollateralResponse {
+                .map(|(loan_id, loan_info)| CollateralResponse {
                     borrower: loan_id.0.to_string(),
                     loan_id: loan_id.1,
-                    collateral: el,
+                    collateral: loan_info.clone(),
+                    loan_state: loan_info.state,
                 })
                 .map_err(|err| err)
         })
@@ -284,3 +289,27 @@ pub fn query_lender_offers(
         offers,
     })
 }
+
+// // used to filter query of collaterals
+// pub fn loan_filter(
+//     _api: &dyn Api,
+//     env: Env,
+//     loan_info: &StdResult<CollateralResponse>,
+//     filters: &Option<QueryFilters>,
+// ) -> bool {
+//     if let Some(filters) = filters {
+//         let loan = loan_info.as_ref().unwrap();
+
+//         (match &filters.states {
+//             Some(state) => {
+//                 state.contains(&get_loan_state(env, loan.collateral.clone()).to_string())
+//             }
+//             None => true,
+//         } && match &filters.owner {
+//             Some(owner) => loan.borrower == owner.clone(),
+//             None => true,
+//         })
+//     } else {
+//         true
+//     }
+// }

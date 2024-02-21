@@ -165,10 +165,12 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             borrower,
             start_after,
             limit,
+            // filters,
         } => to_json_binary(&query_collaterals(deps, borrower, start_after, limit)?),
-        QueryMsg::AllCollaterals { start_after, limit } => {
-            to_json_binary(&query_all_collaterals(deps, start_after, limit)?)
-        }
+        QueryMsg::AllCollaterals {
+            start_after,
+            limit,
+        } => to_json_binary(&query_all_collaterals(deps, start_after, limit)?),
         QueryMsg::OfferInfo { global_offer_id } => {
             to_json_binary(&query_offer_info(deps, global_offer_id)?)
         }

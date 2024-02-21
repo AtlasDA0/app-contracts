@@ -695,7 +695,8 @@ pub fn repay_borrowed_funds(
         .add_attribute("action", "repay_loan")
         .add_attribute("borrower", borrower)
         .add_attribute("lender", offer_info.lender)
-        .add_attribute("loan_id", loan_id.to_string()))
+        .add_attribute("loan_id", loan_id.to_string())
+        .add_attribute("interest", interests))
 }
 
 /// Withdraw the collateral from a defaulted loan
