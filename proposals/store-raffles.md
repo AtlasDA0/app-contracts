@@ -24,7 +24,7 @@ sha256sum target/wasm32-unknown-unknown/release/raffles.wasm
 ```
 This results in the following SHA256 checksum: 
 ```
-e7b1f700d7bc23c9ad59871da006b95479b74f94313e8e161225d25670a6d6cc  target/wasm32-unknown-unknown/release/raffles.wasm
+1ced0dd38d7a2588c37c5e9d2c723a15b98502eef04c5c1c82dd154ebd9bb02f  target/wasm32-unknown-unknown/release/raffles.wasm
 ```
 ### Verify code 
 ```
