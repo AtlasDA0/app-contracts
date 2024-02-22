@@ -1,7 +1,9 @@
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::{coin, Addr, Coin, Decimal, StdError, Timestamp, Uint128};
+    use cw721::{ApprovalsResponse, OwnerOfResponse};
     use cw_multi_test::Executor;
+    use sg721_base::QueryMsg as Sg721QueryMsg;
     use sg_std::NATIVE_DENOM;
 
     use nft_loans_nc::{
@@ -621,15 +623,18 @@ mod tests {
             )
             .unwrap();
         // println!("{:#?}", _withdraw97);
-        // let res: ApprovalResponse = app
-        //         .wrap()
-        //         .query_wasm_smart(
-        //             SG721_CONTRACT.to_string(),
-        //             &Sg721QueryMsg::Approval { token_id: "63".to_string(), spender: loan_addr.to_string(), include_expired: None }
-        //         )
-        //         .unwrap();
-        //     println!("{:#?}", res);
-        // assert_eq!(res, "fee".to_string());
+        let res: OwnerOfResponse = app
+            .wrap()
+            .query_wasm_smart(
+                SG721_CONTRACT.to_string(),
+                &Sg721QueryMsg::OwnerOf {
+                    token_id: "63".to_string(),
+                    include_expired: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(res.owner, "owner".to_string());
+        // NOTE: WE MUST REMOVE APPROVAL FROM CONTRACT IN UI AFTER COLLATERAL IS WITHDREW
 
         // good make offfer
         let _good_make_offer = app
@@ -689,6 +694,19 @@ mod tests {
         // assert the offer state is now accepted
         assert_eq!(res.offer_info.state, OfferState::Accepted);
 
+        let res: OwnerOfResponse = app
+            .wrap()
+            .query_wasm_smart(
+                SG721_CONTRACT.to_string(),
+                &Sg721QueryMsg::OwnerOf {
+                    token_id: "63".to_string(),
+                    include_expired: None,
+                },
+            )
+            .unwrap();
+        // confirm nft is now in escrow by raffle
+        assert_eq!(res.owner, loan_addr);
+
         // repay borrowed funds
         let _good_repay_borrowed_funds = app
             .execute_contract(
@@ -701,7 +719,7 @@ mod tests {
                 }],
             )
             .unwrap();
-        // println!("{:#?}", _good_repay_borrowed_funds);
+
         let res: CollateralInfo = app
             .wrap()
             .query_wasm_smart(

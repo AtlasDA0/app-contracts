@@ -2,7 +2,7 @@
 mod tests {
 
     use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Empty, HexBinary, Uint128};
-    use cw721::OwnerOfResponse;
+    use cw721::{ApprovalsResponse, OwnerOfResponse};
     use cw_multi_test::Executor;
     use nois::NoisCallback;
     #[cfg(feature = "sg")]
@@ -197,6 +197,20 @@ mod tests {
             )
             .unwrap();
         assert_eq!(res.owner, two.to_string());
+
+        // confirm owner of nft is now raffle winner
+        let res: ApprovalsResponse = app
+            .wrap()
+            .query_wasm_smart(
+                SG721_CONTRACT.to_string(),
+                &Sg721QueryMsg::Approvals {
+                    token_id: "63".to_string(),
+                    include_expired: None,
+                },
+            )
+            .unwrap();
+        // confirm nft approval is removed 
+        assert_eq!(res.approvals, []);
 
         // confirm raffle owner and treasury set recieve correct amount of tokens
         let owner_balance = app
