@@ -142,7 +142,7 @@ pub fn execute_create_raffle(
     )?;
     let raffle_lifecycle = raffle_options
         .raffle_start_timestamp
-        .unwrap()
+        .unwrap_or_default()
         .plus_seconds(raffle_options.clone().raffle_duration.unwrap_or_default())
         .plus_seconds(6);
 

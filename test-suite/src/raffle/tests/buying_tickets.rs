@@ -33,6 +33,7 @@ mod tests {
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: Uint128::new(4),
             max_ticket_per_addr: None,
+            raffle_start_timestamp: None,
             raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
                 address: SG721_CONTRACT.to_string(),
                 token_id: "63".to_string(),
@@ -93,6 +94,7 @@ mod tests {
                 creation_fee: vec![coin(4, NATIVE_DENOM)],
                 ticket_price: Uint128::new(4),
                 max_ticket_per_addr: Some(1),
+                raffle_start_timestamp: None,
                 raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
                     address: SG721_CONTRACT.to_string(),
                     token_id: "63".to_string(),
@@ -158,6 +160,7 @@ mod tests {
                 owner_addr: owner_address.clone(),
                 creation_fee: vec![coin(4, NATIVE_DENOM)],
                 ticket_price: Uint128::new(4),
+                raffle_start_timestamp: None,
                 max_ticket_per_addr: None,
                 raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
                     address: SG721_CONTRACT.to_string(),
@@ -202,6 +205,7 @@ mod tests {
                 creation_fee: vec![coin(4, NATIVE_DENOM)],
                 ticket_price: Uint128::new(4),
                 max_ticket_per_addr: None,
+                raffle_start_timestamp: None,
                 raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
                     address: SG721_CONTRACT.to_string(),
                     token_id: "63".to_string(),
@@ -246,6 +250,7 @@ mod tests {
                 creation_fee: vec![coin(4, NATIVE_DENOM)],
                 ticket_price: Uint128::new(4),
                 max_ticket_per_addr: None,
+                raffle_start_timestamp: None,
                 raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
                     address: SG721_CONTRACT.to_string(),
                     token_id: "63".to_string(),
