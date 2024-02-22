@@ -12,10 +12,10 @@ mod tests {
         state::{RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState},
     };
 
-    use utils::state::{AssetInfo, Locks, Sg721Token, NATIVE_DENOM};
+    use utils::state::{AssetInfo, Locks, Sg721Token, NATIVE_DENOM, NOIS_AMOUNT};
     use vending_factory::msg::VendingMinterCreateMsg;
 
-    use raffles::{msg::InstantiateMsg, state::NOIS_AMOUNT};
+    use raffles::msg::InstantiateMsg;
     #[cfg(feature = "sg")]
     use {sg721::CollectionInfo, sg_multi_test::StargazeApp};
 

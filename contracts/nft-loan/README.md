@@ -1,7 +1,6 @@
 # Non-Custodial NFT Loans
 
 
-
 ## Instantiate Contract
 ```json
 {

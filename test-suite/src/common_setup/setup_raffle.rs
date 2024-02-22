@@ -12,13 +12,11 @@ use crate::common_setup::{
 };
 use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
-use raffles::{
-    msg::InstantiateMsg,
-    state::{ATLAS_DAO_STARGAZE_TREASURY, NOIS_AMOUNT},
-};
+use raffles::{msg::InstantiateMsg, state::ATLAS_DAO_STARGAZE_TREASURY};
 use sg721::CollectionInfo;
 use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
+use utils::state::NOIS_AMOUNT;
 use vending_factory::{
     msg::{ExecuteMsg as SgVendingFactoryExecuteMsg, VendingMinterCreateMsg},
     state::{ParamsExtension, VendingMinterParams},

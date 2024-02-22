@@ -56,7 +56,7 @@ pub fn instantiate(
     if !is_valid_name(&msg.name) {
         return Err(ContractError::InvalidName {});
     }
-
+    // define internal contract
     let config = Config {
         name: msg.name,
         owner: deps

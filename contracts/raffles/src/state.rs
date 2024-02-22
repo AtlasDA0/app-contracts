@@ -10,14 +10,12 @@ pub const ATLAS_DAO_STARGAZE_TREASURY: &str =
     "stars1jyg4j6t4kdptgsx6q55mu0f434zqcfppkx6ww9gs7p4x7clgfrjq29sgmc";
 pub const CONFIG_KEY: &str = "config";
 pub const CONFIG: Item<Config> = Item::new(CONFIG_KEY);
-pub const DECIMAL_FRACTIONAL: u128 = 1_000_00;
 pub const MAX_TICKET_NUMBER: u32 = 100000; // The maximum amount of tickets () that can be in a raffle
 pub const MINIMUM_RAFFLE_DURATION: u64 = 1; // default minimum raffle duration, in blocks
 pub const MINIMUM_RAFFLE_TIMEOUT: u64 = 120; // The raffle timeout is a least 2 minutes
-pub const NOIS_AMOUNT: u128 = 500000;
 pub const RAFFLE_INFO: Map<u64, RaffleInfo> = Map::new("raffle_info");
 pub const RAFFLE_TICKETS: Map<(u64, u32), Addr> = Map::new("raffle_tickets");
-pub const STATIC_RAFFLE_CREATION_FEE: u128 = 1; // default static tokens required to create raffle
+pub const STATIC_RAFFLE_CREATION_FEE: u128 = 100; // default static tokens required to create raffle
 pub const USER_TICKETS: Map<(&Addr, u64), u32> = Map::new("user_tickets");
 
 #[cw_serde]

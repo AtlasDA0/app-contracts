@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::{coin, Addr, Decimal};
-    use utils::state::NATIVE_DENOM;
+    use utils::state::{NATIVE_DENOM, NOIS_AMOUNT};
 
-    use raffles::{error::ContractError, state::NOIS_AMOUNT};
+    use raffles::error::ContractError;
 
     use crate::{
         common_setup::{

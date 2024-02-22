@@ -699,30 +699,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
-name = "fee-contract-export"
-version = "0.1.0"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "schemars",
- "serde",
- "thiserror",
- "utils",
-]
-
-[[package]]
-name = "fee-distributor-export"
-version = "0.1.0"
-dependencies = [
- "cosmwasm-schema",
- "cosmwasm-std",
- "fee-contract-export",
- "schemars",
- "serde",
- "utils",
-]
-
-[[package]]
 name = "ff"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -912,7 +888,7 @@ checksum = "523dc4f511e55ab87b694dc30d0f820d60906ef06413f93d4d7a1385599cc149"
 
 [[package]]
 name = "nft-loans-nc"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -920,8 +896,6 @@ dependencies = [
  "cw2 1.1.2",
  "cw721 0.18.0",
  "cw721-base 0.18.0",
- "fee-contract-export",
- "fee-distributor-export",
  "nois",
  "schemars",
  "serde",
@@ -1109,7 +1083,7 @@ checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
 
 [[package]]
 name = "raffles"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
