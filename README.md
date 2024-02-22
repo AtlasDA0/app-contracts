@@ -13,11 +13,11 @@ You can find the documentation for these smart contracts [here.](https://docs.at
 ## Testnet: `Elgafar-1`
 ### [NFT Loans Non-Custodial](./contracts/nft-loan/README.md)
 - **code-id:** `3646`
-- **contract:** `stars122xnz0c6e529qnns8prf5997eup4waukvlhpdx`
+- **contract:** `stars1u4xz2s7anngjgkcsdxt4lqtcvc7ctnwugdh6e2c47h2tswmcp2xs0pfgwe`
 
 ### [On-Chain Raffles](./contracts//raffles/README.md)
 - **code-id:** `3647`
-- **contract:** `stars14s3udn2hazj2p3exyzn7xrlrl9h5uule4wsxvk`
+- **contract:** `stars1rfgz444ktm20sjskjc77mjgewqv62gw759me8m9xk92rf4k4d5fszczlal`
 
 
 ## Mainnet: `Stargaze-1`
