@@ -18,16 +18,18 @@ Features of the loans contract include:
 
 ### Compile Instructions
 ```sh
-	rustup target add wasm32-unknown-unknown
-	RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown --no-default-features --features sg
+docker run --rm -v "$(pwd)":/code \
+  --mount type=volume,source="$(basename "$(pwd)")_cache",target=/target \
+  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
+  cosmwasm/optimizer:0.15.0
 ```
 determine the checksum
 ```sh
-sha256sum target/wasm32-unknown-unknown/release/nft_loans_nc.wasm
+sha256sum artifacts/nft_loans_nc.wasm
 ```
 This results in the following SHA256 checksum: 
 ```
-8ff7d3f96fdad07e4157dfe067700ad3f06be712d9ceead374b92c87c3288856  target/wasm32-unknown-unknown/release/nft_loans_nc.wasm
+31fa695f6715cedcfd763d2ef4fc239fe2ab8ea20998069a5689b209741dd9bf  nft_loans_nc.wasm
 ```
 ### Verify code 
 ```

@@ -2,30 +2,27 @@
 
 # setup command-line arguments
 if [ -n "$1" ]; then
-    LOAN_CONTRACT="$1"
+    LOAN_ID="$1"
 else
-    LOAN_CONTRACT=
+    LOAN_ID=3649
 fi
 if [ -n "$2" ]; then
-    RAFFLE_CONTRACT="$2"
+    RAFFLE_ID="$2"
 else
-    RAFFLE_CONTRACT=
+    RAFFLE_ID=3650
 fi
     
 # compute expected results
-res=$(st q wasm contract $LOAN_CONTRACT  --json)
-res=$(st q wasm contract $RAFFLE_CONTRACT  --json)
-
-# get code id
-code_id=$(echo $res | jq -r '.contract_info.code_id')
+sha256sum target/wasm32-unknown-unknown/release/raffles.wasm
+sha256sum target/wasm32-unknown-unknown/release/nft_loans_nc.wasm
 
 # download binaries from network
-st q wasm code $code_id loan-code.wasm
-st q wasm code $code_id raffle-code.wasm
+st q wasm code $RAFFLE_ID raffle-code.wasm
+st q wasm code $LOAN_ID loan-code.wasm
 
-# verify codehash
+# compute download binary checksums 
 sha256sum loan-code.wasm
-# 8ff7d3f96fdad07e4157dfe067700ad3f06be712d9ceead374b92c87c3288856  loan-code.wasm
-# 1ced0dd38d7a2588c37c5e9d2c723a15b98502eef04c5c1c82dd154ebd9bb02f  raffle-code.wasm
+sha256sum raffle-code.wasm 
 
-
+# 31fa695f6715cedcfd763d2ef4fc239fe2ab8ea20998069a5689b209741dd9bf  loan-code.wasm
+# d7656019911745b97b54db86f6df2ef0a59ceaa12f70f358dd98fb8e29361720  raffle-code.wasm

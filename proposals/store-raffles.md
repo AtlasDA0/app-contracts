@@ -15,16 +15,18 @@ Features of the raffle contract include:
 
 ### Compile Instructions
 ```sh
-rustup target add wasm32-unknown-unknown
-RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown --no-default-features --features sg
+docker run --rm -v "$(pwd)":/code \
+  --mount type=volume,source="$(basename "$(pwd)")_cache",target=/target \
+  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
+  cosmwasm/optimizer:0.15.0
 ```
 determine the checksum
 ```sh
-sha256sum target/wasm32-unknown-unknown/release/raffles.wasm
+sha256sum artifacts/raffles.wasm
 ```
 This results in the following SHA256 checksum: 
 ```
-1ced0dd38d7a2588c37c5e9d2c723a15b98502eef04c5c1c82dd154ebd9bb02f  target/wasm32-unknown-unknown/release/raffles.wasm
+d7656019911745b97b54db86f6df2ef0a59ceaa12f70f358dd98fb8e29361720  raffles.wasm
 ```
 ### Verify code 
 ```

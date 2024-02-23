@@ -12,12 +12,12 @@ You can find the documentation for these smart contracts [here.](https://docs.at
 
 ## Testnet: `Elgafar-1`
 ### [NFT Loans Non-Custodial](./contracts/nft-loan/README.md)
-- **code-id:** `3646`
-- **contract:** `stars1u4xz2s7anngjgkcsdxt4lqtcvc7ctnwugdh6e2c47h2tswmcp2xs0pfgwe`
+- **code-id:** `3649`
+- **contract:** `stars1wh7f798wrwkcxs3d6x5e9l5wqg27cut9es07wj8uq9ehmk8x74zs6g2wsh`
 
 ### [On-Chain Raffles](./contracts//raffles/README.md)
-- **code-id:** `3647`
-- **contract:** `stars1rfgz444ktm20sjskjc77mjgewqv62gw759me8m9xk92rf4k4d5fszczlal`
+- **code-id:** `3650`
+- **contract:** `stars1hqvn37a7dn58gzq6md4y5gk20e9j4gmm9eu8c7g5vhqj5mpsd0uqg55ngg`
 
 
 ## Mainnet: `Stargaze-1`
@@ -29,8 +29,8 @@ You can find the documentation for these smart contracts [here.](https://docs.at
 ### Scripts 
 **Storing the contracts `bash scripts/store.sh`**\
 **Instantiating the contracts - `bash scripts/i.sh LOAN_CODE_ID_# RAFFLE_CODE_ID_#`**\
-**Checking a code-id sha256sum - `bash scripts/verify-code-checksum.sh`**\
-<!-- **Checking a contract address code sha256sum  - `bash scripts/verify-contract-checksum.sh`** -->
+**Checking a code-id sha256sum - `bash scripts/verify-code-hash.sh`**\
+**Checking a contract address code sha256sum  - `bash scripts/verify-contract-code-hash.sh`**
 
 ### Special Thanks
 Thank you to the following teams for making this contract a reality ::)

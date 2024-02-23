@@ -4,12 +4,12 @@
 if [ -n "$1" ]; then
     LOAN_ID="$1"
 else
-    LOAN_ID=3644
+    LOAN_ID=3649
 fi
 if [ -n "$2" ]; then
     RAFFLE_ID="$2"
 else
-    RAFFLE_ID=3645
+    RAFFLE_ID=3650
 fi
 
 for d in ../artifacts/nft_loans_nc.wasm; do 
