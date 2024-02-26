@@ -10,20 +10,26 @@ You can find the documentation for these smart contracts [here.](https://docs.at
 | *contract-addr*                  | ``        |``| -->
 
 
-## Testnet: `Elgafar-1`
+
 ### [NFT Loans Non-Custodial](./contracts/nft-loan/README.md)
+#### Testnet: `Elgafar-1`
 - **code-id:** `3649`
 - **contract:** `stars1wh7f798wrwkcxs3d6x5e9l5wqg27cut9es07wj8uq9ehmk8x74zs6g2wsh`
+#### Mainnet: `Stargaze-1`
+- **code-id:** `204`
+- **contract-address:** `n/a`
 
 ### [On-Chain Raffles](./contracts//raffles/README.md)
+#### Testnet: `Elgafar-1`
 - **code-id:** `3650`
 - **contract:** `stars1hqvn37a7dn58gzq6md4y5gk20e9j4gmm9eu8c7g5vhqj5mpsd0uqg55ngg`
-
-
-## Mainnet: `Stargaze-1`
-*Proposal commonwealth discussion: [link](https://commonwealth.im/stargaze/discussion/15181-whitelist-the-atlas-dao-app)*
-- **code-id:** `n/a`
+#### Mainnet: `Stargaze-1`
+- **code-id:** `205`
 - **contract-address:** `n/a`
+
+
+*Proposal commonwealth discussion: [link](https://commonwealth.im/stargaze/discussion/15181-whitelist-the-atlas-dao-app)*
+
 
 
 ### Scripts 

@@ -13,8 +13,8 @@ else
 fi
     
 # compute expected results
-resl=$(st q wasm contract $LOAN_CONTRACT  --json)
-resr=$(st q wasm contract $RAFFLE_CONTRACT  --json)
+resl=$(st q wasm contract $LOAN_CONTRACT)
+resr=$(st q wasm contract $RAFFLE_CONTRACT)
 
 # get code id
 code_idl=$(echo $resl | jq -r '.contract_info.code_id')
