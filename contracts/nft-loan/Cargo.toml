@@ -22,7 +22,7 @@ overflow-checks = true
 
 [features]
 # for more explicit tests, cargo test --features=backtraces
-default = ["sg"]
+default = ["vanilla"]
 sg = ["sg-std", "sg721", "sg721-base"]
 vanilla = []
 backtraces = ["cosmwasm-std/backtraces"]

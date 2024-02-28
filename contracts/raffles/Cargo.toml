@@ -12,7 +12,7 @@ license = "Apache-2.0"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["sg"]
+default = ["vanilla"]
 sg = ["sg-std", "sg721","sg721-base"]
 vanilla = []
 backtraces = ["cosmwasm-std/backtraces"]

@@ -139,7 +139,7 @@ fn _get_raffle_end_asset_messages(
                 };
                 into_cosmos_msg(message, nft.address.clone(), None)
             }
-            #[cfg(feature = "sg")]
+            #[cfg(not(feature = "vanilla"))]
             AssetInfo::Sg721Token(sg721_token) => {
                 let message = Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
                     recipient: receiver.clone(),

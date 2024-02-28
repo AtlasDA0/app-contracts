@@ -203,6 +203,7 @@ pub fn raffle_filter(
                     .any(|asset| match asset {
                         AssetInfo::Coin(x) => x.denom == token.as_ref(),
                         AssetInfo::Cw721Coin(x) => x.address == token.as_ref(),
+                        #[cfg(not(feature = "vanilla"))]
                         AssetInfo::Sg721Token(x) => x.address == token.as_ref(),
                     })
             }

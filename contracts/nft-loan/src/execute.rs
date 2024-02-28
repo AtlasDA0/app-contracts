@@ -1,8 +1,8 @@
-#[cfg(feature = "sg")]
+#[cfg(not(feature = "vanilla"))]
 use {
     crate::query::{is_approved_sg721, is_sg721_owner},
     sg721::ExecuteMsg as Sg721ExecuteMsg,
-    utils::state::into_cosmos_msg,
+    utils::state::Sg721Token,
 };
 
 use {
@@ -24,7 +24,7 @@ use {
     cw721::Cw721ExecuteMsg,
     cw721_base::Extension,
     utils::{
-        state::{is_valid_comment, AssetInfo, Cw721Coin, Sg721Token},
+        state::{into_cosmos_msg, is_valid_comment, AssetInfo, Cw721Coin},
         types::{CosmosMsg, Response},
     },
 };
@@ -81,7 +81,7 @@ pub fn list_collaterals(
                 token_id.clone(),
             )
         }
-        #[cfg(feature = "sg")]
+        #[cfg(not(feature = "vanilla"))]
         AssetInfo::Sg721Token(Sg721Token { address, token_id }) => {
             // asserts borrower is owner of collateral
             is_sg721_owner(
@@ -399,7 +399,7 @@ fn _accept_offer_raw(
                     None,
                 )?)
             }
-            #[cfg(feature = "sg")]
+            #[cfg(not(feature = "vanilla"))]
             AssetInfo::Sg721Token(Sg721Token { address, token_id }) => {
                 is_sg721_owner(
                     deps.as_ref(),
@@ -759,7 +759,7 @@ pub fn _withdraw_asset(asset: &AssetInfo, _sender: Addr, recipient: Addr) -> Std
             cw721.address.clone(),
             None,
         ),
-        #[cfg(feature = "sg")]
+        #[cfg(not(feature = "vanilla"))]
         AssetInfo::Sg721Token(sg721) => into_cosmos_msg(
             Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
                 recipient: recipient.to_string(),

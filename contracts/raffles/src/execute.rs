@@ -49,6 +49,7 @@ pub fn execute_create_raffle(
                 return Err(ContractError::InvalidTicketCost {});
             };
         }
+        #[cfg(not(feature = "vanilla"))]
         AssetInfo::Sg721Token(_) => return Err(ContractError::InvalidTicketCost),
     }
 
@@ -105,7 +106,7 @@ pub fn execute_create_raffle(
 
                 into_cosmos_msg(message, token.address.clone(), None)
             }
-            #[cfg(feature = "sg")]
+            #[cfg(not(feature = "vanilla"))]
             AssetInfo::Sg721Token(token) => {
                 // verify ownership
                 is_sg721_owner(
@@ -334,7 +335,7 @@ pub fn execute_buy_tickets(
     assets: AssetInfo,
 ) -> Result<Response, ContractError> {
     // First we physcially transfer the AssetInfo
-    let transfer_messages: Vec<cosmwasm_std::CosmosMsg<sg_std::StargazeMsgWrapper>> = match &assets
+    let transfer_messages: Vec<CosmosMsg> = match &assets
     {
         // TODO: implement support to provide nft tokens as ticket price
         // AssetInfo::Cw721Coin(token) => {
