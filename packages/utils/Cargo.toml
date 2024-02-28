@@ -8,7 +8,7 @@ backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
 library = []
 
-default = ["vanilla"]
+default = []
 sg = ["sg-std", "sg721", "sg721-base"]
 vanilla = []
 

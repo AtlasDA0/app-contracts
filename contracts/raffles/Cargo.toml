@@ -37,4 +37,4 @@ sg-std = {version= "^3.2", optional = true }
 sg721 = {version= "^3.3", optional = true }
 sg721-base = {version= "^3.3", optional = true }
 
-utils        = { path = "../../packages/utils", version = "0.1.0", feature = "vanilla" }
+utils        = { path = "../../packages/utils", version = "0.1.0" }

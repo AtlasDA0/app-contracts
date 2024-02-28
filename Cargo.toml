@@ -7,7 +7,7 @@ members = [
 resolver = "2"
 
 [workspace.features]
-default = ["vanilla"]
+default = []
 sg = ["sg-std", "sg721","sg721-base"]
 vanilla = []
 

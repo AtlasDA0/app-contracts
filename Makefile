@@ -1,21 +1,20 @@
-all: 
-	rustup target add wasm32-unknown-unknown
-	RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown
-	cp ./target/wasm32-unknown-unknown/release/crosschain_contract.wasm ./crosschain_contract.wasm
+all:
+	make sg vanilla
+	sha256sum artifacts/*
 
 sg: 
 	rustup target add wasm32-unknown-unknown
 	RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown --no-default-features --features sg
-	cp ./target/wasm32-unknown-unknown/release/raffles.wasm ./artifacts/raffles.wasm 
-	cp -p ./target/wasm32-unknown-unknown/release/nft_loans_nc.wasm ./artifacts/nft_loans_nc.wasm
+	mkdir artifacts
+	mv ./target/wasm32-unknown-unknown/release/raffles.wasm ./artifacts/sg_raffles.wasm 
+	mv ./target/wasm32-unknown-unknown/release/nft_loans_nc.wasm ./artifacts/sg_nft_loans_nc.wasm
 
 vanilla:
 	rustup target add wasm32-unknown-unknown
 	RUSTFLAGS='-C link-arg=-s' cargo build --release --target wasm32-unknown-unknown --no-default-features --features vanilla
-	cp -p ./target/wasm32-unknown-unknown/release/raffles.wasm ./artifacts/raffles.wasm 
-	cp -p ./target/wasm32-unknown-unknown/release/nft_loans_nc.wasm ./artifacts/nft_loans_nc.wasm 
+	mv ./target/wasm32-unknown-unknown/release/raffles.wasm ./artifacts/vanilla_raffles.wasm 
+	mv ./target/wasm32-unknown-unknown/release/nft_loans_nc.wasm ./artifacts/vanilla_nft_loans_nc.wasm 
 
 
 clean:
 	cargo clean
-	-rm -f ./v1_contract.wasm

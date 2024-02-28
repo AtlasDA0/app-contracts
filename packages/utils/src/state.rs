@@ -13,7 +13,7 @@ pub const NATIVE_DENOM: &str = "ustars"; // TODO: Setup native tokens repo
 
 // ASSETS
 #[cw_serde]
-#[cfg(feature = "sg")]
+#[cfg(not(feature = "vanilla"))]
 pub struct Sg721Token {
     pub address: String,
     pub token_id: String,
