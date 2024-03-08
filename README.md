@@ -17,15 +17,15 @@ You can find the documentation for these smart contracts [here.](https://docs.at
 - **contract:** `stars1wh7f798wrwkcxs3d6x5e9l5wqg27cut9es07wj8uq9ehmk8x74zs6g2wsh`
 #### Mainnet: `Stargaze-1`
 - **code-id:** `204`
-- **contract-address:** `n/a`
+- **contract-address:** `stars16u49fhakqrvnyyhw075x9n6mrevgauwacfca39vj2utpepauplqsz7z3h5`
 
 ### [On-Chain Raffles](./contracts//raffles/README.md)
 #### Testnet: `Elgafar-1`
 - **code-id:** `3650`
 - **contract:** `stars1hqvn37a7dn58gzq6md4y5gk20e9j4gmm9eu8c7g5vhqj5mpsd0uqg55ngg`
 #### Mainnet: `Stargaze-1`
-- **code-id:** `205`
-- **contract-address:** `n/a`
+- **code-id:** `203`
+- **contract-address:** `stars19nz52gq75j6q3hw5wh0wznqvtc8pufncmt8pckeuksqs5pnn5c6qpsp3zt`
 
 
 *Proposal commonwealth discussion: [link](https://commonwealth.im/stargaze/discussion/15181-whitelist-the-atlas-dao-app)*
