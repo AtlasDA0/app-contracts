@@ -28,7 +28,6 @@ You can find the documentation for these smart contracts [here.](https://docs.at
 - **contract-address:** `stars19nz52gq75j6q3hw5wh0wznqvtc8pufncmt8pckeuksqs5pnn5c6qpsp3zt`
 
 
-*Proposal commonwealth discussion: [link](https://commonwealth.im/stargaze/discussion/15181-whitelist-the-atlas-dao-app)*
 
 
 
