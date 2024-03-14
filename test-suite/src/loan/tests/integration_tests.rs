@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::{coin, Addr, Coin, Decimal, StdError, Timestamp, Uint128};
-    use cw721::{ApprovalsResponse, OwnerOfResponse};
+    use cw721::OwnerOfResponse;
     use cw_multi_test::Executor;
     use sg721_base::QueryMsg as Sg721QueryMsg;
     use sg_std::NATIVE_DENOM;
@@ -41,7 +41,7 @@ mod tests {
             loan_contract_addr: loan_addr.clone(),
             owner_addr: owner_address.clone(),
         };
-        create_loan_function(create_loan_params.into()).unwrap();
+        create_loan_function(create_loan_params).unwrap();
 
         // good list collaterals
         let [contract_bal_before, sender_bal_before, fee_bal_before]: [Uint128; 3] = [
@@ -52,7 +52,7 @@ mod tests {
         .into_iter()
         .map(|x| {
             app.wrap()
-                .query_balance(&x, NATIVE_DENOM.to_string())
+                .query_balance(x, NATIVE_DENOM.to_string())
                 .unwrap()
                 .amount
         })
@@ -103,7 +103,7 @@ mod tests {
         .into_iter()
         .map(|x| {
             app.wrap()
-                .query_balance(&x, NATIVE_DENOM.to_string())
+                .query_balance(x, NATIVE_DENOM.to_string())
                 .unwrap()
                 .amount
         })
