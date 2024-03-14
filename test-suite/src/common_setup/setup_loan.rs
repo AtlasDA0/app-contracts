@@ -124,38 +124,36 @@ pub fn configure_loan_assets(
     sg_factory_addr: Addr,
 ) -> &mut StargazeApp {
     let router = app;
-    let current_time = router.block_info().time.clone();
+    let current_time = router.block_info().time;
 
     let _create_nft_minter = router.execute_contract(
         owner_addr.clone(),
         sg_factory_addr.clone(),
-        &SgVendingFactoryExecuteMsg::CreateMinter {
-            0: VendingMinterCreateMsg {
-                init_msg: vending_factory::msg::VendingMinterInitMsgExtension {
-                    base_token_uri: "ipfs://aldkfjads".to_string(),
-                    payment_address: Some(OWNER_ADDR.to_string()),
-                    start_time: current_time.clone(),
-                    num_tokens: 100,
-                    mint_price: coin(Uint128::new(100000u128).u128(), NATIVE_DENOM),
-                    per_address_limit: 3,
-                    whitelist: None,
-                },
-                collection_params: sg2::msg::CollectionParams {
-                    code_id: 3,
-                    name: "Collection Name".to_string(),
-                    symbol: "COL".to_string(),
-                    info: CollectionInfo {
-                        creator: owner_addr.to_string(),
-                        description: String::from("Atlanauts"),
-                        image: "https://example.com/image.png".to_string(),
-                        external_link: Some("https://example.com/external.html".to_string()),
-                        start_trading_time: None,
-                        explicit_content: Some(false),
-                        royalty_info: None,
-                    },
+        &SgVendingFactoryExecuteMsg::CreateMinter(VendingMinterCreateMsg {
+            init_msg: vending_factory::msg::VendingMinterInitMsgExtension {
+                base_token_uri: "ipfs://aldkfjads".to_string(),
+                payment_address: Some(OWNER_ADDR.to_string()),
+                start_time: current_time,
+                num_tokens: 100,
+                mint_price: coin(Uint128::new(100000u128).u128(), NATIVE_DENOM),
+                per_address_limit: 3,
+                whitelist: None,
+            },
+            collection_params: sg2::msg::CollectionParams {
+                code_id: 3,
+                name: "Collection Name".to_string(),
+                symbol: "COL".to_string(),
+                info: CollectionInfo {
+                    creator: owner_addr.to_string(),
+                    description: String::from("Atlanauts"),
+                    image: "https://example.com/image.png".to_string(),
+                    external_link: Some("https://example.com/external.html".to_string()),
+                    start_trading_time: None,
+                    explicit_content: Some(false),
+                    royalty_info: None,
                 },
             },
-        },
+        }),
         &[Coin {
             denom: NATIVE_DENOM.to_string(),
             amount: Uint128::new(100000u128),

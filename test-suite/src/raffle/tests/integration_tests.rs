@@ -88,7 +88,7 @@ mod tests {
             msg_senders: vec![one.clone()],
             raffle_id: 0,
             num_tickets: 1,
-            funds_send: vec![coin(10, "ustars")].into(),
+            funds_send: vec![coin(10, "ustars")],
         };
         buy_tickets_template(params).unwrap();
         // addr_two buys ticket
@@ -98,7 +98,7 @@ mod tests {
             msg_senders: vec![two.clone()],
             raffle_id: 0,
             num_tickets: 1,
-            funds_send: vec![coin(10, "ustars")].into(),
+            funds_send: vec![coin(10, "ustars")],
         };
         buy_tickets_template(params).unwrap();
 
@@ -126,13 +126,13 @@ mod tests {
         assert_eq!(res.unwrap().amount, Uint128::new(100000000024));
 
         // move forward in time
-        let current_time = app.block_info().time.clone();
-        let current_block = app.block_info().height.clone();
+        let current_time = app.block_info().time;
+        let current_block = app.block_info().height;
         let chainid = app.block_info().chain_id.clone();
         setup_block_time(
             &mut app,
             current_time.clone().plus_seconds(130).nanos(),
-            Some(current_block.clone() + 100),
+            Some(current_block + 100),
             &chainid.clone(),
         );
 
@@ -144,7 +144,7 @@ mod tests {
                 &ExecuteMsg::NoisReceive {
                     callback: NoisCallback {
                         job_id: "raffle-0".to_string(),
-                        published: current_time.clone(),
+                        published: current_time,
                         randomness: HexBinary::from_hex(
                             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
                         )
@@ -210,7 +210,7 @@ mod tests {
                 },
             )
             .unwrap();
-        // confirm nft approval is removed 
+        // confirm nft approval is removed
         assert_eq!(res.approvals, []);
 
         // confirm raffle owner and treasury set recieve correct amount of tokens
@@ -262,7 +262,7 @@ mod tests {
             msg_senders: vec![one.clone()],
             raffle_id: 0,
             num_tickets: 1,
-            funds_send: vec![coin(10, "ustars")].into(),
+            funds_send: vec![coin(10, "ustars")],
         };
         buy_tickets_template(params).unwrap();
 
@@ -277,13 +277,13 @@ mod tests {
         assert_eq!(res.unwrap().amount, Uint128::new(100000000014));
 
         // move forward in time
-        let current_time = app.block_info().time.clone();
-        let current_block = app.block_info().height.clone();
+        let current_time = app.block_info().time;
+        let current_block = app.block_info().height;
         let chainid = app.block_info().chain_id.clone();
         setup_block_time(
             &mut app,
             current_time.clone().plus_seconds(130).nanos(),
-            Some(current_block.clone() + 100),
+            Some(current_block + 100),
             &chainid.clone(),
         );
 
@@ -295,7 +295,7 @@ mod tests {
                 &ExecuteMsg::NoisReceive {
                     callback: NoisCallback {
                         job_id: "raffle-0".to_string(),
-                        published: current_time.clone(),
+                        published: current_time,
                         randomness: HexBinary::from_hex(
                             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
                         )
@@ -438,7 +438,7 @@ mod tests {
             msg_senders: vec![one.clone()],
             raffle_id: 0,
             num_tickets: 10,
-            funds_send: vec![coin(100, "ustars")].into(),
+            funds_send: vec![coin(100, "ustars")],
         };
         buy_tickets_template(params).unwrap();
         // addr_one buys 5 tickets from raffle 2
@@ -448,7 +448,7 @@ mod tests {
             msg_senders: vec![one.clone()],
             raffle_id: 1,
             num_tickets: 5,
-            funds_send: vec![coin(100, "ustars")].into(),
+            funds_send: vec![coin(100, "ustars")],
         };
         buy_tickets_template(params).unwrap();
         // addr_two buys 10 tickets from raffle 2
@@ -458,7 +458,7 @@ mod tests {
             msg_senders: vec![two.clone()],
             raffle_id: 1,
             num_tickets: 10,
-            funds_send: vec![coin(200, "ustars")].into(),
+            funds_send: vec![coin(200, "ustars")],
         };
         buy_tickets_template(params).unwrap();
         // addr_three buys 5 tickets from raffle 2
@@ -468,7 +468,7 @@ mod tests {
             msg_senders: vec![three.clone()],
             raffle_id: 1,
             num_tickets: 5,
-            funds_send: vec![coin(100, "ustars")].into(),
+            funds_send: vec![coin(100, "ustars")],
         };
         buy_tickets_template(params).unwrap();
         // addr_three buys 5 tickets from raffle 1
@@ -478,16 +478,16 @@ mod tests {
             msg_senders: vec![three.clone()],
             raffle_id: 0,
             num_tickets: 5,
-            funds_send: vec![coin(50, "ustars")].into(),
+            funds_send: vec![coin(50, "ustars")],
         };
         buy_tickets_template(params).unwrap();
 
         // move forward in time
-        let current_time = app.block_info().time.clone();
-        let current_block = app.block_info().height.clone();
+        let current_time = app.block_info().time;
+        let current_block = app.block_info().height;
         let chainid = app.block_info().chain_id.clone();
         app.set_block(BlockInfo {
-            height: current_block.clone() + 50,
+            height: current_block + 50,
             time: current_time.clone().plus_seconds(1000),
             chain_id: chainid.clone(),
         });
@@ -500,7 +500,7 @@ mod tests {
                 &ExecuteMsg::NoisReceive {
                     callback: NoisCallback {
                         job_id: "raffle-0".to_string(),
-                        published: current_time.clone(),
+                        published: current_time,
                         randomness: HexBinary::from_hex(
                             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
                         )
@@ -519,7 +519,7 @@ mod tests {
                 &ExecuteMsg::NoisReceive {
                     callback: NoisCallback {
                         job_id: "raffle-1".to_string(),
-                        published: current_time.clone(),
+                        published: current_time,
                         randomness: HexBinary::from_hex(
                             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa130",
                         )

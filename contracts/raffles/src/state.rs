@@ -126,7 +126,7 @@ pub fn get_raffle_state(env: Env, raffle_info: RaffleInfo) -> RaffleState {
             .raffle_start_timestamp
             .plus_seconds(raffle_info.raffle_options.raffle_duration)
             .plus_seconds(raffle_info.raffle_options.raffle_timeout)
-        || raffle_info.randomness == None
+        || raffle_info.randomness.is_none()
     {
         RaffleState::Closed
     } else if raffle_info.winners.is_empty() {

@@ -12,7 +12,7 @@ use cosmwasm_std::{
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
 
-use nois::{int_in_range, ints_in_range, ProxyExecuteMsg};
+use nois::{ints_in_range, ProxyExecuteMsg};
 
 use utils::{
     state::{into_cosmos_msg, AssetInfo},
@@ -20,7 +20,7 @@ use utils::{
 };
 
 pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, ContractError> {
-    let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id.clone())?;
+    let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
     let config = CONFIG.load(deps.storage)?;
     let id: String = raffle_id.to_string();
     let nois_fee: Coin = config.nois_proxy_coin;
@@ -162,7 +162,7 @@ fn _get_raffle_end_asset_messages(
                     };
                     into_cosmos_msg(message, sg721_token.address.clone(), None)
                 }
-                _ => return Err(StdError::generic_err("unreachable")),
+                _ => Err(StdError::generic_err("unreachable")),
             }
         })
         .collect()
@@ -198,15 +198,15 @@ pub fn can_buy_ticket(env: Env, raffle_info: RaffleInfo) -> Result<(), ContractE
     if get_raffle_state(env, raffle_info) == RaffleState::Started {
         Ok(())
     } else {
-        return Err(ContractError::CantBuyTickets {});
+        Err(ContractError::CantBuyTickets {})
     }
 }
 
 pub fn get_raffle_winner_messages(
-    deps: Deps,
+    _deps: Deps,
     env: Env,
     raffle_info: RaffleInfo,
-    raffle_id: u64,
+    _raffle_id: u64,
 ) -> StdResult<Vec<CosmosMsg>> {
     let winners = raffle_info.winners.clone();
     // generate state modifications for
