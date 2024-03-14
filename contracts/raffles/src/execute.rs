@@ -441,16 +441,6 @@ pub fn _buy_tickets(
         }
     };
 
-    if let Some(max_tickets_per_raffle) = raffle_info.raffle_options.max_ticket_number {
-        if raffle_info.number_of_tickets + ticket_count > max_tickets_per_raffle {
-            return Err(ContractError::TooMuchTickets {
-                max: max_tickets_per_raffle,
-                nb_before: raffle_info.number_of_tickets,
-                nb_after: raffle_info.number_of_tickets + ticket_count,
-            });
-        }
-    }
-
     // Then we save the sender to the bought tickets
     for n in 0..ticket_count {
         RAFFLE_TICKETS.save(
@@ -465,6 +455,15 @@ pub fn _buy_tickets(
         None => Ok(ticket_count),
     })?;
     raffle_info.number_of_tickets += ticket_count;
+
+    // If all tickets have been bought, we stop the raffle.
+    // The raffle duration is amended to reflect that
+    if let Some(max_ticket_number) = raffle_info.raffle_options.max_ticket_number {
+        if raffle_info.number_of_tickets >= max_ticket_number {
+            raffle_info.raffle_options.raffle_duration =
+                env.block.time - raffle_info.raffle_options.raffle_start_timestamp;
+        }
+    };
 
     RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 
