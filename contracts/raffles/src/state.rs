@@ -76,7 +76,7 @@ pub struct RaffleInfo {
     pub raffle_ticket_price: AssetInfo, // cost per ticket
     pub number_of_tickets: u32,         // number of tickets purchased
     pub randomness: Option<HexBinary>,  // randomness seed provided by nois_proxy
-    pub winner: Option<Addr>,           // winner is determined here
+    pub winners: Vec<Addr>,             // winner is determined here
     pub is_cancelled: bool,
     pub raffle_options: RaffleOptions,
 }
@@ -129,7 +129,7 @@ pub fn get_raffle_state(env: Env, raffle_info: RaffleInfo) -> RaffleState {
         || raffle_info.randomness == None
     {
         RaffleState::Closed
-    } else if raffle_info.winner.is_none() {
+    } else if raffle_info.winners.is_empty() {
         RaffleState::Finished
     } else {
         RaffleState::Claimed
@@ -145,6 +145,7 @@ pub struct RaffleOptions {
     pub max_ticket_number: Option<u32>, // max amount of tickets able to be purchased
     pub max_ticket_per_address: Option<u32>, // max amount of tickets able to bought per address
     pub raffle_preview: u32, // ?
+    pub one_winner_per_asset: bool, // Allows to set multiple winners per raffle (one per asset)
 }
 
 #[cw_serde]
@@ -156,6 +157,7 @@ pub struct RaffleOptionsMsg {
     pub max_ticket_number: Option<u32>,
     pub max_ticket_per_address: Option<u32>,
     pub raffle_preview: Option<u32>,
+    pub one_winner_per_asset: bool,
 }
 
 impl RaffleOptions {
@@ -191,6 +193,7 @@ impl RaffleOptions {
                     }
                 })
                 .unwrap_or(0u32),
+            one_winner_per_asset: raffle_options.one_winner_per_asset,
         }
     }
 
@@ -230,6 +233,7 @@ impl RaffleOptions {
                     }
                 })
                 .unwrap_or(current_options.raffle_preview),
+            one_winner_per_asset: raffle_options.one_winner_per_asset,
         }
     }
 }

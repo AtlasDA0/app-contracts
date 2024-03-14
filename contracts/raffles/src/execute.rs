@@ -24,7 +24,7 @@ use crate::{
     },
     utils::{
         can_buy_ticket, get_nois_randomness, get_raffle_owner_finished_messages,
-        get_raffle_owner_messages, get_raffle_winner, get_raffle_winner_messages, is_raffle_owner,
+        get_raffle_owner_messages, get_raffle_winner_messages, get_raffle_winners, is_raffle_owner,
         ticket_cost,
     },
 };
@@ -212,7 +212,7 @@ pub fn _create_raffle(
             raffle_ticket_price: raffle_ticket_price.clone(), // No checks for the assetInfo type, the worst thing that can happen is an error when trying to buy a raffle ticket
             number_of_tickets: 0u32,
             randomness: None,
-            winner: None,
+            winners: vec![],
             is_cancelled: false,
             raffle_options: RaffleOptions::new(env, all_assets.len(), raffle_options, config),
         }),
@@ -598,11 +598,11 @@ pub fn execute_determine_winner(
 
     // If there was no participant, the winner is the raffle owner and we pay no fees whatsoever
     if raffle_info.number_of_tickets == 0u32 {
-        raffle_info.winner = Some(raffle_info.owner.clone());
+        raffle_info.winners = vec![raffle_info.owner.clone()];
     } else {
         // We calculate the winner of the raffle and save it to the contract. The raffle is now claimed !
-        let winner = get_raffle_winner(deps.as_ref(), env.clone(), raffle_id, raffle_info.clone())?;
-        raffle_info.winner = Some(winner);
+        raffle_info.winners =
+            get_raffle_winners(deps.as_ref(), env.clone(), raffle_id, raffle_info.clone())?;
     }
     RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 
@@ -622,7 +622,15 @@ pub fn execute_determine_winner(
         .add_messages(funds_transfer_messages)
         .add_attribute("action", "claim")
         .add_attribute("raffle_id", raffle_id.to_string())
-        .add_attribute("winner", raffle_info.winner.unwrap()))
+        .add_attribute(
+            "winners",
+            raffle_info
+                .winners
+                .into_iter()
+                .map(|a| a.to_string())
+                .collect::<Vec<_>>()
+                .join(", "),
+        ))
 }
 
 /// Update the randomness assigned to a raffle

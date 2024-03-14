@@ -12,7 +12,7 @@ use cosmwasm_std::{
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
 
-use nois::{int_in_range, ProxyExecuteMsg};
+use nois::{int_in_range, ints_in_range, ProxyExecuteMsg};
 
 use utils::{
     state::{into_cosmos_msg, AssetInfo},
@@ -93,12 +93,12 @@ pub fn get_raffle_owner_finished_messages(
 }
 
 /// Picking the winner of the raffle
-pub fn get_raffle_winner(
+pub fn get_raffle_winners(
     deps: Deps,
     env: Env,
     raffle_id: u64,
     raffle_info: RaffleInfo,
-) -> Result<Addr, ContractError> {
+) -> Result<Vec<Addr>, ContractError> {
     // if randomness not has been provided then we expect an error
     if raffle_info.randomness.is_none() {
         return Err(ContractError::WrongStateForClaim {
@@ -109,45 +109,61 @@ pub fn get_raffle_winner(
     // We initiate the random number generator
     let randomness: [u8; 32] = HexBinary::to_array(&raffle_info.randomness.unwrap())?;
 
-    // We pick a winner id
-    let winner_id = int_in_range(randomness.into(), 0, raffle_info.number_of_tickets);
-    let winner = RAFFLE_TICKETS.load(deps.storage, (raffle_id, winner_id))?;
+    let nb_winners = if raffle_info.raffle_options.one_winner_per_asset {
+        raffle_info.assets.len()
+    } else {
+        1
+    };
 
-    Ok(winner)
+    let winner_ids = ints_in_range(randomness, nb_winners, 0, raffle_info.number_of_tickets);
+    let winners = winner_ids
+        .into_iter()
+        .map(|winner_id| RAFFLE_TICKETS.load(deps.storage, (raffle_id, winner_id)))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(winners)
 }
 
 /// Util to get the raffle creator messages to return when the Raffle is cancelled (returns the raffled asset)
 pub fn get_raffle_owner_messages(env: Env, raffle_info: RaffleInfo) -> StdResult<Vec<CosmosMsg>> {
     let owner: Addr = raffle_info.owner.clone();
-    _get_raffle_end_asset_messages(env, raffle_info, owner.to_string())
+    _get_raffle_end_asset_messages(env, raffle_info, vec![owner])
 }
 
 /// Util to get the assets back from a raffle
 fn _get_raffle_end_asset_messages(
     _env: Env,
     raffle_info: RaffleInfo,
-    receiver: String,
+    receivers: Vec<Addr>,
 ) -> StdResult<Vec<CosmosMsg>> {
     raffle_info
         .assets
         .iter()
-        .map(|asset| match asset {
-            AssetInfo::Cw721Coin(nft) => {
-                let message = Cw721ExecuteMsg::TransferNft {
-                    recipient: receiver.clone(),
-                    token_id: nft.token_id.clone(),
-                };
-                into_cosmos_msg(message, nft.address.clone(), None)
+        .enumerate()
+        .map(|(i, asset)| {
+            let receiver = if receivers.len() == 1 {
+                receivers[0].to_string()
+            } else {
+                receivers[i].to_string()
+            };
+            match asset {
+                AssetInfo::Cw721Coin(nft) => {
+                    let message = Cw721ExecuteMsg::TransferNft {
+                        recipient: receiver,
+                        token_id: nft.token_id.clone(),
+                    };
+                    into_cosmos_msg(message, nft.address.clone(), None)
+                }
+                #[cfg(feature = "sg")]
+                AssetInfo::Sg721Token(sg721_token) => {
+                    let message = Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
+                        recipient: receiver,
+                        token_id: sg721_token.token_id.clone(),
+                    };
+                    into_cosmos_msg(message, sg721_token.address.clone(), None)
+                }
+                _ => return Err(StdError::generic_err("unreachable")),
             }
-            #[cfg(feature = "sg")]
-            AssetInfo::Sg721Token(sg721_token) => {
-                let message = Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
-                    recipient: receiver.clone(),
-                    token_id: sg721_token.token_id.clone(),
-                };
-                into_cosmos_msg(message, sg721_token.address.clone(), None)
-            }
-            _ => return Err(StdError::generic_err("unreachable")),
         })
         .collect()
 }
@@ -192,13 +208,9 @@ pub fn get_raffle_winner_messages(
     raffle_info: RaffleInfo,
     raffle_id: u64,
 ) -> StdResult<Vec<CosmosMsg>> {
-    if raffle_info.winner.clone() == None {
-        // refetch raffle winner with randomness
-        get_raffle_winner(deps, env.clone(), raffle_id, raffle_info.clone()).unwrap();
-    }
-    let winner = raffle_info.winner.clone().unwrap();
+    let winners = raffle_info.winners.clone();
     // generate state modifications for
-    _get_raffle_end_asset_messages(env, raffle_info, winner.to_string())
+    _get_raffle_end_asset_messages(env, raffle_info, winners)
 }
 
 // RAFFLE WINNER
