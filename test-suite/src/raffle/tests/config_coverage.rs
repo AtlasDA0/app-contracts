@@ -74,7 +74,7 @@ mod tests {
     #[test]
     fn test_raffle_contract_config_permissions_coverage() {
         let (mut app, raffle_addr, _) = proper_raffle_instantiate();
-        let current_time = app.block_info().time.clone();
+        let current_time = app.block_info().time;
         // errors
         // unable to update contract config
         let error_updating_config = app
@@ -113,7 +113,7 @@ mod tests {
                 &raffles::msg::ExecuteMsg::NoisReceive {
                     callback: NoisCallback {
                         job_id: "raffle-0".to_string(),
-                        published: current_time.clone(),
+                        published: current_time,
                         randomness: HexBinary::from_hex(
                             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
                         )
@@ -202,7 +202,7 @@ mod tests {
             })],
             duration: None,
         };
-        create_raffle_function(create_raffle_params.into()).unwrap();
+        create_raffle_function(create_raffle_params).unwrap();
 
         let _invalid_toggle_lock = app
             .execute_contract(
@@ -217,7 +217,7 @@ mod tests {
             .wrap()
             .query_wasm_smart(raffle_addr.to_string(), &RaffleQueryMsg::Config {})
             .unwrap();
-        assert_eq!(res.locks.lock, true);
+        assert!(res.locks.lock);
 
         let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
             app: &mut app,
@@ -273,7 +273,7 @@ mod tests {
             })],
             duration: None,
         };
-        create_raffle_function(create_raffle_params.into()).unwrap();
+        create_raffle_function(create_raffle_params).unwrap();
 
         let _invalid_toggle_lock = app
             .wasm_sudo(
@@ -287,7 +287,7 @@ mod tests {
             .wrap()
             .query_wasm_smart(raffle_addr.to_string(), &RaffleQueryMsg::Config {})
             .unwrap();
-        assert_eq!(res.locks.sudo_lock, true);
+        assert!(res.locks.sudo_lock);
 
         let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
             app: &mut app,
