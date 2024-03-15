@@ -118,7 +118,7 @@ pub fn get_raffle_state(env: Env, raffle_info: RaffleInfo) -> RaffleState {
             .raffle_options
             .raffle_start_timestamp
             .plus_seconds(raffle_info.raffle_options.raffle_duration)
-        || raffle_info.number_of_tickets < raffle_info.raffle_options.min_ticket_number
+        || raffle_info.number_of_tickets < raffle_info.raffle_options.min_ticket_number.unwrap_or(0)
     {
         RaffleState::Started
     } else if env.block.time

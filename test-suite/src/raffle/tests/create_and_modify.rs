@@ -76,6 +76,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: 0,
+                        min_ticket_number: None,
                     }
                 })
             }
@@ -132,6 +133,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: 0,
+                        min_ticket_number: None,
                     }
                 })
             }
@@ -316,6 +318,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: None,
+                        min_ticket_number: None,
                     },
                 },
                 &[],
@@ -340,6 +343,7 @@ mod tests {
                     max_ticket_number: None,
                     max_ticket_per_address: None,
                     raffle_preview: None,
+                    min_ticket_number: None,
                 },
             },
             &[],
@@ -382,6 +386,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: None,
+                        min_ticket_number: None,
                     },
                 },
                 &[],
@@ -424,6 +429,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: 0,
+                        min_ticket_number: None,
                     }
                 })
             }
@@ -445,6 +451,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: None,
+                        min_ticket_number: None,
                     },
                 },
                 &[],
@@ -487,6 +494,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: 0,
+                        min_ticket_number: None,
                     }
                 })
             }

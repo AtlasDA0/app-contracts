@@ -414,7 +414,7 @@ pub fn _buy_tickets(
     }
 
     // We then check the raffle is in the right state
-    can_buy_ticket(env, raffle_info.clone())?;
+    can_buy_ticket(env.clone(), raffle_info.clone())?;
 
     // Then we check the user has the right to buy `ticket_count` more tickets
     if let Some(max_ticket_per_address) = raffle_info.raffle_options.max_ticket_per_address {
@@ -460,8 +460,8 @@ pub fn _buy_tickets(
     // The raffle duration is amended to reflect that
     if let Some(max_ticket_number) = raffle_info.raffle_options.max_ticket_number {
         if raffle_info.number_of_tickets >= max_ticket_number {
-            raffle_info.raffle_options.raffle_duration =
-                env.block.time - raffle_info.raffle_options.raffle_start_timestamp;
+            raffle_info.raffle_options.raffle_duration = env.block.time.seconds()
+                - raffle_info.raffle_options.raffle_start_timestamp.seconds();
         }
     };
 

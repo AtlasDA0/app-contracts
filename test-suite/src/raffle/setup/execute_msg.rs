@@ -94,6 +94,7 @@ pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse,
                 max_ticket_number: None,
                 max_ticket_per_address: None,
                 raffle_preview: None,
+                min_ticket_number: None,
             },
             raffle_ticket_price: AssetInfo::Coin(Coin {
                 denom: "ustars".to_string(),
@@ -152,6 +153,7 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
                 max_ticket_number: None,
                 max_ticket_per_address: max_per_addr,
                 raffle_preview: None,
+                min_ticket_number: None,
             },
             raffle_ticket_price: AssetInfo::Coin(Coin {
                 denom: "ustars".to_string(),
