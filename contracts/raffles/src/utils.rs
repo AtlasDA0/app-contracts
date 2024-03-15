@@ -110,7 +110,7 @@ pub fn get_raffle_winner(
     let randomness: [u8; 32] = HexBinary::to_array(&raffle_info.randomness.unwrap())?;
 
     // We pick a winner id
-    let winner_id = int_in_range(randomness.into(), 0, raffle_info.number_of_tickets);
+    let winner_id = int_in_range(randomness.into(), 0, raffle_info.number_of_tickets - 1);
     let winner = RAFFLE_TICKETS.load(deps.storage, (raffle_id, winner_id))?;
 
     Ok(winner)
