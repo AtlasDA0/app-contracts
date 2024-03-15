@@ -11,18 +11,24 @@ use utils::{
     types::Response,
 };
 
-use crate::execute::{
-    accept_loan, accept_offer, cancel_offer, execute_toggle_lock, list_collaterals, make_offer,
-    modify_collaterals, refuse_offer, repay_borrowed_funds, withdraw_collateral,
-    withdraw_defaulted_loan, withdraw_refused_offer,
-};
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::query::{
     query_all_collaterals, query_borrower_info, query_collateral_info, query_collaterals,
     query_config, query_lender_offers, query_offer_info, query_offers,
 };
 use crate::state::{Config, CONFIG, STATIC_LOAN_LISTING_FEE};
 use crate::{error::ContractError, execute::execute_sudo_toggle_lock};
+use crate::{
+    execute::{
+        accept_loan, accept_offer, cancel_offer, execute_toggle_lock, list_collaterals, make_offer,
+        modify_collaterals, refuse_offer, repay_borrowed_funds, withdraw_collateral,
+        withdraw_defaulted_loan, withdraw_refused_offer,
+    },
+    extension::request_loan_extension,
+};
+use crate::{
+    extension::accept_loan_extension,
+    msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
+};
 // version info for migration info
 const CONTRACT_NAME: &str = concat!("crates.io:", env!("CARGO_CRATE_NAME"));
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -112,7 +118,6 @@ pub fn execute(
             loan_id,
             comment,
         } => accept_loan(deps, env, info, borrower, loan_id, comment),
-
         ExecuteMsg::AcceptOffer { global_offer_id } => {
             accept_offer(deps, env, info, global_offer_id)
         }
@@ -137,8 +142,6 @@ pub fn execute(
         ExecuteMsg::WithdrawDefaultedLoan { borrower, loan_id } => {
             withdraw_defaulted_loan(deps, env, info, borrower, loan_id)
         }
-
-        // Internal Contract Logic
         ExecuteMsg::SetOwner { owner } => set_owner(deps, env, info, owner),
         ExecuteMsg::SetFeeDestination { treasury_addr } => {
             set_fee_distributor(deps, env, info, treasury_addr)
@@ -148,6 +151,25 @@ pub fn execute(
         }
         ExecuteMsg::SetFeeRate { fee_rate } => set_fee_rate(deps, env, info, fee_rate),
         ExecuteMsg::ToggleLock { lock } => execute_toggle_lock(deps, info, env, lock),
+        ExecuteMsg::RequestExtension {
+            loan_id,
+            comment,
+            additional_interest,
+            additional_duration,
+        } => request_loan_extension(
+            deps,
+            env,
+            info,
+            loan_id,
+            comment,
+            additional_interest,
+            additional_duration,
+        ),
+        ExecuteMsg::AcceptExtension {
+            loan_id,
+            borrower,
+            extension_id,
+        } => accept_loan_extension(deps, env, info, borrower, loan_id, extension_id),
     }
 }
 
@@ -167,10 +189,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             limit,
             // filters,
         } => to_json_binary(&query_collaterals(deps, borrower, start_after, limit)?),
-        QueryMsg::AllCollaterals {
-            start_after,
-            limit,
-        } => to_json_binary(&query_all_collaterals(deps, start_after, limit)?),
+        QueryMsg::AllCollaterals { start_after, limit } => {
+            to_json_binary(&query_all_collaterals(deps, start_after, limit)?)
+        }
         QueryMsg::OfferInfo { global_offer_id } => {
             to_json_binary(&query_offer_info(deps, global_offer_id)?)
         }

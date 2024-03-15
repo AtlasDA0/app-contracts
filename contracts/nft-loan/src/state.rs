@@ -8,6 +8,8 @@ use crate::error::ContractError;
 pub const CONFIG: Item<Config> = Item::new("config");
 pub const COLLATERAL_INFO: Map<(Addr, u64), CollateralInfo> = Map::new("collateral_info");
 pub const BORROWER_INFO: Map<&Addr, BorrowerInfo> = Map::new("borrower_info");
+pub const LOAN_EXTENSION_INFO: Map<(Addr, u64), LoanExtensionInfo> =
+    Map::new("loan_extension_info");
 pub const STATIC_LOAN_LISTING_FEE: u128 = 10;
 
 #[cw_serde]
@@ -133,6 +135,14 @@ pub struct LoanTerms {
     pub principle: Coin,
     pub interest: Uint128,
     pub duration_in_blocks: u64,
+}
+
+#[cw_serde]
+pub struct LoanExtensionInfo {
+    pub comment: Option<String>,
+    pub extension_id: u32,
+    pub additional_interest: Uint128,
+    pub additional_duration: u64,
 }
 
 pub struct LenderOfferIndexes<'a> {
