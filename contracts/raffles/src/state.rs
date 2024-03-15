@@ -1,6 +1,6 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    ensure, Addr, Coin, Decimal, Env, HexBinary, StdError, StdResult, Storage, Timestamp,
+    ensure, Addr, Api, Coin, Decimal, Env, HexBinary, StdError, StdResult, Storage, Timestamp,
 };
 
 use cw_storage_plus::{Item, Map};
@@ -145,6 +145,16 @@ pub struct RaffleOptions {
     pub max_ticket_number: Option<u32>, // max amount of tickets able to be purchased
     pub max_ticket_per_address: Option<u32>, // max amount of tickets able to bought per address
     pub raffle_preview: u32, // ?
+
+    pub token_gated_raffle: TokenGatedOptions, // Allows for token gating raffle tickets. Only owners of those tokens can buy raffle tickets
+}
+
+#[cw_serde]
+pub enum TokenGatedOptions {
+    None,
+    Cw721Coin(Addr),
+    Coin(Coin),
+    Sg721Token(Addr),
 }
 
 #[cw_serde]
@@ -156,16 +166,27 @@ pub struct RaffleOptionsMsg {
     pub max_ticket_number: Option<u32>,
     pub max_ticket_per_address: Option<u32>,
     pub raffle_preview: Option<u32>,
+
+    pub token_gated_raffle: Option<TokenGatedOptionsMsg>,
+}
+
+#[cw_serde]
+pub enum TokenGatedOptionsMsg {
+    None,
+    Cw721Coin(String),
+    Coin(Coin),
+    Sg721Token(String),
 }
 
 impl RaffleOptions {
     pub fn new(
+        api: &dyn Api,
         env: Env,
         assets_len: usize,
         raffle_options: RaffleOptionsMsg,
         config: Config,
-    ) -> Self {
-        Self {
+    ) -> StdResult<Self> {
+        Ok(Self {
             raffle_start_timestamp: raffle_options
                 .raffle_start_timestamp
                 .unwrap_or(env.block.time)
@@ -191,16 +212,30 @@ impl RaffleOptions {
                     }
                 })
                 .unwrap_or(0u32),
-        }
+            token_gated_raffle: match raffle_options.token_gated_raffle {
+                Some(options) => match options {
+                    TokenGatedOptionsMsg::None => todo!(),
+                    TokenGatedOptionsMsg::Cw721Coin(address) => {
+                        TokenGatedOptions::Cw721Coin(api.addr_validate(&address)?)
+                    }
+                    TokenGatedOptionsMsg::Coin(coin) => TokenGatedOptions::Coin(coin),
+                    TokenGatedOptionsMsg::Sg721Token(address) => {
+                        TokenGatedOptions::Sg721Token(api.addr_validate(&address)?)
+                    }
+                },
+                None => TokenGatedOptions::None,
+            },
+        })
     }
 
     pub fn new_from(
+        api: &dyn Api,
         current_options: RaffleOptions,
         assets_len: usize,
         raffle_options: RaffleOptionsMsg,
         config: Config,
-    ) -> Self {
-        Self {
+    ) -> StdResult<Self> {
+        Ok(Self {
             raffle_start_timestamp: raffle_options
                 .raffle_start_timestamp
                 .unwrap_or(current_options.raffle_start_timestamp)
@@ -230,6 +265,19 @@ impl RaffleOptions {
                     }
                 })
                 .unwrap_or(current_options.raffle_preview),
-        }
+            token_gated_raffle: match raffle_options.token_gated_raffle {
+                Some(options) => match options {
+                    TokenGatedOptionsMsg::None => todo!(),
+                    TokenGatedOptionsMsg::Cw721Coin(address) => {
+                        TokenGatedOptions::Cw721Coin(api.addr_validate(&address)?)
+                    }
+                    TokenGatedOptionsMsg::Coin(coin) => TokenGatedOptions::Coin(coin),
+                    TokenGatedOptionsMsg::Sg721Token(address) => {
+                        TokenGatedOptions::Sg721Token(api.addr_validate(&address)?)
+                    }
+                },
+                None => TokenGatedOptions::None,
+            },
+        })
     }
 }

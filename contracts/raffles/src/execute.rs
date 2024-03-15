@@ -214,7 +214,13 @@ pub fn _create_raffle(
             randomness: None,
             winner: None,
             is_cancelled: false,
-            raffle_options: RaffleOptions::new(env, all_assets.len(), raffle_options, config),
+            raffle_options: RaffleOptions::new(
+                deps.api,
+                env,
+                all_assets.len(),
+                raffle_options,
+                config,
+            )?,
         }),
     })?;
     Ok(raffle_id)
@@ -300,11 +306,12 @@ pub fn execute_modify_raffle(
 
     // Then modify the raffle characteristics
     raffle_info.raffle_options = RaffleOptions::new_from(
+        deps.api,
         raffle_info.raffle_options,
         raffle_info.assets.len(),
         raffle_options,
         config,
-    );
+    )?;
     // Then modify the ticket price
     if let Some(raffle_ticket_price) = raffle_ticket_price {
         raffle_info.raffle_ticket_price = raffle_ticket_price;
