@@ -29,6 +29,7 @@ use crate::{
     },
 };
 
+#[allow(clippy::too_many_arguments)]
 pub fn execute_create_raffle(
     deps: DepsMut,
     env: Env,
@@ -59,9 +60,8 @@ pub fn execute_create_raffle(
     // checks if the required fee was sent.
     let fee = info
         .funds
-        .iter()
+        .into_iter()
         .find(|c| config.creation_coins.contains(c))
-        .map(|c| Coin::from(c.clone()))
         .unwrap_or_default();
 
     // prevents 0 ticket costs
@@ -485,7 +485,7 @@ pub fn execute_receive(
     wrapper: Cw721ReceiveMsg,
 ) -> Result<Response, ContractError> {
     // let sender = deps.api.addr_validate(&wrapper.sender)?;
-    match from_json(&wrapper.msg)? {
+    match from_json(wrapper.msg)? {
         ExecuteMsg::BuyTicket {
             raffle_id: _,
             ticket_count: _,
@@ -577,7 +577,7 @@ pub fn execute_receive_nois(
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
 
     // We make sure the raffle has not updated the global randomness yet
-    if raffle_info.randomness != None {
+    if raffle_info.randomness.is_some() {
         return Err(ContractError::RandomnessAlreadyProvided {});
     } else {
         raffle_info.randomness = Some(randomness.into());
@@ -614,12 +614,8 @@ pub fn execute_determine_winner(
     RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 
     // We send the assets to the winner, and fees to the treasury
-    let winner_transfer_messages = get_raffle_winner_messages(
-        deps.as_ref(),
-        env.clone(),
-        raffle_info.clone(),
-        raffle_id.clone(),
-    )?;
+    let winner_transfer_messages =
+        get_raffle_winner_messages(deps.as_ref(), env.clone(), raffle_info.clone(), raffle_id)?;
     let funds_transfer_messages =
         get_raffle_owner_finished_messages(deps.storage, env, raffle_info.clone())?;
 
@@ -654,6 +650,7 @@ pub fn execute_update_randomness(
     get_nois_randomness(deps.as_ref(), raffle_id)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn execute_update_config(
     deps: DepsMut,
     _env: Env,

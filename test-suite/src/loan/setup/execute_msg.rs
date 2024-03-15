@@ -36,7 +36,7 @@ pub fn instantate_loan_contract(
     let loan_code_id = params.app.store_code(contract_nft_loans());
 
     let msg: InstantiateMsg = InstantiateMsg {
-        name: name,
+        name,
         owner: Some(OWNER_ADDR.into()),
         treasury_addr: ATLAS_DAO_STARGAZE_TREASURY.into(),
         fee_rate,
@@ -61,7 +61,7 @@ pub fn create_loan_function(params: CreateLoanParams) -> Result<AppResponse, any
     let owner_addr = params.owner_addr;
     let loans_contract_addr = params.loan_contract_addr;
 
-    let msg = params.app.execute_contract(
+    params.app.execute_contract(
         owner_addr.clone(),
         loans_contract_addr,
         &LoansExecuteMsg::ListCollaterals {
@@ -90,6 +90,5 @@ pub fn create_loan_function(params: CreateLoanParams) -> Result<AppResponse, any
             denom: NATIVE_DENOM.to_string(),
             amount: Uint128::new(25u128),
         }],
-    );
-    msg
+    )
 }
