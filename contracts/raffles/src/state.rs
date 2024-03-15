@@ -147,11 +147,11 @@ pub struct RaffleOptions {
     pub max_ticket_per_address: Option<u32>, // max amount of tickets able to bought per address
     pub raffle_preview: u32, // ?
 
-    pub token_gated_raffle: Vec<TokenGatedOptions>, // Allows for token gating raffle tickets. Only owners of those tokens can buy raffle tickets
+    pub gating_raffle: Vec<GatingOptions>, // Allows for token gating raffle tickets. Only owners of those tokens can buy raffle tickets
 }
 
 #[cw_serde]
-pub enum TokenGatedOptions {
+pub enum GatingOptions {
     Cw721Coin(Addr),
     Coin(Coin), // Corresponds to a minimum of coins that a raffle buyer should own
     Sg721Token(Addr),
@@ -171,11 +171,11 @@ pub struct RaffleOptionsMsg {
     pub max_ticket_per_address: Option<u32>,
     pub raffle_preview: Option<u32>,
 
-    pub token_gated_raffle: Vec<TokenGatedOptionsMsg>,
+    pub gating_raffle: Vec<GatingOptionsMsg>,
 }
 
 #[cw_serde]
-pub enum TokenGatedOptionsMsg {
+pub enum GatingOptionsMsg {
     Cw721Coin(String),
     Coin(Coin),
     Sg721Token(String),
@@ -185,20 +185,16 @@ pub enum TokenGatedOptionsMsg {
     },
 }
 
-impl From<TokenGatedOptions> for TokenGatedOptionsMsg {
-    fn from(options: TokenGatedOptions) -> TokenGatedOptionsMsg {
+impl From<GatingOptions> for GatingOptionsMsg {
+    fn from(options: GatingOptions) -> GatingOptionsMsg {
         match options {
-            TokenGatedOptions::Cw721Coin(address) => {
-                TokenGatedOptionsMsg::Cw721Coin(address.to_string())
-            }
-            TokenGatedOptions::Coin(coin) => TokenGatedOptionsMsg::Coin(coin),
-            TokenGatedOptions::Sg721Token(address) => {
-                TokenGatedOptionsMsg::Sg721Token(address.to_string())
-            }
-            TokenGatedOptions::DaoVotingPower {
+            GatingOptions::Cw721Coin(address) => GatingOptionsMsg::Cw721Coin(address.to_string()),
+            GatingOptions::Coin(coin) => GatingOptionsMsg::Coin(coin),
+            GatingOptions::Sg721Token(address) => GatingOptionsMsg::Sg721Token(address.to_string()),
+            GatingOptions::DaoVotingPower {
                 dao_address,
                 min_voting_power,
-            } => TokenGatedOptionsMsg::DaoVotingPower {
+            } => GatingOptionsMsg::DaoVotingPower {
                 dao_address: dao_address.to_string(),
                 min_voting_power,
             },
@@ -240,22 +236,22 @@ impl RaffleOptions {
                     }
                 })
                 .unwrap_or(0u32),
-            token_gated_raffle: raffle_options
-                .token_gated_raffle
+            gating_raffle: raffle_options
+                .gating_raffle
                 .into_iter()
                 .map(|options| {
                     Ok::<_, StdError>(match options {
-                        TokenGatedOptionsMsg::Cw721Coin(address) => {
-                            TokenGatedOptions::Cw721Coin(api.addr_validate(&address)?)
+                        GatingOptionsMsg::Cw721Coin(address) => {
+                            GatingOptions::Cw721Coin(api.addr_validate(&address)?)
                         }
-                        TokenGatedOptionsMsg::Coin(coin) => TokenGatedOptions::Coin(coin),
-                        TokenGatedOptionsMsg::Sg721Token(address) => {
-                            TokenGatedOptions::Sg721Token(api.addr_validate(&address)?)
+                        GatingOptionsMsg::Coin(coin) => GatingOptions::Coin(coin),
+                        GatingOptionsMsg::Sg721Token(address) => {
+                            GatingOptions::Sg721Token(api.addr_validate(&address)?)
                         }
-                        TokenGatedOptionsMsg::DaoVotingPower {
+                        GatingOptionsMsg::DaoVotingPower {
                             dao_address,
                             min_voting_power,
-                        } => TokenGatedOptions::DaoVotingPower {
+                        } => GatingOptions::DaoVotingPower {
                             dao_address: api.addr_validate(&dao_address)?,
                             min_voting_power,
                         },
@@ -302,22 +298,22 @@ impl RaffleOptions {
                     }
                 })
                 .unwrap_or(current_options.raffle_preview),
-            token_gated_raffle: raffle_options
-                .token_gated_raffle
+            gating_raffle: raffle_options
+                .gating_raffle
                 .into_iter()
                 .map(|options| {
                     Ok::<_, StdError>(match options {
-                        TokenGatedOptionsMsg::Cw721Coin(address) => {
-                            TokenGatedOptions::Cw721Coin(api.addr_validate(&address)?)
+                        GatingOptionsMsg::Cw721Coin(address) => {
+                            GatingOptions::Cw721Coin(api.addr_validate(&address)?)
                         }
-                        TokenGatedOptionsMsg::Coin(coin) => TokenGatedOptions::Coin(coin),
-                        TokenGatedOptionsMsg::Sg721Token(address) => {
-                            TokenGatedOptions::Sg721Token(api.addr_validate(&address)?)
+                        GatingOptionsMsg::Coin(coin) => GatingOptions::Coin(coin),
+                        GatingOptionsMsg::Sg721Token(address) => {
+                            GatingOptions::Sg721Token(api.addr_validate(&address)?)
                         }
-                        TokenGatedOptionsMsg::DaoVotingPower {
+                        GatingOptionsMsg::DaoVotingPower {
                             dao_address,
                             min_voting_power,
-                        } => TokenGatedOptions::DaoVotingPower {
+                        } => GatingOptions::DaoVotingPower {
                             dao_address: api.addr_validate(&dao_address)?,
                             min_voting_power,
                         },

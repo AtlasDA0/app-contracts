@@ -44,7 +44,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
-            token_gated: vec![],
+            gating: vec![],
         };
         create_raffle_setup(params);
 
@@ -77,7 +77,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: 0,
-                        token_gated_raffle: vec![]
+                        gating_raffle: vec![]
                     }
                 })
             }
@@ -102,7 +102,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
-            token_gated: vec![],
+            gating: vec![],
         };
         create_raffle_setup(params);
 
@@ -135,7 +135,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: 0,
-                        token_gated_raffle: vec![]
+                        gating_raffle: vec![]
                     }
                 })
             }
@@ -166,7 +166,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
-            token_gated: vec![],
+            gating: vec![],
         };
         let msg = create_raffle_function(params);
         // confirm owner is set
@@ -203,7 +203,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
-            token_gated: vec![],
+            gating: vec![],
         };
         let msg = create_raffle_function(params);
         // confirm owner is set
@@ -240,7 +240,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
-            token_gated: vec![],
+            gating: vec![],
         };
         let msg = create_raffle_function(params);
         // confirm owner is set
@@ -270,7 +270,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
-            token_gated: vec![],
+            gating: vec![],
         };
         create_raffle_setup(params);
 
@@ -306,7 +306,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
-            token_gated: vec![],
+            gating: vec![],
         };
         create_raffle_function(params).unwrap();
 
@@ -325,7 +325,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: None,
-                        token_gated_raffle: vec![],
+                        gating_raffle: vec![],
                     },
                 },
                 &[],
@@ -350,7 +350,7 @@ mod tests {
                     max_ticket_number: None,
                     max_ticket_per_address: None,
                     raffle_preview: None,
-                    token_gated_raffle: vec![],
+                    gating_raffle: vec![],
                 },
             },
             &[],
@@ -375,7 +375,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
-            token_gated: vec![],
+            gating: vec![],
         };
         create_raffle_function(params).unwrap();
 
@@ -394,7 +394,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: None,
-                        token_gated_raffle: vec![],
+                        gating_raffle: vec![],
                     },
                 },
                 &[],
@@ -437,7 +437,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: 0,
-                        token_gated_raffle: vec![]
+                        gating_raffle: vec![]
                     }
                 })
             }
@@ -459,7 +459,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: None,
-                        token_gated_raffle: vec![],
+                        gating_raffle: vec![],
                     },
                 },
                 &[],
@@ -502,7 +502,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: 0,
-                        token_gated_raffle: vec![]
+                        gating_raffle: vec![]
                     }
                 })
             }

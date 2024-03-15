@@ -44,7 +44,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
-            token_gated: vec![],
+            gating: vec![],
         };
         create_raffle_setup(params);
 

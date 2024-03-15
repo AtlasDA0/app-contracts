@@ -3,7 +3,7 @@ mod tests {
     use crate::common_setup::setup_minter::common::constants::{SG721_CONTRACT, VENDING_MINTER};
     use crate::raffle::setup::daodao::instantiate_with_staked_balances_governance;
     use crate::raffle::setup::{execute_msg::create_raffle_setup, test_msgs::CreateRaffleParams};
-    use raffles::state::TokenGatedOptionsMsg;
+    use raffles::state::GatingOptionsMsg;
     use sg_multi_test::StargazeApp;
     use utils::state::{Sg721Token, NATIVE_DENOM};
 
@@ -25,7 +25,7 @@ mod tests {
         app: &mut StargazeApp,
         raffle_addr: Addr,
         owner_addr: Addr,
-        token_gated: Vec<TokenGatedOptionsMsg>,
+        gating: Vec<GatingOptionsMsg>,
     ) {
         let params = CreateRaffleParams {
             app,
@@ -40,24 +40,17 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
-            token_gated,
+            gating,
         };
         create_raffle_setup(params);
     }
-    fn setup_token_gated_raffle(
-        token_gated: Vec<TokenGatedOptionsMsg>,
-    ) -> (StargazeApp, Addr, Addr) {
+    fn setup_gating_raffle(gating: Vec<GatingOptionsMsg>) -> (StargazeApp, Addr, Addr) {
         let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
         configure_raffle_assets(&mut app, owner_addr.clone(), factory_addr, true);
 
-        create_raffle(
-            &mut app,
-            raffle_addr.clone(),
-            owner_addr.clone(),
-            token_gated,
-        );
+        create_raffle(&mut app, raffle_addr.clone(), owner_addr.clone(), gating);
         (app, raffle_addr, one)
     }
 
@@ -65,9 +58,9 @@ mod tests {
     pub const GATED_DENOM_1: &str = "ugated1";
 
     #[test]
-    fn native_token_gated() {
+    fn native_gating() {
         let (mut app, raffle_addr, one) =
-            setup_token_gated_raffle(vec![TokenGatedOptionsMsg::Coin(coin(12783, GATED_DENOM))]);
+            setup_gating_raffle(vec![GatingOptionsMsg::Coin(coin(12783, GATED_DENOM))]);
 
         app.sudo(SudoMsg::Bank({
             BankSudo::Mint {
@@ -102,10 +95,10 @@ mod tests {
     }
 
     #[test]
-    fn multiple_native_token_gated() {
-        let (mut app, raffle_addr, one) = setup_token_gated_raffle(vec![
-            TokenGatedOptionsMsg::Coin(coin(12783, GATED_DENOM)),
-            TokenGatedOptionsMsg::Coin(coin(12789, GATED_DENOM_1)),
+    fn multiple_native_gating() {
+        let (mut app, raffle_addr, one) = setup_gating_raffle(vec![
+            GatingOptionsMsg::Coin(coin(12783, GATED_DENOM)),
+            GatingOptionsMsg::Coin(coin(12789, GATED_DENOM_1)),
         ]);
 
         app.sudo(SudoMsg::Bank({
@@ -144,11 +137,10 @@ mod tests {
     }
 
     #[test]
-    fn stargaze_token_gated() {
-        let (mut app, raffle_addr, one) =
-            setup_token_gated_raffle(vec![TokenGatedOptionsMsg::Sg721Token(
-                SG721_CONTRACT.to_string(),
-            )]);
+    fn stargaze_gating() {
+        let (mut app, raffle_addr, one) = setup_gating_raffle(vec![GatingOptionsMsg::Sg721Token(
+            SG721_CONTRACT.to_string(),
+        )]);
 
         app.execute_contract(
             one.clone(),
@@ -205,7 +197,7 @@ mod tests {
             &mut app,
             raffle_addr.clone(),
             owner_addr,
-            vec![TokenGatedOptionsMsg::DaoVotingPower {
+            vec![GatingOptionsMsg::DaoVotingPower {
                 dao_address: core_addr.to_string(),
                 min_voting_power: 100_000u128.into(),
             }],
@@ -253,9 +245,9 @@ mod tests {
         use super::*;
 
         #[test]
-        fn bad_native_token_gated() {
-            let one_condition = TokenGatedOptionsMsg::Coin(coin(12783, GATED_DENOM));
-            let (mut app, raffle_addr, one) = setup_token_gated_raffle(vec![one_condition.clone()]);
+        fn bad_native_gating() {
+            let one_condition = GatingOptionsMsg::Coin(coin(12783, GATED_DENOM));
+            let (mut app, raffle_addr, one) = setup_gating_raffle(vec![one_condition.clone()]);
 
             // customize ticket purchase params
             let params = PurchaseTicketsParams {
@@ -271,10 +263,10 @@ mod tests {
         }
 
         #[test]
-        fn bad_native_token_gated_with_one_success() {
-            let (mut app, raffle_addr, one) = setup_token_gated_raffle(vec![
-                TokenGatedOptionsMsg::Coin(coin(12783, GATED_DENOM)),
-                TokenGatedOptionsMsg::Coin(coin(12789, GATED_DENOM_1)),
+        fn bad_native_gating_with_one_success() {
+            let (mut app, raffle_addr, one) = setup_gating_raffle(vec![
+                GatingOptionsMsg::Coin(coin(12783, GATED_DENOM)),
+                GatingOptionsMsg::Coin(coin(12789, GATED_DENOM_1)),
             ]);
 
             app.sudo(SudoMsg::Bank({
@@ -299,9 +291,9 @@ mod tests {
         }
 
         #[test]
-        fn bad_stargaze_token_gated() {
+        fn bad_stargaze_gating() {
             let (mut app, raffle_addr, one) =
-                setup_token_gated_raffle(vec![TokenGatedOptionsMsg::Sg721Token(
+                setup_gating_raffle(vec![GatingOptionsMsg::Sg721Token(
                     SG721_CONTRACT.to_string(),
                 )]);
 
@@ -331,7 +323,7 @@ mod tests {
                 &mut app,
                 raffle_addr.clone(),
                 owner_addr,
-                vec![TokenGatedOptionsMsg::DaoVotingPower {
+                vec![GatingOptionsMsg::DaoVotingPower {
                     dao_address: core_addr.to_string(),
                     min_voting_power: 100_000u128.into(),
                 }],
@@ -380,7 +372,7 @@ mod tests {
                 &mut app,
                 raffle_addr.clone(),
                 owner_addr,
-                vec![TokenGatedOptionsMsg::DaoVotingPower {
+                vec![GatingOptionsMsg::DaoVotingPower {
                     dao_address: core_addr.to_string(),
                     min_voting_power: 100_000u128.into(),
                 }],

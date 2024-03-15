@@ -335,7 +335,7 @@ mod tests {
                         max_ticket_number: Some(3),
                         max_ticket_per_address: Some(1),
                         raffle_preview: None,
-                        token_gated_raffle: vec![],
+                        gating_raffle: vec![],
                     },
                     raffle_ticket_price: AssetInfo::Coin(Coin {
                         denom: "ustars".to_string(),
@@ -383,7 +383,7 @@ mod tests {
                     max_ticket_number: Some(3),
                     max_ticket_per_address: Some(1),
                     raffle_preview: 0,
-                    token_gated_raffle: vec![]
+                    gating_raffle: vec![]
                 }
             }
         );

@@ -3,7 +3,7 @@ use thiserror::Error;
 use cosmwasm_std::{StdError, Timestamp};
 use utils::state::AssetInfo;
 
-use crate::state::{RaffleState, TokenGatedOptions};
+use crate::state::{GatingOptions, RaffleState};
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {
@@ -184,8 +184,8 @@ pub enum ContractError {
     CommentTooLarge { size: u64, max: u64 },
 
     #[error("The token gated conditions {condition:?} is not met for user {user}")]
-    NotTokenGatedCondition {
-        condition: TokenGatedOptions,
+    NotGatingCondition {
+        condition: GatingOptions,
         user: String,
     },
 }

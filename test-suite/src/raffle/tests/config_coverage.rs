@@ -201,7 +201,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
-            token_gated: vec![],
+            gating: vec![],
         };
         create_raffle_function(create_raffle_params).unwrap();
 
@@ -233,7 +233,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
-            token_gated: vec![],
+            gating: vec![],
         };
 
         // confirm raffles cannot be made & tickets cannot be bought
@@ -274,7 +274,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
-            token_gated: vec![],
+            gating: vec![],
         };
         create_raffle_function(create_raffle_params).unwrap();
 
@@ -305,7 +305,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
-            token_gated: vec![],
+            gating: vec![],
         };
 
         // confirm raffles cannot be made
