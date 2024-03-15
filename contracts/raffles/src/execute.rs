@@ -28,6 +28,7 @@ use crate::{
         ticket_cost,
     },
 };
+use dao_interface::voting::VotingPowerAtHeightResponse;
 
 #[allow(clippy::too_many_arguments)]
 pub fn execute_create_raffle(
@@ -470,6 +471,26 @@ pub fn _buy_tickets(
                 )?;
                 ensure!(
                     !owner_query.tokens.is_empty(),
+                    ContractError::NotTokenGatedCondition {
+                        condition: options.clone(),
+                        user: owner.to_string()
+                    }
+                );
+                Ok::<_, ContractError>(())
+            }
+            crate::state::TokenGatedOptions::DaoVotingPower {
+                dao_address,
+                min_voting_power,
+            } => {
+                let voting_power: VotingPowerAtHeightResponse = deps.querier.query_wasm_smart(
+                    dao_address,
+                    &dao_interface::msg::QueryMsg::VotingPowerAtHeight {
+                        address: owner.to_string(),
+                        height: None,
+                    },
+                )?;
+                ensure!(
+                    voting_power.power > *min_voting_power,
                     ContractError::NotTokenGatedCondition {
                         condition: options.clone(),
                         user: owner.to_string()

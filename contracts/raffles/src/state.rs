@@ -1,6 +1,7 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
     ensure, Addr, Api, Coin, Decimal, Env, HexBinary, StdError, StdResult, Storage, Timestamp,
+    Uint128,
 };
 
 use cw_storage_plus::{Item, Map};
@@ -152,8 +153,12 @@ pub struct RaffleOptions {
 #[cw_serde]
 pub enum TokenGatedOptions {
     Cw721Coin(Addr),
-    Coin(Coin),
+    Coin(Coin), // Corresponds to a minimum of coins that a raffle buyer should own
     Sg721Token(Addr),
+    DaoVotingPower {
+        dao_address: Addr,
+        min_voting_power: Uint128,
+    },
 }
 
 #[cw_serde]
@@ -174,6 +179,10 @@ pub enum TokenGatedOptionsMsg {
     Cw721Coin(String),
     Coin(Coin),
     Sg721Token(String),
+    DaoVotingPower {
+        dao_address: String,
+        min_voting_power: Uint128,
+    },
 }
 
 impl RaffleOptions {
@@ -222,6 +231,13 @@ impl RaffleOptions {
                         TokenGatedOptionsMsg::Sg721Token(address) => {
                             TokenGatedOptions::Sg721Token(api.addr_validate(&address)?)
                         }
+                        TokenGatedOptionsMsg::DaoVotingPower {
+                            dao_address,
+                            min_voting_power,
+                        } => TokenGatedOptions::DaoVotingPower {
+                            dao_address: api.addr_validate(&dao_address)?,
+                            min_voting_power,
+                        },
                     })
                 })
                 .collect::<Result<Vec<_>, _>>()?,
@@ -277,6 +293,13 @@ impl RaffleOptions {
                         TokenGatedOptionsMsg::Sg721Token(address) => {
                             TokenGatedOptions::Sg721Token(api.addr_validate(&address)?)
                         }
+                        TokenGatedOptionsMsg::DaoVotingPower {
+                            dao_address,
+                            min_voting_power,
+                        } => TokenGatedOptions::DaoVotingPower {
+                            dao_address: api.addr_validate(&dao_address)?,
+                            min_voting_power,
+                        },
                     })
                 })
                 .collect::<Result<Vec<_>, _>>()?,
