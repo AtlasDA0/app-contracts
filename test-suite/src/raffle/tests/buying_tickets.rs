@@ -39,6 +39,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
+            token_gated: vec![],
         };
         create_raffle_setup(params);
         // customize ticket purchase params
@@ -100,6 +101,7 @@ mod tests {
                     token_id: "63".to_string(),
                 })],
                 duration: None,
+                token_gated: vec![],
             };
             create_raffle_setup(params);
 
@@ -167,6 +169,7 @@ mod tests {
                     token_id: "63".to_string(),
                 })],
                 duration: None,
+                token_gated: vec![],
             };
 
             create_raffle_function(params).unwrap();
@@ -211,6 +214,7 @@ mod tests {
                     token_id: "63".to_string(),
                 })],
                 duration: None,
+                token_gated: vec![],
             };
             create_raffle_setup(params);
 
@@ -254,6 +258,7 @@ mod tests {
                     token_id: "63".to_string(),
                 })],
                 duration: None,
+                token_gated: vec![],
             };
             create_raffle_setup(params);
             // Too many tokens sent

@@ -56,6 +56,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
+            token_gated: vec![],
         };
 
         // create a raffle
@@ -251,6 +252,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
+            token_gated: vec![],
         };
         // create a raffle
         create_raffle_setup(params);
@@ -403,6 +405,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: Some(50),
+            token_gated: vec![],
         };
         create_raffle_setup(params1);
 
@@ -420,6 +423,7 @@ mod tests {
                 token_id: "34".to_string(),
             })],
             duration: Some(50),
+            token_gated: vec![],
         };
         create_raffle_setup(params2);
 

@@ -44,6 +44,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
+            token_gated: vec![],
         };
         create_raffle_setup(params);
 
@@ -101,6 +102,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
+            token_gated: vec![],
         };
         create_raffle_setup(params);
 
@@ -164,6 +166,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
+            token_gated: vec![],
         };
         let msg = create_raffle_function(params);
         // confirm owner is set
@@ -200,6 +203,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
+            token_gated: vec![],
         };
         let msg = create_raffle_function(params);
         // confirm owner is set
@@ -236,6 +240,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
+            token_gated: vec![],
         };
         let msg = create_raffle_function(params);
         // confirm owner is set
@@ -265,6 +270,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
+            token_gated: vec![],
         };
         create_raffle_setup(params);
 
@@ -300,6 +306,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
+            token_gated: vec![],
         };
         create_raffle_function(params).unwrap();
 
@@ -368,6 +375,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
+            token_gated: vec![],
         };
         create_raffle_function(params).unwrap();
 

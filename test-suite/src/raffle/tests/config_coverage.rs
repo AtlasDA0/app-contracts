@@ -188,7 +188,7 @@ mod tests {
         let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
         let (owner_address, one, _) = setup_accounts(&mut app);
         configure_raffle_assets(&mut app, owner_address.clone(), factory_addr, true);
-        let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
+        let create_raffle_params = CreateRaffleParams {
             app: &mut app,
             raffle_contract_addr: raffle_addr.clone(),
             owner_addr: owner_address.clone(),
@@ -201,6 +201,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
+            token_gated: vec![],
         };
         create_raffle_function(create_raffle_params).unwrap();
 
@@ -219,7 +220,7 @@ mod tests {
             .unwrap();
         assert!(res.locks.lock);
 
-        let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
+        let create_raffle_params = CreateRaffleParams {
             app: &mut app,
             raffle_contract_addr: raffle_addr.clone(),
             owner_addr: owner_address.clone(),
@@ -232,6 +233,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
+            token_gated: vec![],
         };
 
         // confirm raffles cannot be made & tickets cannot be bought
@@ -272,6 +274,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
+            token_gated: vec![],
         };
         create_raffle_function(create_raffle_params).unwrap();
 
@@ -289,7 +292,7 @@ mod tests {
             .unwrap();
         assert!(res.locks.sudo_lock);
 
-        let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
+        let create_raffle_params = CreateRaffleParams {
             app: &mut app,
             raffle_contract_addr: raffle_addr.clone(),
             owner_addr: owner_address.clone(),
@@ -302,6 +305,7 @@ mod tests {
                 token_id: "63".to_string(),
             })],
             duration: None,
+            token_gated: vec![],
         };
 
         // confirm raffles cannot be made

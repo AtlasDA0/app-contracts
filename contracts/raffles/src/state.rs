@@ -185,6 +185,27 @@ pub enum TokenGatedOptionsMsg {
     },
 }
 
+impl From<TokenGatedOptions> for TokenGatedOptionsMsg {
+    fn from(options: TokenGatedOptions) -> TokenGatedOptionsMsg {
+        match options {
+            TokenGatedOptions::Cw721Coin(address) => {
+                TokenGatedOptionsMsg::Cw721Coin(address.to_string())
+            }
+            TokenGatedOptions::Coin(coin) => TokenGatedOptionsMsg::Coin(coin),
+            TokenGatedOptions::Sg721Token(address) => {
+                TokenGatedOptionsMsg::Sg721Token(address.to_string())
+            }
+            TokenGatedOptions::DaoVotingPower {
+                dao_address,
+                min_voting_power,
+            } => TokenGatedOptionsMsg::DaoVotingPower {
+                dao_address: dao_address.to_string(),
+                min_voting_power,
+            },
+        }
+    }
+}
+
 impl RaffleOptions {
     pub fn new(
         api: &dyn Api,
