@@ -146,12 +146,11 @@ pub struct RaffleOptions {
     pub max_ticket_per_address: Option<u32>, // max amount of tickets able to bought per address
     pub raffle_preview: u32, // ?
 
-    pub token_gated_raffle: TokenGatedOptions, // Allows for token gating raffle tickets. Only owners of those tokens can buy raffle tickets
+    pub token_gated_raffle: Vec<TokenGatedOptions>, // Allows for token gating raffle tickets. Only owners of those tokens can buy raffle tickets
 }
 
 #[cw_serde]
 pub enum TokenGatedOptions {
-    None,
     Cw721Coin(Addr),
     Coin(Coin),
     Sg721Token(Addr),
@@ -167,12 +166,11 @@ pub struct RaffleOptionsMsg {
     pub max_ticket_per_address: Option<u32>,
     pub raffle_preview: Option<u32>,
 
-    pub token_gated_raffle: Option<TokenGatedOptionsMsg>,
+    pub token_gated_raffle: Vec<TokenGatedOptionsMsg>,
 }
 
 #[cw_serde]
 pub enum TokenGatedOptionsMsg {
-    None,
     Cw721Coin(String),
     Coin(Coin),
     Sg721Token(String),
@@ -212,19 +210,21 @@ impl RaffleOptions {
                     }
                 })
                 .unwrap_or(0u32),
-            token_gated_raffle: match raffle_options.token_gated_raffle {
-                Some(options) => match options {
-                    TokenGatedOptionsMsg::None => todo!(),
-                    TokenGatedOptionsMsg::Cw721Coin(address) => {
-                        TokenGatedOptions::Cw721Coin(api.addr_validate(&address)?)
-                    }
-                    TokenGatedOptionsMsg::Coin(coin) => TokenGatedOptions::Coin(coin),
-                    TokenGatedOptionsMsg::Sg721Token(address) => {
-                        TokenGatedOptions::Sg721Token(api.addr_validate(&address)?)
-                    }
-                },
-                None => TokenGatedOptions::None,
-            },
+            token_gated_raffle: raffle_options
+                .token_gated_raffle
+                .into_iter()
+                .map(|options| {
+                    Ok::<_, StdError>(match options {
+                        TokenGatedOptionsMsg::Cw721Coin(address) => {
+                            TokenGatedOptions::Cw721Coin(api.addr_validate(&address)?)
+                        }
+                        TokenGatedOptionsMsg::Coin(coin) => TokenGatedOptions::Coin(coin),
+                        TokenGatedOptionsMsg::Sg721Token(address) => {
+                            TokenGatedOptions::Sg721Token(api.addr_validate(&address)?)
+                        }
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?,
         })
     }
 
@@ -265,19 +265,21 @@ impl RaffleOptions {
                     }
                 })
                 .unwrap_or(current_options.raffle_preview),
-            token_gated_raffle: match raffle_options.token_gated_raffle {
-                Some(options) => match options {
-                    TokenGatedOptionsMsg::None => todo!(),
-                    TokenGatedOptionsMsg::Cw721Coin(address) => {
-                        TokenGatedOptions::Cw721Coin(api.addr_validate(&address)?)
-                    }
-                    TokenGatedOptionsMsg::Coin(coin) => TokenGatedOptions::Coin(coin),
-                    TokenGatedOptionsMsg::Sg721Token(address) => {
-                        TokenGatedOptions::Sg721Token(api.addr_validate(&address)?)
-                    }
-                },
-                None => TokenGatedOptions::None,
-            },
+            token_gated_raffle: raffle_options
+                .token_gated_raffle
+                .into_iter()
+                .map(|options| {
+                    Ok::<_, StdError>(match options {
+                        TokenGatedOptionsMsg::Cw721Coin(address) => {
+                            TokenGatedOptions::Cw721Coin(api.addr_validate(&address)?)
+                        }
+                        TokenGatedOptionsMsg::Coin(coin) => TokenGatedOptions::Coin(coin),
+                        TokenGatedOptionsMsg::Sg721Token(address) => {
+                            TokenGatedOptions::Sg721Token(api.addr_validate(&address)?)
+                        }
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?,
         })
     }
 }

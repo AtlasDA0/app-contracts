@@ -420,6 +420,65 @@ pub fn _buy_tickets(
         }
     }
 
+    // We also check if the raffle is token gated
+    raffle_info
+        .raffle_options
+        .token_gated_raffle
+        .iter()
+        .try_for_each(|options| match options {
+            crate::state::TokenGatedOptions::Cw721Coin(address) => {
+                let owner_query: cw721::TokensResponse = deps.querier.query_wasm_smart(
+                    address,
+                    &cw721_base::QueryMsg::<Empty>::Tokens {
+                        owner: owner.to_string(),
+                        start_after: None,
+                        limit: None,
+                    },
+                )?;
+                ensure!(
+                    !owner_query.tokens.is_empty(),
+                    ContractError::NotTokenGatedCondition {
+                        condition: options.clone(),
+                        user: owner.to_string()
+                    }
+                );
+                Ok::<_, ContractError>(())
+            }
+            crate::state::TokenGatedOptions::Coin(needed_coins) => {
+                // We verify the sender has enough coins in their wallet
+                let user_balance = deps
+                    .querier
+                    .query_balance(owner.clone(), needed_coins.denom.clone())?;
+
+                ensure!(
+                    user_balance.amount > needed_coins.amount,
+                    ContractError::NotTokenGatedCondition {
+                        condition: options.clone(),
+                        user: owner.to_string()
+                    }
+                );
+                Ok(())
+            }
+            crate::state::TokenGatedOptions::Sg721Token(address) => {
+                let owner_query: cw721::TokensResponse = deps.querier.query_wasm_smart(
+                    address,
+                    &sg721_base::QueryMsg::Tokens {
+                        owner: owner.to_string(),
+                        start_after: None,
+                        limit: None,
+                    },
+                )?;
+                ensure!(
+                    !owner_query.tokens.is_empty(),
+                    ContractError::NotTokenGatedCondition {
+                        condition: options.clone(),
+                        user: owner.to_string()
+                    }
+                );
+                Ok::<_, ContractError>(())
+            }
+        })?;
+
     // We then check the raffle is in the right state
     can_buy_ticket(env, raffle_info.clone())?;
 
