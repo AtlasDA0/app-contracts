@@ -115,7 +115,7 @@ pub fn get_raffle_winners(
         1
     };
 
-    let winner_ids = ints_in_range(randomness, nb_winners, 0, raffle_info.number_of_tickets);
+    let winner_ids = ints_in_range(randomness, nb_winners, 0, raffle_info.number_of_tickets - 1);
     let winners = winner_ids
         .into_iter()
         .map(|winner_id| RAFFLE_TICKETS.load(deps.storage, (raffle_id, winner_id)))

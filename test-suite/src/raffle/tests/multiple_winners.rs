@@ -7,9 +7,8 @@ mod tests {
     use cw_multi_test::{BankSudo, SudoMsg};
     use nois::NoisCallback;
     use raffles::{
-        error::ContractError,
         msg::{ConfigResponse, ExecuteMsg},
-        state::{RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState},
+        state::{RaffleOptionsMsg, RaffleState},
     };
 
     use utils::state::{AssetInfo, Locks, Sg721Token, NATIVE_DENOM, NOIS_AMOUNT};
@@ -24,7 +23,6 @@ mod tests {
             contract_raffles, contract_sg721_base, contract_vending_factory,
             contract_vending_minter, custom_mock_app,
         },
-        helpers::assert_error,
         setup_minter::common::constants::{
             CREATION_FEE_AMNT, NOIS_PROXY_ADDR, OWNER_ADDR, RAFFLE_NAME, SG721_CONTRACT,
             VENDING_MINTER,
@@ -115,7 +113,7 @@ mod tests {
     }
 
     #[test]
-    fn can_init() {
+    fn multiple_winners() {
         // create testing app
         let (mut app, raffle_contract_addr, factory_addr) =
             proper_instantiate_raffles_with_limits();
@@ -184,20 +182,6 @@ mod tests {
             }
         }))
         .unwrap();
-        app.sudo(SudoMsg::Bank({
-            BankSudo::Mint {
-                to_address: "wallet-4".to_string(),
-                amount: vec![coin(100000000000u128, "ustars".to_string())],
-            }
-        }))
-        .unwrap();
-        app.sudo(SudoMsg::Bank({
-            BankSudo::Mint {
-                to_address: "wallet-5".to_string(),
-                amount: vec![coin(100000000000u128, "ustars".to_string())],
-            }
-        }))
-        .unwrap();
 
         let _raffle_code_id = app.store_code(contract_raffles());
 
@@ -259,17 +243,6 @@ mod tests {
                 }],
             )
             .unwrap();
-        let _mint_nft_tokens3 = app
-            .execute_contract(
-                Addr::unchecked("wallet-1"),
-                Addr::unchecked(VENDING_MINTER),
-                &vending_minter::msg::ExecuteMsg::Mint {},
-                &[Coin {
-                    denom: NATIVE_DENOM.to_string(),
-                    amount: Uint128::new(100000u128),
-                }],
-            )
-            .unwrap();
 
         // token id 41
         let _grant_approval = app
@@ -297,19 +270,6 @@ mod tests {
                 &[],
             )
             .unwrap();
-        // token id 49
-        let _grant_approval = app
-            .execute_contract(
-                Addr::unchecked("wallet-1"),
-                Addr::unchecked(SG721_CONTRACT),
-                &sg721_base::msg::ExecuteMsg::<Empty, Empty>::Approve {
-                    spender: raffle_contract_addr.to_string(),
-                    token_id: "49".to_string(),
-                    expires: None,
-                },
-                &[],
-            )
-            .unwrap();
 
         let _good_create_raffle = app
             .execute_contract(
@@ -328,14 +288,14 @@ mod tests {
                         }),
                     ],
                     raffle_options: RaffleOptionsMsg {
-                        raffle_start_timestamp: Some(Timestamp::from_nanos(1647032600000000000)),
+                        raffle_start_timestamp: Some(current_time),
                         raffle_duration: None,
                         raffle_timeout: None,
                         comment: None,
                         max_ticket_number: Some(3),
                         max_ticket_per_address: Some(1),
                         raffle_preview: None,
-                        one_winner_per_asset: false,
+                        one_winner_per_asset: true,
                     },
                     raffle_ticket_price: AssetInfo::Coin(Coin {
                         denom: "ustars".to_string(),
@@ -356,55 +316,16 @@ mod tests {
             .unwrap();
 
         // verify contract response
-        assert_eq!(
-            res.clone().raffle_info.unwrap(),
-            RaffleInfo {
-                owner: Addr::unchecked(OWNER_ADDR),
-                assets: vec![
-                    AssetInfo::Sg721Token(Sg721Token {
-                        address: SG721_CONTRACT.to_string(),
-                        token_id: "65".to_string(),
-                    }),
-                    AssetInfo::Sg721Token(Sg721Token {
-                        address: SG721_CONTRACT.to_string(),
-                        token_id: "63".to_string(),
-                    })
-                ],
-                raffle_ticket_price: AssetInfo::Coin(Coin::new(100, "ustars".to_string())),
-                number_of_tickets: 0,
-                randomness: None,
-                winners: vec![],
-                is_cancelled: false,
-                raffle_options: RaffleOptions {
-                    raffle_start_timestamp: Timestamp::from_nanos(1647032600000000000),
-                    raffle_duration: 20,
-                    raffle_timeout: 420,
-                    comment: None,
-                    max_ticket_number: Some(3),
-                    max_ticket_per_address: Some(1),
-                    raffle_preview: 0,
-                    one_winner_per_asset: false,
-                }
-            }
+        assert!(
+            res.clone()
+                .raffle_info
+                .unwrap()
+                .raffle_options
+                .one_winner_per_asset
         );
 
-        // move forward in time
-        app.set_block(BlockInfo {
-            height: current_block + 1,
-            time: current_time.clone().plus_nanos(200000000000),
-            chain_id: chainid.clone(),
-        });
-
-        // ensure raffle duration
-        // move forward in time
-        app.set_block(BlockInfo {
-            height: current_block + 100,
-            time: current_time.clone().plus_seconds(1000),
-            chain_id: chainid.clone(),
-        });
-
         // ensure raffle ends correctly
-        let bad_ticket_purchase = app
+        let _ticket_purchase_1 = app
             .execute_contract(
                 Addr::unchecked("wallet-1"),
                 raffle_contract_addr.clone(),
@@ -415,11 +336,27 @@ mod tests {
                 },
                 &[Coin::new(100, "ustars".to_string())],
             )
-            .unwrap_err();
-        assert_error(
-            Err(bad_ticket_purchase),
-            ContractError::CantBuyTickets {}.to_string(),
-        );
+            .unwrap();
+        let _ticket_purchase_2 = app
+            .execute_contract(
+                Addr::unchecked("wallet-2"),
+                raffle_contract_addr.clone(),
+                &ExecuteMsg::BuyTicket {
+                    raffle_id: 0,
+                    ticket_count: 1,
+                    sent_assets: AssetInfo::Coin(Coin::new(100, "ustars".to_string())),
+                },
+                &[Coin::new(100, "ustars".to_string())],
+            )
+            .unwrap();
+
+        // ensure raffle duration
+        // move forward in time
+        app.set_block(BlockInfo {
+            height: current_block + 100,
+            time: current_time.clone().plus_seconds(1000),
+            chain_id: chainid.clone(),
+        });
 
         // simulates the response from nois_proxy
         let _good_receive_randomness = app
@@ -431,7 +368,7 @@ mod tests {
                         job_id: "raffle-0".to_string(),
                         published: current_time,
                         randomness: HexBinary::from_hex(
-                            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa420",
+                            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa000",
                         )
                         .unwrap(),
                     },
@@ -472,6 +409,17 @@ mod tests {
                 },
             )
             .unwrap();
-        assert_eq!(res.owner, Addr::unchecked(OWNER_ADDR));
+        assert_eq!(res.owner, Addr::unchecked("wallet-2"));
+        let res: cw721::OwnerOfResponse = app
+            .wrap()
+            .query_wasm_smart(
+                SG721_CONTRACT.to_string(),
+                &sg721_base::QueryMsg::OwnerOf {
+                    token_id: "65".to_string(),
+                    include_expired: None,
+                },
+            )
+            .unwrap();
+        assert_eq!(res.owner, Addr::unchecked("wallet-1"));
     }
 }

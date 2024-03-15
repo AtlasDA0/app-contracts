@@ -171,7 +171,7 @@ mod tests {
         // verify winner is always owner
         assert_eq!(
             res.raffle_info.clone().unwrap().owner,
-            res.raffle_info.unwrap().winner.unwrap(),
+            res.raffle_info.unwrap().winners[0],
             "winner should always be the owner if no tickets were bought"
         );
         // verify no tickets can be bought after raffle ends
