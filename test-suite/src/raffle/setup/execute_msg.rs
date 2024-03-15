@@ -153,7 +153,7 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
                 max_ticket_number: None,
                 max_ticket_per_address: max_per_addr,
                 raffle_preview: None,
-                token_gated_raffle: vec![],
+                token_gated_raffle: params.token_gated,
             },
             raffle_ticket_price: AssetInfo::Coin(Coin {
                 denom: "ustars".to_string(),
