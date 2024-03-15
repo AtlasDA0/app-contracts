@@ -1,8 +1,8 @@
 use crate::{
     error::ContractError,
     state::{
-        can_repay_loan, is_active_lender, lender_offers, LoanExtensionInfo, COLLATERAL_INFO,
-        LOAN_EXTENSION_INFO,
+        can_accept_extension, can_request_extension, is_active_lender, lender_offers,
+        LoanExtensionInfo, COLLATERAL_INFO, LOAN_EXTENSION_INFO,
     },
 };
 use cosmwasm_std::{ensure_eq, DepsMut, Env, MessageInfo, StdError, Uint128};
@@ -20,8 +20,8 @@ pub fn request_loan_extension(
     let borrower = info.sender;
     let collateral = COLLATERAL_INFO.load(deps.storage, (borrower.clone(), loan_id))?;
 
-    // We verify the loan is not defaulted
-    can_repay_loan(deps.storage, env, &collateral)?;
+    // We verify the loan has started and is not defaulted or repaid already
+    can_request_extension(deps.storage, env, &collateral)?;
 
     // checks comment size
     if !is_valid_comment(&comment.clone().unwrap_or_default()) {
@@ -57,7 +57,7 @@ pub fn request_loan_extension(
 
 pub fn accept_loan_extension(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     borrower: String,
     loan_id: u64,
@@ -67,7 +67,8 @@ pub fn accept_loan_extension(
     let collateral = COLLATERAL_INFO.load(deps.storage, (borrower.clone(), loan_id))?;
     let mut loan_offer = is_active_lender(deps.storage, info.sender, &collateral)?;
 
-    // Lender can accept extension even if loan is defaulted
+    // Lender can accept extension only if the loan has started and not defaulted/ended
+    can_accept_extension(deps.storage, env, &collateral)?;
 
     // We make sure the extension is the one the lender wanted to accept
     let extension_info = LOAN_EXTENSION_INFO.load(deps.storage, (borrower.clone(), loan_id))?;

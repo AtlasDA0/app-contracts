@@ -228,6 +228,28 @@ pub fn can_repay_loan(
     }
 }
 
+pub fn can_request_extension(
+    _storage: &dyn Storage,
+    _env: Env,
+    collateral: &CollateralInfo,
+) -> Result<(), ContractError> {
+    if collateral.state == LoanState::Started {
+        Ok(())
+    } else {
+        Err(ContractError::WrongLoanState {
+            state: collateral.state.clone(),
+        })
+    }
+}
+
+pub fn can_accept_extension(
+    storage: &dyn Storage,
+    env: Env,
+    collateral: &CollateralInfo,
+) -> Result<(), ContractError> {
+    can_request_extension(storage, env, collateral)
+}
+
 pub fn is_loan_defaulted(
     storage: &dyn Storage,
     env: Env,
