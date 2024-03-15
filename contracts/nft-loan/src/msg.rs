@@ -3,7 +3,9 @@ use cosmwasm_std::{Coin, Decimal, StdError, StdResult, Uint128};
 
 use utils::state::{is_valid_name, AssetInfo};
 
-use crate::state::{BorrowerInfo, CollateralInfo, Config, LoanState, LoanTerms, OfferInfo};
+use crate::state::{
+    BorrowerInfo, CollateralInfo, Config, LoanExtensionInfo, LoanState, LoanTerms, OfferInfo,
+};
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -166,6 +168,8 @@ pub enum QueryMsg {
         start_after: Option<String>,
         limit: Option<u32>,
     },
+    #[returns(ExtensionResponse)]
+    Extension { borrower: String, loan_id: u64 },
 }
 
 // loan info
@@ -212,4 +216,10 @@ pub struct QueryFilters {
     pub owner: Option<String>,
     pub borrower: Option<String>,
     pub lender: Option<String>,
+}
+
+// Queries the extension linked to the offer
+#[cw_serde]
+pub struct ExtensionResponse {
+    pub extension: Option<LoanExtensionInfo>,
 }

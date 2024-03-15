@@ -13,7 +13,7 @@ use utils::{
 
 use crate::query::{
     query_all_collaterals, query_borrower_info, query_collateral_info, query_collaterals,
-    query_config, query_lender_offers, query_offer_info, query_offers,
+    query_config, query_extension, query_lender_offers, query_offer_info, query_offers,
 };
 use crate::state::{Config, CONFIG, STATIC_LOAN_LISTING_FEE};
 use crate::{error::ContractError, execute::execute_sudo_toggle_lock};
@@ -187,7 +187,6 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             borrower,
             start_after,
             limit,
-            // filters,
         } => to_json_binary(&query_collaterals(deps, borrower, start_after, limit)?),
         QueryMsg::AllCollaterals { start_after, limit } => {
             to_json_binary(&query_all_collaterals(deps, start_after, limit)?)
@@ -206,6 +205,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             start_after,
             limit,
         } => to_json_binary(&query_lender_offers(deps, lender, start_after, limit)?),
+        QueryMsg::Extension { borrower, loan_id } => {
+            to_json_binary(&query_extension(deps, borrower, loan_id)?)
+        }
     }
 }
 

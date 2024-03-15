@@ -1,13 +1,13 @@
 #[cfg(test)]
 mod tests {
     use anyhow::bail;
-    use cosmwasm_std::{Addr, BlockInfo, Coin, Uint128};
+    use cosmwasm_std::{Addr, BlockInfo, Coin, StdResult, Uint128};
     use cw_multi_test::Executor;
     use sg_multi_test::StargazeApp;
     use sg_std::NATIVE_DENOM;
 
     use nft_loans_nc::{
-        msg::{ExecuteMsg, QueryMsg},
+        msg::{ExecuteMsg, ExtensionResponse, QueryMsg},
         state::{CollateralInfo, LoanState, LoanTerms},
     };
     use utils::state::{AssetInfo, Sg721Token};
@@ -21,7 +21,6 @@ mod tests {
         loan::setup::{execute_msg::create_loan_function, test_msgs::CreateLoanParams},
     };
 
-    const TREASURY_ADDR: &str = "collector";
     const OFFERER_ADDR: &str = "offerer";
     const SG721_CONTRACT: &str = "contract3";
     const LOAN_DURATION: u64 = 15;
@@ -129,6 +128,16 @@ mod tests {
             bail!("Expected loan state to be ended, got {:?}", res.state);
         }
         Ok(())
+    }
+
+    fn get_extension(app: &StargazeApp, loan_addr: Addr) -> StdResult<ExtensionResponse> {
+        app.wrap().query_wasm_smart(
+            loan_addr,
+            &QueryMsg::Extension {
+                borrower: OWNER_ADDR.to_string(),
+                loan_id: 0,
+            },
+        )
     }
 
     fn wait_blocks(app: &mut StargazeApp, blocks: u64) {
@@ -333,5 +342,209 @@ mod tests {
             ADDITIONAL_DURATION,
         )
         .unwrap();
+    }
+
+    pub mod multiple_extensions {
+        use super::*;
+
+        #[test]
+        fn ask_for_2_extensions() {
+            // setup test environment
+            let (mut app, loan_addr) = setup_loan();
+            assert_eq!(
+                get_extension(&app, loan_addr.clone()).unwrap().extension,
+                None
+            );
+            // Ask for a loan extension
+            app.execute_contract(
+                Addr::unchecked(OWNER_ADDR.to_string()),
+                loan_addr.clone(),
+                &ExecuteMsg::RequestExtension {
+                    loan_id: 0,
+                    comment: None,
+                    additional_interest: Uint128::from(ADDITIONAL_INTEREST),
+                    additional_duration: ADDITIONAL_DURATION,
+                },
+                &[],
+            )
+            .unwrap();
+            assert_eq!(
+                get_extension(&app, loan_addr.clone())
+                    .unwrap()
+                    .extension
+                    .unwrap()
+                    .extension_id,
+                0
+            );
+            // Ask for a loan extension
+            app.execute_contract(
+                Addr::unchecked(OWNER_ADDR.to_string()),
+                loan_addr.clone(),
+                &ExecuteMsg::RequestExtension {
+                    loan_id: 0,
+                    comment: None,
+                    additional_interest: Uint128::from(ADDITIONAL_INTEREST),
+                    additional_duration: ADDITIONAL_DURATION,
+                },
+                &[],
+            )
+            .unwrap();
+            assert_eq!(
+                get_extension(&app, loan_addr)
+                    .unwrap()
+                    .extension
+                    .unwrap()
+                    .extension_id,
+                1
+            );
+        }
+        #[test]
+        fn cant_accept_old_extension() {
+            // setup test environment
+            let (mut app, loan_addr) = setup_loan();
+            // Ask for a loan extension
+            app.execute_contract(
+                Addr::unchecked(OWNER_ADDR.to_string()),
+                loan_addr.clone(),
+                &ExecuteMsg::RequestExtension {
+                    loan_id: 0,
+                    comment: None,
+                    additional_interest: Uint128::from(ADDITIONAL_INTEREST),
+                    additional_duration: ADDITIONAL_DURATION,
+                },
+                &[],
+            )
+            .unwrap();
+            // Ask for a loan extension
+            app.execute_contract(
+                Addr::unchecked(OWNER_ADDR.to_string()),
+                loan_addr.clone(),
+                &ExecuteMsg::RequestExtension {
+                    loan_id: 0,
+                    comment: None,
+                    additional_interest: Uint128::from(ADDITIONAL_INTEREST),
+                    additional_duration: ADDITIONAL_DURATION,
+                },
+                &[],
+            )
+            .unwrap();
+            app.execute_contract(
+                Addr::unchecked(OFFERER_ADDR.to_string()),
+                loan_addr.clone(),
+                &ExecuteMsg::AcceptExtension {
+                    borrower: OWNER_ADDR.to_string(),
+                    loan_id: 0,
+                    extension_id: 0,
+                },
+                &[],
+            )
+            .unwrap_err();
+        }
+
+        #[test]
+        fn accept_second_extension_repay() {
+            // setup test environment
+            let (mut app, loan_addr) = setup_loan();
+            // Ask for a loan extension
+            app.execute_contract(
+                Addr::unchecked(OWNER_ADDR.to_string()),
+                loan_addr.clone(),
+                &ExecuteMsg::RequestExtension {
+                    loan_id: 0,
+                    comment: None,
+                    additional_interest: Uint128::from(ADDITIONAL_INTEREST),
+                    additional_duration: ADDITIONAL_DURATION,
+                },
+                &[],
+            )
+            .unwrap();
+            // Ask for a loan extension
+            app.execute_contract(
+                Addr::unchecked(OWNER_ADDR.to_string()),
+                loan_addr.clone(),
+                &ExecuteMsg::RequestExtension {
+                    loan_id: 0,
+                    comment: None,
+                    additional_interest: Uint128::from(ADDITIONAL_INTEREST),
+                    additional_duration: ADDITIONAL_DURATION,
+                },
+                &[],
+            )
+            .unwrap();
+            app.execute_contract(
+                Addr::unchecked(OFFERER_ADDR.to_string()),
+                loan_addr.clone(),
+                &ExecuteMsg::AcceptExtension {
+                    borrower: OWNER_ADDR.to_string(),
+                    loan_id: 0,
+                    extension_id: 1,
+                },
+                &[],
+            )
+            .unwrap();
+            wait_blocks(&mut app, LOAN_DURATION + 1);
+            repay(
+                &mut app,
+                loan_addr,
+                LOAN_AMOUNT + LOAN_INTEREST + ADDITIONAL_INTEREST,
+            )
+            .unwrap();
+        }
+        #[test]
+        fn accept_second_extension_default() {
+            // setup test environment
+            let (mut app, loan_addr) = setup_loan();
+            // Ask for a loan extension
+            app.execute_contract(
+                Addr::unchecked(OWNER_ADDR.to_string()),
+                loan_addr.clone(),
+                &ExecuteMsg::RequestExtension {
+                    loan_id: 0,
+                    comment: None,
+                    additional_interest: Uint128::from(ADDITIONAL_INTEREST),
+                    additional_duration: ADDITIONAL_DURATION,
+                },
+                &[],
+            )
+            .unwrap();
+            // Ask for a loan extension
+            app.execute_contract(
+                Addr::unchecked(OWNER_ADDR.to_string()),
+                loan_addr.clone(),
+                &ExecuteMsg::RequestExtension {
+                    loan_id: 0,
+                    comment: None,
+                    additional_interest: Uint128::from(ADDITIONAL_INTEREST),
+                    additional_duration: ADDITIONAL_DURATION,
+                },
+                &[],
+            )
+            .unwrap();
+            app.execute_contract(
+                Addr::unchecked(OFFERER_ADDR.to_string()),
+                loan_addr.clone(),
+                &ExecuteMsg::AcceptExtension {
+                    borrower: OWNER_ADDR.to_string(),
+                    loan_id: 0,
+                    extension_id: 1,
+                },
+                &[],
+            )
+            .unwrap();
+            default_with_blocks(
+                &mut app,
+                loan_addr.clone(),
+                Addr::unchecked(OWNER_ADDR.to_string()),
+                LOAN_DURATION + 1,
+            )
+            .unwrap_err();
+            default_with_blocks(
+                &mut app,
+                loan_addr,
+                Addr::unchecked(OWNER_ADDR.to_string()),
+                ADDITIONAL_DURATION,
+            )
+            .unwrap();
+        }
     }
 }
