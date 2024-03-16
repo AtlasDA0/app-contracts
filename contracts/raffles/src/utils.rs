@@ -1,6 +1,3 @@
-#[cfg(feature = "sg")]
-use sg721::ExecuteMsg as Sg721ExecuteMsg;
-
 use crate::{
     error::ContractError,
     state::{get_raffle_state, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO, RAFFLE_TICKETS},
@@ -9,8 +6,12 @@ use cosmwasm_std::{
     coins, to_json_binary, Addr, BankMsg, Coin, Deps, Empty, Env, HexBinary, StdError, StdResult,
     Storage, Uint128, WasmMsg,
 };
+use cw20::Cw20Coin;
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
+#[cfg(feature = "sg")]
+use sg721::ExecuteMsg as Sg721ExecuteMsg;
+use sg721_base::msg::CollectionInfoResponse;
 
 use nois::{int_in_range, ProxyExecuteMsg};
 
@@ -46,11 +47,11 @@ pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, Contr
 
 /// Util to get the organizers and helpers messages to return when claiming a Raffle (returns the funds)
 pub fn get_raffle_owner_finished_messages(
-    storage: &dyn Storage,
+    deps: Deps,
     _env: Env,
     raffle_info: RaffleInfo,
 ) -> Result<Vec<CosmosMsg>, ContractError> {
-    let config = CONFIG.load(storage)?;
+    let config = CONFIG.load(deps.storage)?;
 
     // We start by splitting the fees between owner & treasury
     let total_paid = match raffle_info.raffle_ticket_price.clone() {
@@ -59,8 +60,43 @@ pub fn get_raffle_owner_finished_messages(
         _ => return Err(ContractError::WrongFundsType {}),
     } * Uint128::from(raffle_info.number_of_tickets);
 
+    // Query the royalty information
+    // The royalty information will be split equally amongst collections
+    let asset_number = raffle_info.assets.len();
+
+    // We need an address AND an amount for all the collections with royalties
+    let royalty_amounts: Vec<Cw20Coin> = raffle_info
+        .assets
+        .iter()
+        .filter_map(|a| {
+            match a {
+                // No royalties in the case of a normal cw721 NFT
+                AssetInfo::Cw721Coin(_) => None,
+                AssetInfo::Coin(_) => None,
+                // Royalties in the case of a sg721 token
+                AssetInfo::Sg721Token(token) => {
+                    let collection_info: CollectionInfoResponse = deps
+                        .querier
+                        .query_wasm_smart(
+                            token.address.clone(),
+                            &sg721_base::msg::QueryMsg::CollectionInfo {},
+                        )
+                        .ok()?;
+
+                    collection_info.royalty_info.map(|r| Cw20Coin {
+                        address: r.payment_address,
+                        amount: total_paid * r.share / Uint128::from(asset_number as u128),
+                    })
+                }
+            }
+        })
+        .collect();
+
+    let total_royalty_amount: Uint128 = royalty_amounts.iter().map(|a| a.amount).sum();
+
     // use raffle_fee % to calculate treasury distribution
-    let treasury_amount = total_paid * config.raffle_fee;
+    let max_treasury_amount = total_paid * config.raffle_fee;
+    let treasury_amount = max_treasury_amount - max_treasury_amount.min(total_royalty_amount);
     let owner_amount = total_paid - treasury_amount;
 
     // Then we craft the messages needed for asset transfers
@@ -76,10 +112,21 @@ pub fn get_raffle_owner_finished_messages(
                     .into(),
                 );
             };
+
+            // We distribute the royalties
+            let royalty_msgs = royalty_amounts.into_iter().map(|r| {
+                BankMsg::Send {
+                    to_address: r.address,
+                    amount: coins(r.amount.u128(), coin.denom.clone()),
+                }
+                .into()
+            });
+            messages.extend(royalty_msgs);
+
             if owner_amount != Uint128::zero() {
                 messages.push(
                     BankMsg::Send {
-                        to_address: config.owner.to_string(),
+                        to_address: raffle_info.owner.to_string(),
                         amount: coins(owner_amount.u128(), coin.denom),
                     }
                     .into(),

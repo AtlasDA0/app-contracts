@@ -610,7 +610,7 @@ pub fn execute_determine_winner(
     let winner_transfer_messages =
         get_raffle_winner_messages(deps.as_ref(), env.clone(), raffle_info.clone(), raffle_id)?;
     let funds_transfer_messages =
-        get_raffle_owner_finished_messages(deps.storage, env, raffle_info.clone())?;
+        get_raffle_owner_finished_messages(deps.as_ref(), env, raffle_info.clone())?;
 
     // We distribute the ticket prices to the owner and in part to the treasury
     Ok(Response::new()
