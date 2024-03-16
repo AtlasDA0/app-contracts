@@ -79,7 +79,7 @@ pub fn get_raffle_owner_finished_messages(
             if owner_amount != Uint128::zero() {
                 messages.push(
                     BankMsg::Send {
-                        to_address: config.owner.to_string(),
+                        to_address: raffle_info.owner.to_string(),
                         amount: coins(owner_amount.u128(), coin.denom),
                     }
                     .into(),
