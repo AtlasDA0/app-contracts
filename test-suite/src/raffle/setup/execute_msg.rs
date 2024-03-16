@@ -37,7 +37,7 @@ pub fn instantate_raffle_contract(
 
     let raffle_code_id = params.app.store_code(contract_raffles());
     let msg: InstantiateMsg = InstantiateMsg {
-        name: name,
+        name,
         nois_proxy_addr: nois_proxy_addr.to_string(),
         nois_proxy_coin: nois_coin,
         owner: None, // confirm info.sender is default
@@ -45,7 +45,7 @@ pub fn instantate_raffle_contract(
         minimum_raffle_duration: None,
         minimum_raffle_timeout: None,
         max_ticket_number: None,
-        raffle_fee: raffle_fee,
+        raffle_fee,
         creation_coins: vec![coin(50, NATIVE_DENOM)].into(),
     };
 
@@ -62,7 +62,7 @@ pub fn instantate_raffle_contract(
 // Template for creating raffles
 pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse, anyhow_error> {
     // define msg values
-    let current_time = params.app.block_info().time.clone();
+    let current_time = params.app.block_info().time;
     let owner_addr = params.owner_addr;
     let raffle_contract = params.raffle_contract_addr;
     let creation_fee = params.creation_fee;
@@ -80,14 +80,14 @@ pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse,
         }))
         .unwrap();
     // create raffle
-    let msg = params.app.execute_contract(
+    params.app.execute_contract(
         owner_addr.clone(),
         raffle_contract.clone(),
         &RaffleExecuteMsg::CreateRaffle {
             owner: None,
-            assets: assets,
+            assets,
             raffle_options: RaffleOptionsMsg {
-                raffle_start_timestamp: Some(current_time.clone()),
+                raffle_start_timestamp: Some(current_time),
                 raffle_duration: None,
                 raffle_timeout: None,
                 comment: None,
@@ -102,9 +102,7 @@ pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse,
             autocycle: Some(false),
         },
         &creation_fee,
-    );
-
-    msg
+    )
 }
 
 pub fn buy_tickets_template(params: PurchaseTicketsParams) -> Result<AppResponse, anyhow_error> {
@@ -117,24 +115,23 @@ pub fn buy_tickets_template(params: PurchaseTicketsParams) -> Result<AppResponse
 
     // TODO: define # of buyers, return array of address
     // TODO: loop through for each buyer to puchase num_tickets
-    let ticket_purchase1 = params.app.execute_contract(
+    params.app.execute_contract(
         msg_sender[0].clone(),
         raffle_addr.clone(),
         &RaffleExecuteMsg::BuyTicket {
-            raffle_id: id.clone(),
-            ticket_count: num_tickets.clone(),
-            sent_assets: AssetInfo::Coin(funds_sent[0].clone()).into(),
+            raffle_id: id,
+            ticket_count: num_tickets,
+            sent_assets: AssetInfo::Coin(funds_sent[0].clone()),
         },
         &funds_sent,
-    );
-    ticket_purchase1
+    )
 }
 
 pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
     let router = params.app;
     let raffle_addr = params.raffle_contract_addr;
     let owner_addr = params.owner_addr;
-    let current_time = router.block_info().time.clone();
+    let current_time = router.block_info().time;
     let max_per_addr = params.max_ticket_per_addr;
     let raffle_ticket_price = params.ticket_price;
     let raffle_nfts = params.raffle_nfts;
@@ -148,7 +145,7 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
             owner: Some(owner_addr.clone().to_string()),
             assets: raffle_nfts,
             raffle_options: RaffleOptionsMsg {
-                raffle_start_timestamp: Some(current_time.clone()),
+                raffle_start_timestamp: Some(current_time),
                 raffle_duration: duration,
                 raffle_timeout: None,
                 comment: None,
