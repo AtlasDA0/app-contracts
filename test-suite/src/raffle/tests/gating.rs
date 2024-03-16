@@ -402,4 +402,96 @@ mod tests {
             buy_tickets_template(params).unwrap_err();
         }
     }
+    /// Query tests
+    pub mod query {
+        use raffles::msg::{AllRafflesResponse, QueryFilters};
+
+        pub use super::*;
+        #[test]
+        fn multiple_gated_query_works() {
+            let (mut app, raffle_addr, one) = setup_gating_raffle(vec![
+                GatingOptionsMsg::Coin(coin(12783, GATED_DENOM)),
+                GatingOptionsMsg::Coin(coin(12789, GATED_DENOM_1)),
+            ]);
+
+            let partial_conditions_sender = "someone_with_only_some_condition_met".to_string();
+
+            app.sudo(SudoMsg::Bank({
+                BankSudo::Mint {
+                    to_address: one.to_string(),
+                    amount: vec![
+                        coin(100_000_000, GATED_DENOM.to_string()),
+                        coin(100_000_000, GATED_DENOM_1.to_string()),
+                    ],
+                }
+            }))
+            .unwrap();
+            app.sudo(SudoMsg::Bank({
+                BankSudo::Mint {
+                    to_address: partial_conditions_sender.clone(),
+                    amount: vec![coin(100_000_000, GATED_DENOM.to_string())],
+                }
+            }))
+            .unwrap();
+
+            let res: AllRafflesResponse = app
+                .wrap()
+                .query_wasm_smart(
+                    raffle_addr.clone(),
+                    &RaffleQueryMsg::AllRaffles {
+                        start_after: None,
+                        limit: None,
+                        filters: Some(QueryFilters {
+                            states: None,
+                            owner: None,
+                            ticket_depositor: None,
+                            contains_token: None,
+                            gated_rights_ticket_buyer: Some(one.to_string()),
+                        }),
+                    },
+                )
+                .unwrap();
+            assert_eq!(res.raffles.len(), 1);
+
+            let res: AllRafflesResponse = app
+                .wrap()
+                .query_wasm_smart(
+                    raffle_addr.clone(),
+                    &RaffleQueryMsg::AllRaffles {
+                        start_after: None,
+                        limit: None,
+                        filters: Some(QueryFilters {
+                            states: None,
+                            owner: None,
+                            ticket_depositor: None,
+                            contains_token: None,
+                            gated_rights_ticket_buyer: Some(partial_conditions_sender.clone()),
+                        }),
+                    },
+                )
+                .unwrap();
+            assert_eq!(res.raffles.len(), 0);
+
+            let res: AllRafflesResponse = app
+                .wrap()
+                .query_wasm_smart(
+                    raffle_addr.clone(),
+                    &RaffleQueryMsg::AllRaffles {
+                        start_after: None,
+                        limit: None,
+                        filters: Some(QueryFilters {
+                            states: None,
+                            owner: None,
+                            ticket_depositor: None,
+                            contains_token: None,
+                            gated_rights_ticket_buyer: Some(
+                                "someone-with-no-conditions-met".to_string(),
+                            ),
+                        }),
+                    },
+                )
+                .unwrap();
+            assert_eq!(res.raffles.len(), 0);
+        }
+    }
 }
