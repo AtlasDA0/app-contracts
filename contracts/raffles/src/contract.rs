@@ -193,7 +193,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
             let raffle_info = load_raffle(deps.storage, raffle_id)?;
             to_json_binary(&RaffleResponse {
                 raffle_id,
-                raffle_state: get_raffle_state(env, raffle_info.clone()),
+                raffle_state: get_raffle_state(env, &raffle_info),
                 raffle_info: Some(raffle_info),
             })?
         }

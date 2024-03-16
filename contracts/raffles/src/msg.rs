@@ -126,6 +126,7 @@ pub struct QueryFilters {
     pub owner: Option<String>,
     pub ticket_depositor: Option<String>,
     pub contains_token: Option<String>,
+    pub gated_rights_ticket_buyer: Option<String>,
 }
 
 #[cw_serde]

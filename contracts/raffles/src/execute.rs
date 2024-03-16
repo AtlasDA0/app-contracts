@@ -23,12 +23,11 @@ use crate::{
         MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, RAFFLE_INFO, RAFFLE_TICKETS, USER_TICKETS,
     },
     utils::{
-        can_buy_ticket, get_nois_randomness, get_raffle_owner_finished_messages,
-        get_raffle_owner_messages, get_raffle_winner, get_raffle_winner_messages, is_raffle_owner,
-        ticket_cost,
+        buyer_can_buy_ticket, can_buy_ticket, get_nois_randomness,
+        get_raffle_owner_finished_messages, get_raffle_owner_messages, get_raffle_winner,
+        get_raffle_winner_messages, is_raffle_owner, ticket_cost,
     },
 };
-use dao_interface::voting::VotingPowerAtHeightResponse;
 
 #[allow(clippy::too_many_arguments)]
 pub fn execute_create_raffle(
@@ -238,7 +237,7 @@ pub fn execute_cancel_raffle(
     let mut raffle_info = is_raffle_owner(deps.storage, raffle_id, info.sender)?;
 
     // The raffle can only be cancelled if it wasn't previously cancelled and it isn't finished
-    let raffle_state = get_raffle_state(env.clone(), raffle_info.clone());
+    let raffle_state = get_raffle_state(env.clone(), &raffle_info);
 
     if raffle_state != RaffleState::Created
         && raffle_state != RaffleState::Started
@@ -280,7 +279,7 @@ pub fn execute_modify_raffle(
     raffle_options: RaffleOptionsMsg,
 ) -> Result<Response, ContractError> {
     let mut raffle_info = is_raffle_owner(deps.storage, raffle_id, info.sender)?;
-    let raffle_state = get_raffle_state(env, raffle_info.clone());
+    let raffle_state = get_raffle_state(env, &raffle_info);
     let config = CONFIG.load(deps.storage)?;
     // We then verify there are not tickets bought
     if raffle_info.number_of_tickets != 0 {
@@ -421,84 +420,8 @@ pub fn _buy_tickets(
         }
     }
 
-    // We also check if the raffle is token gated
-    raffle_info
-        .raffle_options
-        .gating_raffle
-        .iter()
-        .try_for_each(|options| match options {
-            crate::state::GatingOptions::Cw721Coin(address) => {
-                let owner_query: cw721::TokensResponse = deps.querier.query_wasm_smart(
-                    address,
-                    &cw721_base::QueryMsg::<Empty>::Tokens {
-                        owner: owner.to_string(),
-                        start_after: None,
-                        limit: None,
-                    },
-                )?;
-                ensure!(
-                    !owner_query.tokens.is_empty(),
-                    ContractError::NotGatingCondition {
-                        condition: options.clone(),
-                        user: owner.to_string()
-                    }
-                );
-                Ok::<_, ContractError>(())
-            }
-            crate::state::GatingOptions::Coin(needed_coins) => {
-                // We verify the sender has enough coins in their wallet
-                let user_balance = deps
-                    .querier
-                    .query_balance(owner.clone(), needed_coins.denom.clone())?;
-
-                ensure!(
-                    user_balance.amount > needed_coins.amount,
-                    ContractError::NotGatingCondition {
-                        condition: options.clone(),
-                        user: owner.to_string()
-                    }
-                );
-                Ok(())
-            }
-            crate::state::GatingOptions::Sg721Token(address) => {
-                let owner_query: cw721::TokensResponse = deps.querier.query_wasm_smart(
-                    address,
-                    &sg721_base::QueryMsg::Tokens {
-                        owner: owner.to_string(),
-                        start_after: None,
-                        limit: None,
-                    },
-                )?;
-                ensure!(
-                    !owner_query.tokens.is_empty(),
-                    ContractError::NotGatingCondition {
-                        condition: options.clone(),
-                        user: owner.to_string()
-                    }
-                );
-                Ok::<_, ContractError>(())
-            }
-            crate::state::GatingOptions::DaoVotingPower {
-                dao_address,
-                min_voting_power,
-            } => {
-                let voting_power: VotingPowerAtHeightResponse = deps.querier.query_wasm_smart(
-                    dao_address,
-                    &dao_interface::msg::QueryMsg::VotingPowerAtHeight {
-                        address: owner.to_string(),
-                        height: None,
-                    },
-                )?;
-                ensure!(
-                    voting_power.power > *min_voting_power,
-                    ContractError::NotGatingCondition {
-                        condition: options.clone(),
-                        user: owner.to_string()
-                    }
-                );
-                Ok::<_, ContractError>(())
-            }
-        })?;
+    // We start by checking that the buyer has the gating rights to buy this ticket
+    buyer_can_buy_ticket(deps.as_ref(), &raffle_info, owner.to_string())?;
 
     // We then check the raffle is in the right state
     can_buy_ticket(env, raffle_info.clone())?;
@@ -675,7 +598,7 @@ pub fn execute_determine_winner(
 ) -> Result<Response, ContractError> {
     // Loads the raffle id and makes sure the raffle has ended and randomness from nois has been provided.
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
-    let raffle_state = get_raffle_state(env.clone(), raffle_info.clone());
+    let raffle_state = get_raffle_state(env.clone(), &raffle_info);
 
     if raffle_state != RaffleState::Finished {
         return Err(ContractError::WrongStateForClaim {
@@ -719,7 +642,7 @@ pub fn execute_update_randomness(
 ) -> Result<Response, ContractError> {
     // We check the raffle can receive randomness (good state)
     let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
-    let raffle_state = get_raffle_state(env, raffle_info);
+    let raffle_state = get_raffle_state(env, &raffle_info);
     if raffle_state != RaffleState::Closed {
         return Err(ContractError::WrongStateForRandomness {
             status: raffle_state,
