@@ -11,17 +11,26 @@ use utils::{
     types::Response,
 };
 
-use crate::execute::{
-    accept_loan, accept_offer, cancel_offer, execute_toggle_lock, list_collaterals, make_offer,
-    modify_collaterals, refuse_offer, repay_borrowed_funds, withdraw_collateral,
-    withdraw_defaulted_loan, withdraw_refused_offer,
-};
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::query::{
-    query_all_collaterals, query_borrower_info, query_collateral_info, query_collaterals,
-    query_config, query_lender_offers, query_offer_info, query_offers,
-};
 use crate::state::{Config, CONFIG, STATIC_LOAN_LISTING_FEE};
+use crate::{
+    collection_offer::execute_accept_collection_offer,
+    query::{
+        query_all_collaterals, query_borrower_info, query_collateral_info, query_collaterals,
+        query_config, query_lender_offers, query_offer_info, query_offers,
+    },
+};
+use crate::{
+    collection_offer::execute_make_collection_offer,
+    execute::{
+        accept_loan, accept_offer, cancel_offer, execute_toggle_lock, list_collaterals, make_offer,
+        modify_collaterals, refuse_offer, repay_borrowed_funds, withdraw_collateral,
+        withdraw_defaulted_loan, withdraw_refused_offer,
+    },
+};
+use crate::{
+    collection_offer::execute_withdraw_collection_offer,
+    msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
+};
 use crate::{error::ContractError, execute::execute_sudo_toggle_lock};
 // version info for migration info
 const CONTRACT_NAME: &str = concat!("crates.io:", env!("CARGO_CRATE_NAME"));
@@ -58,6 +67,7 @@ pub fn instantiate(
         treasury_addr: deps.api.addr_validate(&msg.treasury_addr)?,
         fee_rate: msg.fee_rate,
         global_offer_index: 0,
+        global_collection_offer_index: 0,
         listing_fee_coins: listing_fee,
         locks: Locks {
             lock: false,
@@ -97,7 +107,7 @@ pub fn execute(
             terms,
             comment,
             loan_preview,
-        } => list_collaterals(deps, env, info, tokens, terms, comment, loan_preview),
+        } => Ok(list_collaterals(deps, env, info, tokens, terms, comment, loan_preview)?.0),
         ExecuteMsg::ModifyCollaterals {
             loan_id,
             terms,
@@ -112,7 +122,6 @@ pub fn execute(
             loan_id,
             comment,
         } => accept_loan(deps, env, info, borrower, loan_id, comment),
-
         ExecuteMsg::AcceptOffer { global_offer_id } => {
             accept_offer(deps, env, info, global_offer_id)
         }
@@ -137,8 +146,6 @@ pub fn execute(
         ExecuteMsg::WithdrawDefaultedLoan { borrower, loan_id } => {
             withdraw_defaulted_loan(deps, env, info, borrower, loan_id)
         }
-
-        // Internal Contract Logic
         ExecuteMsg::SetOwner { owner } => set_owner(deps, env, info, owner),
         ExecuteMsg::SetFeeDestination { treasury_addr } => {
             set_fee_distributor(deps, env, info, treasury_addr)
@@ -148,6 +155,18 @@ pub fn execute(
         }
         ExecuteMsg::SetFeeRate { fee_rate } => set_fee_rate(deps, env, info, fee_rate),
         ExecuteMsg::ToggleLock { lock } => execute_toggle_lock(deps, info, env, lock),
+        ExecuteMsg::MakeCollectionOffer {
+            collection,
+            terms,
+            comment,
+        } => execute_make_collection_offer(deps, env, info, collection, terms, comment),
+        ExecuteMsg::WithdrawCollectionOffer {
+            collection_offer_id,
+        } => execute_withdraw_collection_offer(deps, env, info, collection_offer_id),
+        ExecuteMsg::AcceptCollectionOffer {
+            token,
+            collection_offer_id,
+        } => execute_accept_collection_offer(deps, env, info, collection_offer_id, token),
     }
 }
 
@@ -167,10 +186,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             limit,
             // filters,
         } => to_json_binary(&query_collaterals(deps, borrower, start_after, limit)?),
-        QueryMsg::AllCollaterals {
-            start_after,
-            limit,
-        } => to_json_binary(&query_all_collaterals(deps, start_after, limit)?),
+        QueryMsg::AllCollaterals { start_after, limit } => {
+            to_json_binary(&query_all_collaterals(deps, start_after, limit)?)
+        }
         QueryMsg::OfferInfo { global_offer_id } => {
             to_json_binary(&query_offer_info(deps, global_offer_id)?)
         }

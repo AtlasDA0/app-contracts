@@ -9,6 +9,7 @@ use sg721_base::QueryMsg as Sg721QueryMsg;
 
 use crate::{
     error::ContractError,
+    lender_offer::lender_offers,
     msg::{
         CollateralResponse,
         MultipleCollateralsAllResponse,
@@ -18,8 +19,8 @@ use crate::{
         // QueryFilters,
     },
     state::{
-        get_actual_state, get_offer, lender_offers, BorrowerInfo, CollateralInfo, Config,
-        BORROWER_INFO, COLLATERAL_INFO, CONFIG,
+        get_actual_state, get_offer, BorrowerInfo, CollateralInfo, Config, BORROWER_INFO,
+        COLLATERAL_INFO, CONFIG,
     },
 };
 

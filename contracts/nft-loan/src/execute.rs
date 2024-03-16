@@ -8,17 +8,18 @@ use {
 use {
     crate::{
         error::{self, ContractError},
+        lender_offer::lender_offers,
         query::{is_approved_cw721, is_nft_owner},
         state::{
             can_repay_loan, get_active_loan, get_offer, is_active_lender,
             is_collateral_withdrawable, is_lender, is_loan_acceptable, is_loan_counterable,
             is_loan_defaulted, is_loan_modifiable, is_offer_borrower, is_offer_refusable,
-            lender_offers, save_offer, BorrowerInfo, CollateralInfo, LoanState, LoanTerms,
-            OfferInfo, OfferState, BORROWER_INFO, COLLATERAL_INFO, CONFIG,
+            save_offer, BorrowerInfo, CollateralInfo, LoanState, LoanTerms, OfferInfo, OfferState,
+            BORROWER_INFO, COLLATERAL_INFO, CONFIG,
         },
     },
     cosmwasm_std::{
-        coins, ensure_eq, Addr, BankMsg, Decimal, DepsMut, Empty, Env, MessageInfo, StdError,
+        coins, ensure_eq, Addr, BankMsg, Coin, Decimal, DepsMut, Empty, Env, MessageInfo, StdError,
         StdResult, Storage,
     },
     cw721::Cw721ExecuteMsg,
@@ -47,7 +48,7 @@ pub fn list_collaterals(
     terms: Option<LoanTerms>,
     comment: Option<String>,
     loan_preview: Option<AssetInfo>,
-) -> Result<Response, ContractError> {
+) -> Result<(Response, u64), ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
     // prevent new listings from being made when contract is frozen
@@ -159,11 +160,14 @@ pub fn list_collaterals(
     )?;
 
     // response attributes
-    Ok(Response::new()
-        .add_message(transfer_fee)
-        .add_attribute("action", "deposit_collateral")
-        .add_attribute("borrower", borrower)
-        .add_attribute("loan_id", loan_id.to_string()))
+    Ok((
+        Response::new()
+            .add_message(transfer_fee)
+            .add_attribute("action", "deposit_collateral")
+            .add_attribute("borrower", borrower)
+            .add_attribute("loan_id", loan_id.to_string()),
+        loan_id,
+    ))
 }
 
 // modify a listing, if possible
@@ -271,7 +275,8 @@ pub fn accept_loan(
     let (global_offer_id, _offer_id) = _make_offer_raw(
         deps.storage,
         env.clone(),
-        info,
+        info.sender,
+        info.funds,
         borrower_addr,
         loan_id,
         terms,
@@ -287,10 +292,12 @@ pub fn accept_loan(
 // It verifies an offer can be made for the current loan
 // It verifies the sent funds match the principle indicated in the terms
 // And then saves the new offer in the internal storage
-fn _make_offer_raw(
+#[allow(clippy::too_many_arguments)]
+pub fn _make_offer_raw(
     storage: &mut dyn Storage,
     env: Env,
-    info: MessageInfo,
+    lender: Addr,
+    sent_funds: Vec<Coin>,
     borrower: Addr,
     loan_id: u64,
     terms: LoanTerms,
@@ -308,9 +315,9 @@ fn _make_offer_raw(
     is_loan_counterable(&collateral)?;
 
     // Make sure the transaction contains funds that match the principle indicated in the terms
-    if info.funds.len() != 1 {
+    if sent_funds.len() != 1 {
         return Err(ContractError::MultipleCoins {});
-    } else if terms.principle != info.funds[0].clone() {
+    } else if terms.principle != sent_funds[0].clone() {
         return Err(ContractError::FundsDontMatchTerms {});
     }
 
@@ -326,7 +333,7 @@ fn _make_offer_raw(
         storage,
         &contract_config.global_offer_index.to_string(),
         &OfferInfo {
-            lender: info.sender,
+            lender,
             borrower,
             loan_id,
             offer_id,
@@ -344,7 +351,7 @@ fn _make_offer_raw(
 }
 
 // internal function that begins actually starts the loanl if possible
-fn _accept_offer_raw(
+pub fn _accept_offer_raw(
     deps: DepsMut,
     env: Env,
     global_offer_id: String,
@@ -499,7 +506,8 @@ pub fn make_offer(
     let (global_offer_id, _offer_id) = _make_offer_raw(
         deps.storage,
         env,
-        info.clone(),
+        info.sender.clone(),
+        info.funds,
         borrower.clone(),
         loan_id,
         terms,

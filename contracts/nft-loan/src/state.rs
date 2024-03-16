@@ -1,9 +1,9 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Coin, Decimal, Env, StdError, StdResult, Storage, Timestamp, Uint128};
-use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, MultiIndex};
+use cw_storage_plus::{Item, Map};
 use utils::state::{AssetInfo, Locks};
 
-use crate::error::ContractError;
+use crate::{error::ContractError, lender_offer::lender_offers};
 
 pub const CONFIG: Item<Config> = Item::new("config");
 pub const COLLATERAL_INFO: Map<(Addr, u64), CollateralInfo> = Map::new("collateral_info");
@@ -30,6 +30,8 @@ pub struct Config {
     pub listing_fee_coins: Vec<Coin>,
     /// Tracks the number of offers made across all loans
     pub global_offer_index: u64,
+    /// Tracks the number of collection offers made
+    pub global_collection_offer_index: u64,
     /// lock state prevents new collateral listings to be made
     pub locks: Locks,
 }
@@ -129,44 +131,19 @@ pub struct OfferInfo {
 }
 
 #[cw_serde]
+pub struct CollectionOfferInfo {
+    pub lender: Addr,
+    pub collection: Addr,
+    pub collection_offer_id: u64,
+    pub terms: LoanTerms,
+    pub comment: Option<String>,
+}
+
+#[cw_serde]
 pub struct LoanTerms {
     pub principle: Coin,
     pub interest: Uint128,
     pub duration_in_blocks: u64,
-}
-
-pub struct LenderOfferIndexes<'a> {
-    pub lender: MultiIndex<'a, Addr, OfferInfo, String>,
-    pub borrower: MultiIndex<'a, Addr, OfferInfo, String>,
-    pub loan: MultiIndex<'a, (Addr, u64), OfferInfo, String>,
-}
-
-impl<'a> IndexList<OfferInfo> for LenderOfferIndexes<'a> {
-    fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<OfferInfo>> + '_> {
-        let v: Vec<&dyn Index<OfferInfo>> = vec![&self.lender, &self.borrower, &self.loan];
-        Box::new(v.into_iter())
-    }
-}
-
-pub fn lender_offers<'a>() -> IndexedMap<'a, &'a str, OfferInfo, LenderOfferIndexes<'a>> {
-    let indexes = LenderOfferIndexes {
-        lender: MultiIndex::new(
-            |_, d: &OfferInfo| d.lender.clone(),
-            "lender_offers",
-            "lender_offers__lenderr",
-        ),
-        borrower: MultiIndex::new(
-            |_, d: &OfferInfo| d.borrower.clone(),
-            "lender_offers",
-            "lender_offers__borrower",
-        ),
-        loan: MultiIndex::new(
-            |_, d: &OfferInfo| (d.borrower.clone(), d.loan_id),
-            "lender_offers",
-            "lender_offers__collateral",
-        ),
-    };
-    IndexedMap::new("lender_offers", indexes)
 }
 
 pub fn is_loan_modifiable(collateral: &CollateralInfo) -> Result<(), ContractError> {

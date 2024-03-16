@@ -85,7 +85,19 @@ pub enum ExecuteMsg {
     ToggleLock {
         lock: bool,
     },
-    // TODO: Encode empathy
+    /// Collection offers
+    MakeCollectionOffer {
+        collection: String,
+        terms: LoanTerms,
+        comment: Option<String>,
+    },
+    WithdrawCollectionOffer {
+        collection_offer_id: u64,
+    },
+    AcceptCollectionOffer {
+        collection_offer_id: u64,
+        token: AssetInfo,
+    },
     /// Internal state
     SetOwner {
         owner: String,

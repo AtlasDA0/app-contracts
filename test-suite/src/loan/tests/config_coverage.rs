@@ -55,6 +55,7 @@ mod tests {
                 treasury_addr: Addr::unchecked(ATLAS_DAO_STARGAZE_TREASURY.to_string()),
                 fee_rate: LOAN_INTEREST_TAX,
                 global_offer_index: 0,
+                global_collection_offer_index: 0,
                 listing_fee_coins: vec![
                     Coin::new(MIN_COLLATERAL_LISTING, NATIVE_DENOM),
                     Coin::new(MIN_COLLATERAL_LISTING, "usstars"),
@@ -175,6 +176,7 @@ mod tests {
                     coin(7, "ustars"),
                 ],
                 global_offer_index: 0,
+                global_collection_offer_index: 0,
                 locks: Locks {
                     lock: false,
                     sudo_lock: false,
