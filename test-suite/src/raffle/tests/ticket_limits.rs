@@ -18,7 +18,7 @@ mod tests {
 
     use raffles::msg::InstantiateMsg;
     #[cfg(feature = "sg")]
-    use {sg721::CollectionInfo, sg_multi_test::StargazeApp};
+    use {crate::common_setup::app::StargazeApp, sg721::CollectionInfo};
 
     use crate::common_setup::{
         contract_boxes::{
@@ -138,8 +138,8 @@ mod tests {
             query_config,
             ConfigResponse {
                 name: RAFFLE_NAME.to_string(),
-                owner: Addr::unchecked(OWNER_ADDR),
-                fee_addr: Addr::unchecked(OWNER_ADDR),
+                owner: OWNER_ADDR.to_string(),
+                fee_addr: OWNER_ADDR.to_string(),
                 last_raffle_id: 0,
                 minimum_raffle_duration: 20,
                 minimum_raffle_timeout: 420,
@@ -148,12 +148,18 @@ mod tests {
                     lock: false,
                     sudo_lock: false,
                 },
-                nois_proxy_addr: Addr::unchecked("nois"),
+                nois_proxy_addr: "nois".to_string(),
                 nois_proxy_coin: coin(500000, NATIVE_DENOM),
                 creation_coins: vec![
                     coin(CREATION_FEE_AMNT, NATIVE_DENOM.to_string()),
                     coin(CREATION_FEE_AMNT, "usstars".to_string())
                 ],
+                atlas_dao_nft_address: None,
+                staker_fee_discount: StakerFeeDiscount {
+                    discount: Decimal::zero(),
+                    minimum_amount: Uint128::zero()
+                },
+                max_tickets_per_raffle: Some(3),
             }
         );
 

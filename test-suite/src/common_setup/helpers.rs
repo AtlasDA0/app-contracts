@@ -1,8 +1,8 @@
 use anyhow::Error;
 use cosmwasm_std::Timestamp;
 use cw_multi_test::AppResponse;
-use sg_multi_test::StargazeApp;
 
+use super::app::StargazeApp;
 
 pub fn setup_block_time(router: &mut StargazeApp, nanos: u64, height: Option<u64>, chain_id: &str) {
     let mut block = router.block_info();

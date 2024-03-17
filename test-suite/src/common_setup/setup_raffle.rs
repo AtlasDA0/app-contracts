@@ -1,6 +1,6 @@
 use std::vec;
 
-use super::{helpers::setup_block_time, msg::RaffleCodeIds};
+use super::{app::StargazeApp, helpers::setup_block_time, msg::RaffleCodeIds};
 use crate::common_setup::{
     contract_boxes::{
         contract_raffles, contract_sg721_base, contract_vending_factory, contract_vending_minter,
@@ -17,7 +17,6 @@ use raffles::{
     state::{StakerFeeDiscount, ATLAS_DAO_STARGAZE_TREASURY},
 };
 use sg721::CollectionInfo;
-use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
 use utils::state::NOIS_AMOUNT;
 use vending_factory::{
@@ -200,10 +199,6 @@ pub fn raffle_template_code_ids(router: &mut StargazeApp) -> RaffleCodeIds {
     let minter_code_id = router.store_code(contract_vending_minter());
     let sg721_code_id = router.store_code(contract_sg721_base());
 
-    println!("raffle_code_id: {raffle_code_id}");
-    println!("minter_code_id: {minter_code_id}");
-    println!("factory_code_id: {factory_code_id}");
-    println!("sg721_code_id: {sg721_code_id}");
     RaffleCodeIds {
         raffle_code_id,
         minter_code_id,

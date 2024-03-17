@@ -87,11 +87,14 @@ pub fn get_raffle_owner_finished_messages(
             .map(|delegation| delegation.amount.amount)
             .sum();
 
-        if stake_response > config.staker_fee_discount.minimum_amount {}
+        println!("{:?} - {:?}", stake_response, config.staker_fee_discount);
+
+        if stake_response > config.staker_fee_discount.minimum_amount {
+            treasury_amount -= treasury_amount * config.staker_fee_discount.discount;
+        }
     }
 
     let owner_amount = total_paid - treasury_amount;
-    treasury_amount -= treasury_amount * config.staker_fee_discount.discount;
 
     // Then we craft the messages needed for asset transfers
     match raffle_info.raffle_ticket_price {

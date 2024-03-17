@@ -1,3 +1,4 @@
+use crate::common_setup::app::StargazeApp;
 use anyhow::Error as anyhow_error;
 use cosmwasm_std::{coin, coins, Coin, Decimal, Uint128};
 use cw_multi_test::{AppResponse, BankSudo, Executor, SudoMsg};
@@ -5,7 +6,6 @@ use raffles::{
     msg::{ExecuteMsg as RaffleExecuteMsg, InstantiateMsg, QueryMsg as RaffleQueryMsg},
     state::{RaffleOptionsMsg, StakerFeeDiscount},
 };
-use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
 use utils::state::AssetInfo;
 
@@ -143,35 +143,31 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
     let duration = params.duration;
 
     // create a raffle
-    let good_create_raffle = router.execute_contract(
-        owner_addr.clone(),
-        raffle_addr.clone(),
-        &RaffleExecuteMsg::CreateRaffle {
-            owner: Some(owner_addr.clone().to_string()),
-            assets: raffle_nfts,
-            raffle_options: RaffleOptionsMsg {
-                raffle_start_timestamp: Some(current_time),
-                raffle_duration: duration,
-                raffle_timeout: None,
-                comment: None,
-                max_ticket_number: None,
-                max_ticket_per_address: max_per_addr,
-                raffle_preview: None,
+    let _good_create_raffle = router
+        .execute_contract(
+            owner_addr.clone(),
+            raffle_addr.clone(),
+            &RaffleExecuteMsg::CreateRaffle {
+                owner: Some(owner_addr.clone().to_string()),
+                assets: raffle_nfts,
+                raffle_options: RaffleOptionsMsg {
+                    raffle_start_timestamp: Some(current_time),
+                    raffle_duration: duration,
+                    raffle_timeout: None,
+                    comment: None,
+                    max_ticket_number: None,
+                    max_ticket_per_address: max_per_addr,
+                    raffle_preview: None,
+                },
+                raffle_ticket_price: AssetInfo::Coin(Coin {
+                    denom: "ustars".to_string(),
+                    amount: raffle_ticket_price,
+                }),
+                autocycle: Some(false),
             },
-            raffle_ticket_price: AssetInfo::Coin(Coin {
-                denom: "ustars".to_string(),
-                amount: raffle_ticket_price,
-            }),
-            autocycle: Some(false),
-        },
-        &[coin(4, "ustars")],
-    );
-    // confirm owner is set
-    // assert!(
-    //     good_create_raffle.is_ok(),
-    //     "There is an issue creating a raffle"
-    // );
-    good_create_raffle.unwrap();
+            &[coin(4, "ustars")],
+        )
+        .unwrap();
 
     let res: raffles::msg::RaffleResponse = router
         .wrap()

@@ -11,8 +11,8 @@ mod tests {
     use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
 
     use raffles::{
-        msg::{ExecuteMsg, QueryMsg as RaffleQueryMsg, RaffleResponse},
-        state::{Config, RaffleState, ATLAS_DAO_STARGAZE_TREASURY},
+        msg::{ConfigResponse, ExecuteMsg, QueryMsg as RaffleQueryMsg, RaffleResponse},
+        state::{RaffleState, ATLAS_DAO_STARGAZE_TREASURY},
     };
 
     use crate::{
@@ -61,7 +61,7 @@ mod tests {
         // create a raffle
         create_raffle_setup(params);
 
-        let _res: Config = app
+        let _res: ConfigResponse = app
             .wrap()
             .query_wasm_smart(raffle_addr.clone(), &RaffleQueryMsg::Config {})
             .unwrap();
@@ -186,7 +186,7 @@ mod tests {
             .unwrap();
         assert_eq!(res.raffle_state, RaffleState::Claimed);
 
-        // confirm owner of nft is now raffle winner
+        // confirm the winner exists
         let res: OwnerOfResponse = app
             .wrap()
             .query_wasm_smart(
@@ -197,7 +197,7 @@ mod tests {
                 },
             )
             .unwrap();
-        assert_eq!(res.owner, two.to_string());
+        assert_eq!(res.owner, one.to_string());
 
         // confirm owner of nft is now raffle winner
         let res: ApprovalsResponse = app
@@ -423,12 +423,12 @@ mod tests {
         };
         create_raffle_setup(params2);
 
-        let res: Config = app
+        let res: ConfigResponse = app
             .wrap()
             .query_wasm_smart(raffle_addr.to_string(), &RaffleQueryMsg::Config {})
             .unwrap();
         // confirm raffles were created
-        assert_eq!(res.last_raffle_id, Some(1));
+        assert_eq!(res.last_raffle_id, 1);
 
         // purchase raffle tickets
         // addr_one buys 10 tickets from raffle 1

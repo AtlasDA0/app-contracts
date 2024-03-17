@@ -26,16 +26,19 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     let config = CONFIG.load(deps.storage)?;
     Ok(ConfigResponse {
         name: config.name,
-        owner: config.owner,
-        fee_addr: config.fee_addr,
+        owner: config.owner.to_string(),
+        fee_addr: config.fee_addr.to_string(),
         last_raffle_id: config.last_raffle_id.unwrap_or(0),
         minimum_raffle_duration: config.minimum_raffle_duration,
         minimum_raffle_timeout: config.minimum_raffle_timeout,
         raffle_fee: config.raffle_fee,
         locks: config.locks,
-        nois_proxy_addr: config.nois_proxy_addr,
+        nois_proxy_addr: config.nois_proxy_addr.to_string(),
         creation_coins: config.creation_coins,
         nois_proxy_coin: config.nois_proxy_coin,
+        atlas_dao_nft_address: config.atlas_dao_nft_address.map(|a| a.to_string()),
+        staker_fee_discount: config.staker_fee_discount,
+        max_tickets_per_raffle: config.max_tickets_per_raffle,
     })
 }
 

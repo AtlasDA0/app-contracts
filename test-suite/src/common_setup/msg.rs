@@ -1,8 +1,8 @@
+use crate::common_setup::app::StargazeApp;
 use anyhow::Error;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Timestamp};
 use sg2::msg::CollectionParams;
-use sg_multi_test::StargazeApp;
 use vending_factory::msg::VendingMinterInitMsgExtension;
 
 pub struct MinterCollectionResponse {
@@ -67,7 +67,6 @@ pub struct MinterCodeIds {
     pub factory_code_id: u64,
     pub sg721_code_id: u64,
 }
-
 
 pub struct RaffleAccounts {
     pub creator: Addr,
