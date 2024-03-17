@@ -1,7 +1,7 @@
 use cosmwasm_std::{coin, coins, Addr, BlockInfo, Coin, Decimal, Empty, Timestamp, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
 use nft_loans_nc::{
-    msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
+    msg::{ExecuteMsg, InstantiateMsg, MultipleCollectionOffersResponse, QueryMsg},
     state::{CollateralInfo, LoanState, LoanTerms},
 };
 use sg721::CollectionInfo;
@@ -24,12 +24,11 @@ use crate::common_setup::{
 const OFFERER_ADDR: &str = "offerer";
 const DEPOSITOR_ADDR: &str = "depositor";
 const BORROWER_ADDR: &str = "borrower";
-const VENDING_MINTER: &str = "contract2";
-const SG721_CONTRACT: &str = "contract3";
 
 const LISTING_FEE_NATIVE: u128 = 55;
 
-pub fn proper_instantiate() -> (StargazeApp, Addr, Addr) {
+// (App, loan_addr, factory_addr, minter_addr, nft_addr)
+pub fn proper_instantiate() -> (StargazeApp, Addr, Addr, Addr, Addr) {
     // setup mock blockchain environment
     let mut app = custom_mock_app();
     let chainid = app.block_info().chain_id.clone();
@@ -137,16 +136,27 @@ pub fn proper_instantiate() -> (StargazeApp, Addr, Addr) {
         )
         .unwrap();
 
-    create_nft_collection(&mut app, factory_addr.clone(), nft_loan_addr.clone());
+    let (minter_addr, nft_addr) =
+        create_nft_collection(&mut app, factory_addr.clone(), nft_loan_addr.clone());
 
-    (app, nft_loan_addr, factory_addr)
+    (
+        app,
+        nft_loan_addr,
+        factory_addr,
+        Addr::unchecked(minter_addr),
+        Addr::unchecked(nft_addr),
+    )
 }
 
-pub fn create_nft_collection(app: &mut StargazeApp, factory_addr: Addr, nft_loan_addr: Addr) {
+pub fn create_nft_collection(
+    app: &mut StargazeApp,
+    factory_addr: Addr,
+    nft_loan_addr: Addr,
+) -> (String, String) {
     let current_time = app.block_info().time;
 
     // create nft minter
-    let _create_nft_minter = app.execute_contract(
+    let create_nft_minter = app.execute_contract(
         Addr::unchecked(OWNER_ADDR),
         factory_addr.clone(),
         &vending_factory::msg::ExecuteMsg::CreateMinter(VendingMinterCreateMsg {
@@ -180,13 +190,29 @@ pub fn create_nft_collection(app: &mut StargazeApp, factory_addr: Addr, nft_loan
         }],
     );
 
-    // VENDING_MINTER is minter
+    let addresses = create_nft_minter
+        .unwrap()
+        .events
+        .into_iter()
+        .filter(|e| e.ty == "instantiate")
+        .flat_map(|e| {
+            e.attributes
+                .into_iter()
+                .filter(|a| a.key == "_contract_addr")
+                .map(|a| a.value)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
 
+    let minter_address = addresses[0].clone();
+    let nft_address = addresses[1].clone();
+
+    // VENDING_MINTER is minter
     // Minting tokens 63 and 65
     let _mint_nft_tokens = app
         .execute_contract(
             Addr::unchecked(OWNER_ADDR),
-            Addr::unchecked(VENDING_MINTER),
+            Addr::unchecked(minter_address.clone()),
             &vending_minter::msg::ExecuteMsg::Mint {},
             &[Coin {
                 denom: NATIVE_DENOM.to_string(),
@@ -197,7 +223,7 @@ pub fn create_nft_collection(app: &mut StargazeApp, factory_addr: Addr, nft_loan
     let _mint_nft_tokens_again = app
         .execute_contract(
             Addr::unchecked(OWNER_ADDR),
-            Addr::unchecked(VENDING_MINTER),
+            Addr::unchecked(minter_address.clone()),
             &vending_minter::msg::ExecuteMsg::Mint {},
             &[Coin {
                 denom: NATIVE_DENOM.to_string(),
@@ -210,7 +236,7 @@ pub fn create_nft_collection(app: &mut StargazeApp, factory_addr: Addr, nft_loan
     let _grant_approval = app
         .execute_contract(
             Addr::unchecked(OWNER_ADDR),
-            Addr::unchecked(SG721_CONTRACT),
+            Addr::unchecked(nft_address.clone()),
             &sg721_base::msg::ExecuteMsg::<Empty, Empty>::Approve {
                 spender: nft_loan_addr.to_string(),
                 token_id: "63".to_string(),
@@ -223,7 +249,7 @@ pub fn create_nft_collection(app: &mut StargazeApp, factory_addr: Addr, nft_loan
     let _grant_approval = app
         .execute_contract(
             Addr::unchecked(OWNER_ADDR),
-            Addr::unchecked(SG721_CONTRACT),
+            Addr::unchecked(nft_address.clone()),
             &sg721_base::msg::ExecuteMsg::<Empty, Empty>::Approve {
                 spender: nft_loan_addr.to_string(),
                 token_id: "65".to_string(),
@@ -232,18 +258,20 @@ pub fn create_nft_collection(app: &mut StargazeApp, factory_addr: Addr, nft_loan
             &[],
         )
         .unwrap();
+
+    (minter_address, nft_address)
 }
 
 #[test]
 pub fn collection_offer_works() {
-    let (mut app, nft_loan_addr, _factory_addr) = proper_instantiate();
+    let (mut app, nft_loan_addr, _factory_addr, _minter, nft) = proper_instantiate();
 
     let _collection_offer = app
         .execute_contract(
             Addr::unchecked(OFFERER_ADDR),
             nft_loan_addr.clone(),
             &ExecuteMsg::MakeCollectionOffer {
-                collection: SG721_CONTRACT.to_string(),
+                collection: nft.to_string(),
                 terms: LoanTerms {
                     principle: Coin {
                         denom: NATIVE_DENOM.to_string(),
@@ -268,7 +296,7 @@ pub fn collection_offer_works() {
             &ExecuteMsg::AcceptCollectionOffer {
                 collection_offer_id: 1,
                 token: AssetInfo::Sg721Token(Sg721Token {
-                    address: SG721_CONTRACT.to_string(),
+                    address: nft.to_string(),
                     token_id: "63".to_string(),
                 }),
             },
@@ -289,4 +317,102 @@ pub fn collection_offer_works() {
         .unwrap();
 
     assert_eq!(collateral.state, LoanState::Started);
+}
+
+#[test]
+pub fn query_works() {
+    // We use 2 different collection offers
+    // We make sure only the one that is interested pops up
+
+    let (mut app, nft_loan_addr, factory_addr, _minter, nft) = proper_instantiate();
+
+    // We create a second fee collection
+    let (_minter_1, nft_1) =
+        create_nft_collection(&mut app, factory_addr.clone(), nft_loan_addr.clone());
+
+    let _collection_offer = app
+        .execute_contract(
+            Addr::unchecked(OFFERER_ADDR),
+            nft_loan_addr.clone(),
+            &ExecuteMsg::MakeCollectionOffer {
+                collection: nft.to_string(),
+                terms: LoanTerms {
+                    principle: Coin {
+                        denom: NATIVE_DENOM.to_string(),
+                        amount: Uint128::new(100),
+                    },
+                    interest: Uint128::new(50),
+                    duration_in_blocks: 15,
+                },
+                comment: None,
+            },
+            &[Coin {
+                denom: NATIVE_DENOM.to_string(),
+                amount: Uint128::new(100),
+            }],
+        )
+        .unwrap();
+
+    let _collection_offer_1 = app
+        .execute_contract(
+            Addr::unchecked(OFFERER_ADDR),
+            nft_loan_addr.clone(),
+            &ExecuteMsg::MakeCollectionOffer {
+                collection: nft_1.to_string(),
+                terms: LoanTerms {
+                    principle: Coin {
+                        denom: NATIVE_DENOM.to_string(),
+                        amount: Uint128::new(100),
+                    },
+                    interest: Uint128::new(50),
+                    duration_in_blocks: 15,
+                },
+                comment: None,
+            },
+            &[Coin {
+                denom: NATIVE_DENOM.to_string(),
+                amount: Uint128::new(100),
+            }],
+        )
+        .unwrap();
+
+    // We query the one collection or the other to make sure the query works
+
+    let res: MultipleCollectionOffersResponse = app
+        .wrap()
+        .query_wasm_smart(
+            &nft_loan_addr,
+            &QueryMsg::CollectionOffers {
+                collection: nft.to_string(),
+                start_after: None,
+                limit: None,
+            },
+        )
+        .unwrap();
+
+    assert_eq!(res.next_offer, None);
+    assert_eq!(res.offers.len(), 1);
+    assert_eq!(
+        res.offers[0].collection_offer_info.collection,
+        nft.to_string()
+    );
+
+    let res: MultipleCollectionOffersResponse = app
+        .wrap()
+        .query_wasm_smart(
+            &nft_loan_addr,
+            &QueryMsg::CollectionOffers {
+                collection: nft_1.to_string(),
+                start_after: None,
+                limit: None,
+            },
+        )
+        .unwrap();
+
+    assert_eq!(res.next_offer, None);
+    assert_eq!(res.offers.len(), 1);
+    assert_eq!(
+        res.offers[0].collection_offer_info.collection,
+        nft_1.to_string()
+    );
 }
