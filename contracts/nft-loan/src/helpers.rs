@@ -29,9 +29,12 @@ pub fn assert_listing_fee(deps: Deps, funds: Vec<Coin>) -> Result<CosmosMsg, Con
     let config = CONFIG.load(deps.storage)?;
 
     let fee = funds
+        .clone()
         .into_iter()
         .find(|c| config.listing_fee_coins.contains(c))
         .unwrap_or_default();
+
+    println!("{:?}, {:?}, {:?}", funds, fee, config.listing_fee_coins);
 
     if !config.listing_fee_coins.contains(&fee) {
         return Err(ContractError::DepositFeeError {});

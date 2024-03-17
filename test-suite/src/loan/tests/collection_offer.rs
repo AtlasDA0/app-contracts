@@ -1,7 +1,7 @@
 use cosmwasm_std::{coin, coins, Addr, BlockInfo, Coin, Decimal, Empty, Timestamp, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
 use nft_loans_nc::{
-    msg::{CollateralResponse, ExecuteMsg, InstantiateMsg, QueryMsg},
+    msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
     state::{CollateralInfo, LoanState, LoanTerms},
 };
 use sg721::CollectionInfo;
@@ -236,7 +236,7 @@ pub fn create_nft_collection(app: &mut StargazeApp, factory_addr: Addr, nft_loan
 
 #[test]
 pub fn collection_offer_works() {
-    let (mut app, nft_loan_addr, factory_addr) = proper_instantiate();
+    let (mut app, nft_loan_addr, _factory_addr) = proper_instantiate();
 
     let _collection_offer = app
         .execute_contract(
