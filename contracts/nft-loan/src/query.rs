@@ -25,8 +25,8 @@ use crate::{
 };
 
 // settings for pagination
-const MAX_QUERY_LIMIT: u32 = 150;
-const DEFAULT_QUERY_LIMIT: u32 = 10;
+pub const MAX_QUERY_LIMIT: u32 = 150;
+pub const DEFAULT_QUERY_LIMIT: u32 = 10;
 
 pub fn query_config(deps: Deps) -> StdResult<Config> {
     CONFIG.load(deps.storage)

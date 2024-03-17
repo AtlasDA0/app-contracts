@@ -1,4 +1,4 @@
-use cosmwasm_std::{BankMsg, DepsMut, Env, MessageInfo, StdError};
+use cosmwasm_std::{BankMsg, Deps, DepsMut, Env, MessageInfo, Order, StdError};
 use utils::{
     state::{is_valid_comment, AssetInfo},
     types::{CosmosMsg, Response},
@@ -6,12 +6,15 @@ use utils::{
 
 use crate::{
     error::ContractError,
-    execute::{_accept_offer_raw, _make_offer_raw, list_collaterals},
+    execute::{_accept_offer_raw, _internal_list_collaterals, _make_offer_raw},
+    helpers::assert_listing_fee,
+    msg::{CollectionOfferResponse, MultipleCollectionOffersResponse},
+    query::{DEFAULT_QUERY_LIMIT, MAX_QUERY_LIMIT},
     state::{LoanTerms, CONFIG},
 };
 
 use cosmwasm_std::Addr;
-use cw_storage_plus::{Index, IndexList, IndexedMap, MultiIndex};
+use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, MultiIndex};
 
 use crate::state::CollectionOfferInfo;
 
@@ -23,6 +26,14 @@ pub fn execute_make_collection_offer(
     terms: LoanTerms,
     comment: Option<String>,
 ) -> Result<Response, ContractError> {
+    // We make sure the contract is not locked
+    let config = CONFIG.load(deps.storage)?;
+
+    // prevent new listings from being made when contract is frozen
+    if config.clone().locks.lock || config.locks.sudo_lock {
+        return Err(ContractError::ContractIsLocked {});
+    }
+
     let collection = deps.api.addr_validate(&collection)?;
 
     // checks comment size
@@ -104,15 +115,21 @@ pub fn execute_accept_collection_offer(
     collection_offer_id: u64,
     token: AssetInfo,
 ) -> Result<Response, ContractError> {
+    // We verify the sender paid the listing fee
+    let transfer_fee_msg = assert_listing_fee(deps.as_ref(), info.funds)?;
+
+    // set the borrower
+    let borrower = info.sender;
+
     // We load the corresponding collection
     let collection_info =
         collection_offers().load(deps.storage, &collection_offer_id.to_string())?;
 
     // We create a collateral listing with the given token
-    let list_response = list_collaterals(
+    let (list_attributes, collateral_id) = _internal_list_collaterals(
         deps.branch(),
         env.clone(),
-        info.clone(),
+        borrower.clone(),
         vec![token],
         None,
         None,
@@ -126,8 +143,8 @@ pub fn execute_accept_collection_offer(
         env.clone(),
         collection_info.lender.clone(),
         vec![collection_info.terms.principle.clone()],
-        info.sender.clone(),
-        list_response.1,
+        borrower.clone(),
+        collateral_id,
         collection_info.terms,
         None,
     )?;
@@ -139,15 +156,53 @@ pub fn execute_accept_collection_offer(
     collection_offers().remove(deps.storage, &collection_offer_id.to_string())?;
 
     Ok(Response::new()
+        .add_message(transfer_fee_msg)
         .add_attribute("action", "accept_collection_offer")
         .add_attribute("lender", collection_info.lender)
         .add_attribute("collection", collection_info.collection)
-        .add_attributes(list_response.0.attributes)
-        .add_events(list_response.0.events)
-        .add_submessages(list_response.0.messages)
+        .add_attributes(list_attributes)
         .add_attributes(accept_res.attributes)
         .add_events(accept_res.events)
         .add_submessages(accept_res.messages))
+}
+
+pub fn query_collection_offers(
+    deps: Deps,
+    collection_addr: String,
+    start_after: Option<String>,
+    limit: Option<u32>,
+) -> Result<MultipleCollectionOffersResponse, StdError> {
+    let collection_addr = deps.api.addr_validate(&collection_addr)?;
+    let limit = limit.unwrap_or(DEFAULT_QUERY_LIMIT).min(MAX_QUERY_LIMIT) as usize;
+    let start = start_after.map(Bound::exclusive);
+
+    let offers = collection_offers()
+        .idx
+        .collection
+        .prefix(collection_addr)
+        .range(deps.storage, None, start, Order::Descending)
+        .map(|r| {
+            r.map(|(key, collection_offer_info)| CollectionOfferResponse {
+                global_offer_id: key,
+                collection_offer_info,
+            })
+        })
+        .take(limit)
+        .collect::<Result<Vec<CollectionOfferResponse>, _>>()?;
+
+    Ok(MultipleCollectionOffersResponse {
+        next_offer: if offers.len() == limit {
+            offers.last().map(|last| {
+                (
+                    last.collection_offer_info.collection.to_string(),
+                    last.global_offer_id.clone(),
+                )
+            })
+        } else {
+            None
+        },
+        offers,
+    })
 }
 
 pub struct CollectionOfferIndexes<'a> {

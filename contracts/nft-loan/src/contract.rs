@@ -11,7 +11,6 @@ use utils::{
     types::Response,
 };
 
-use crate::state::{Config, CONFIG, STATIC_LOAN_LISTING_FEE};
 use crate::{
     collection_offer::execute_accept_collection_offer,
     query::{
@@ -30,6 +29,10 @@ use crate::{
 use crate::{
     collection_offer::execute_withdraw_collection_offer,
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
+};
+use crate::{
+    collection_offer::query_collection_offers,
+    state::{Config, CONFIG, STATIC_LOAN_LISTING_FEE},
 };
 use crate::{error::ContractError, execute::execute_sudo_toggle_lock};
 // version info for migration info
@@ -107,7 +110,15 @@ pub fn execute(
             terms,
             comment,
             loan_preview,
-        } => Ok(list_collaterals(deps, env, info, tokens, terms, comment, loan_preview)?.0),
+        } => Ok(list_collaterals(
+            deps,
+            env,
+            info,
+            tokens,
+            terms,
+            comment,
+            loan_preview,
+        )?),
         ExecuteMsg::ModifyCollaterals {
             loan_id,
             terms,
@@ -184,7 +195,6 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             borrower,
             start_after,
             limit,
-            // filters,
         } => to_json_binary(&query_collaterals(deps, borrower, start_after, limit)?),
         QueryMsg::AllCollaterals { start_after, limit } => {
             to_json_binary(&query_all_collaterals(deps, start_after, limit)?)
@@ -203,6 +213,16 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             start_after,
             limit,
         } => to_json_binary(&query_lender_offers(deps, lender, start_after, limit)?),
+        QueryMsg::CollectionOffers {
+            collection,
+            start_after,
+            limit,
+        } => to_json_binary(&query_collection_offers(
+            deps,
+            collection,
+            start_after,
+            limit,
+        )?),
     }
 }
 
