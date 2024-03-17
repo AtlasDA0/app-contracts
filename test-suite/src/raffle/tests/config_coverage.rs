@@ -57,7 +57,6 @@ mod tests {
                 fee_addr: Addr::unchecked(OWNER_ADDR),
                 last_raffle_id: Some(0),
                 minimum_raffle_duration: 1,
-                minimum_
                 max_tickets_per_raffle: None,
                 raffle_fee: RAFFLE_TAX,
                 nois_proxy_addr: Addr::unchecked(NOIS_PROXY_ADDR),
@@ -86,7 +85,6 @@ mod tests {
                     owner: None,
                     fee_addr: None,
                     minimum_raffle_duration: None,
-                    minimum_
                     raffle_fee: None,
                     nois_proxy_addr: None,
                     nois_proxy_coin: None,
@@ -145,7 +143,6 @@ mod tests {
                     owner: Some("new-owner".to_string()),
                     fee_addr: Some("new-owner".to_string()),
                     minimum_raffle_duration: Some(60),
-                    minimum_raffle_timeout: Some(240),
                     raffle_fee: Some(Decimal::percent(99)),
                     nois_proxy_addr: Some("new-owner".to_string()),
                     nois_proxy_coin: Some(coin(NOIS_AMOUNT, NATIVE_DENOM)),
@@ -169,7 +166,6 @@ mod tests {
                 fee_addr: Addr::unchecked("new-owner"),
                 last_raffle_id: Some(0),
                 minimum_raffle_duration: 60,
-                minimum_raffle_timeout: 240,
                 max_tickets_per_raffle: None,
                 raffle_fee: Decimal::percent(99),
                 nois_proxy_addr: Addr::unchecked("new-owner"),

@@ -333,7 +333,7 @@ mod tests {
                 &raffles::msg::QueryMsg::RaffleInfo { raffle_id: 0 },
             )
             .unwrap();
-        assert_eq!(res.clone().raffle_state, RaffleState::Finished);
+        assert_eq!(res.clone().raffle_state, RaffleState::Closed);
         assert_eq!(res.raffle_info.unwrap().winner, None);
 
         // assert the tokens being raffled are sent back to owner if no tickets are purchased,
@@ -532,7 +532,7 @@ mod tests {
             )
             .unwrap();
         println!("{:?}", res);
-        assert_eq!(res.clone().raffle_state, RaffleState::Finished);
+        assert_eq!(res.clone().raffle_state, RaffleState::Closed);
         assert_eq!(res.raffle_info.unwrap().winner, None);
 
         // assert the tokens being raffled are sent back to owner if no tickets are purchased,
@@ -820,7 +820,6 @@ mod tests {
                 raffle_options: RaffleOptions {
                     raffle_start_timestamp: Timestamp::from_nanos(1647032600000000000),
                     raffle_duration: 20,
-                    raffle_timeout: 420,
                     comment: None,
                     max_ticket_number: Some(3),
                     max_ticket_per_address: Some(1),
@@ -890,7 +889,7 @@ mod tests {
                 &raffles::msg::QueryMsg::RaffleInfo { raffle_id: 0 },
             )
             .unwrap();
-        assert_eq!(res.clone().raffle_state, RaffleState::Finished);
+        assert_eq!(res.clone().raffle_state, RaffleState::Closed);
         assert_eq!(res.raffle_info.unwrap().winner, None);
 
         // assert the tokens being raffled are sent back to owner if no tickets are purchased,
