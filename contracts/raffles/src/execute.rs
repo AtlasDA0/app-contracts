@@ -19,8 +19,9 @@ use crate::{
     msg::ExecuteMsg,
     query::is_nft_owner,
     state::{
-        get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState, CONFIG,
-        MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, RAFFLE_INFO, RAFFLE_TICKETS, USER_TICKETS,
+        get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState,
+        StakerFeeDiscount, CONFIG, MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, RAFFLE_INFO,
+        RAFFLE_TICKETS, USER_TICKETS,
     },
     utils::{
         can_buy_ticket, get_nois_randomness, get_raffle_owner_finished_messages,
@@ -610,7 +611,7 @@ pub fn execute_determine_winner(
     let winner_transfer_messages =
         get_raffle_winner_messages(deps.as_ref(), env.clone(), raffle_info.clone(), raffle_id)?;
     let funds_transfer_messages =
-        get_raffle_owner_finished_messages(deps.storage, env, raffle_info.clone())?;
+        get_raffle_owner_finished_messages(deps.as_ref(), env, raffle_info.clone())?;
 
     // We distribute the ticket prices to the owner and in part to the treasury
     Ok(Response::new()
@@ -658,6 +659,8 @@ pub fn execute_update_config(
     nois_proxy_addr: Option<String>,
     nois_proxy_coin: Option<Coin>,
     creation_coins: Option<Vec<Coin>>,
+    atlas_dao_nft_address: Option<String>,
+    staker_fee_discount: Option<StakerFeeDiscount>,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     // ensure msg sender is admin
@@ -731,6 +734,15 @@ pub fn execute_update_config(
         Some(mpn) => mpn,
         None => config.max_tickets_per_raffle.unwrap(),
     };
+
+    let atlas_dao_nft_address = match atlas_dao_nft_address {
+        Some(address) => Some(deps.api.addr_validate(&address)?),
+        None => config.atlas_dao_nft_address,
+    };
+    let staker_fee_discount = match staker_fee_discount {
+        Some(discount) => discount,
+        None => config.staker_fee_discount,
+    };
     // we have a seperate function to lock a raffle, so we skip here
 
     let new_config = Config {
@@ -746,6 +758,8 @@ pub fn execute_update_config(
         creation_coins,
         max_tickets_per_raffle: max_tickets_per_raffle.into(),
         last_raffle_id: config.last_raffle_id,
+        atlas_dao_nft_address,
+        staker_fee_discount,
     };
 
     CONFIG.save(deps.storage, &new_config)?;

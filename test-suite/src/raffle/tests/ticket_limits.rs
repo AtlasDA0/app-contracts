@@ -6,6 +6,7 @@ mod tests {
     use cw_multi_test::Executor;
     use cw_multi_test::{BankSudo, SudoMsg};
     use nois::NoisCallback;
+    use raffles::state::StakerFeeDiscount;
     use raffles::{
         error::ContractError,
         msg::{ConfigResponse, ExecuteMsg},
@@ -104,6 +105,11 @@ mod tests {
                         coin(CREATION_FEE_AMNT, "usstars".to_string()),
                     ]
                     .into(),
+                    atlas_dao_nft_address: None,
+                    staker_fee_discount: StakerFeeDiscount {
+                        discount: Decimal::zero(),
+                        minimum_amount: Uint128::zero(),
+                    },
                 },
                 &[],
                 "raffle",

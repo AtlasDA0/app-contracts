@@ -46,11 +46,11 @@ pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, Contr
 
 /// Util to get the organizers and helpers messages to return when claiming a Raffle (returns the funds)
 pub fn get_raffle_owner_finished_messages(
-    storage: &dyn Storage,
+    deps: Deps,
     _env: Env,
     raffle_info: RaffleInfo,
 ) -> Result<Vec<CosmosMsg>, ContractError> {
-    let config = CONFIG.load(storage)?;
+    let config = CONFIG.load(deps.storage)?;
 
     // We start by splitting the fees between owner & treasury
     let total_paid = match raffle_info.raffle_ticket_price.clone() {
@@ -60,8 +60,38 @@ pub fn get_raffle_owner_finished_messages(
     } * Uint128::from(raffle_info.number_of_tickets);
 
     // use raffle_fee % to calculate treasury distribution
-    let treasury_amount = total_paid * config.raffle_fee;
+    let mut treasury_amount = total_paid * config.raffle_fee;
+    {
+        if let Some(nft_address) = config.atlas_dao_nft_address {
+            // If the owner is an Atlas DAO NFT holder, they don't get the treasury_fee
+            let token_hold: cw721::TokensResponse = deps.querier.query_wasm_smart(
+                nft_address,
+                &sg721_base::msg::QueryMsg::Tokens {
+                    owner: raffle_info.owner.to_string(),
+                    start_after: None,
+                    limit: Some(1),
+                },
+            )?;
+            if !token_hold.tokens.is_empty() {
+                treasury_amount = Uint128::zero();
+            }
+        }
+    }
+
+    {
+        // If the owner is a Stargaze staker, they get a discount on the treasury fee
+        let stake_response: Uint128 = deps
+            .querier
+            .query_all_delegations(&raffle_info.owner)?
+            .into_iter()
+            .map(|delegation| delegation.amount.amount)
+            .sum();
+
+        if stake_response > config.staker_fee_discount.minimum_amount {}
+    }
+
     let owner_amount = total_paid - treasury_amount;
+    treasury_amount -= treasury_amount * config.staker_fee_discount.discount;
 
     // Then we craft the messages needed for asset transfers
     match raffle_info.raffle_ticket_price {
@@ -79,7 +109,7 @@ pub fn get_raffle_owner_finished_messages(
             if owner_amount != Uint128::zero() {
                 messages.push(
                     BankMsg::Send {
-                        to_address: config.owner.to_string(),
+                        to_address: raffle_info.owner.to_string(),
                         amount: coins(owner_amount.u128(), coin.denom),
                     }
                     .into(),
@@ -110,7 +140,7 @@ pub fn get_raffle_winner(
     let randomness: [u8; 32] = HexBinary::to_array(&raffle_info.randomness.unwrap())?;
 
     // We pick a winner id
-    let winner_id = int_in_range(randomness, 0, raffle_info.number_of_tickets);
+    let winner_id = int_in_range(randomness, 0, raffle_info.number_of_tickets - 1);
     let winner = RAFFLE_TICKETS.load(deps.storage, (raffle_id, winner_id))?;
 
     Ok(winner)

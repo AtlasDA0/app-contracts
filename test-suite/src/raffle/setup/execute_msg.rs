@@ -1,9 +1,9 @@
 use anyhow::Error as anyhow_error;
-use cosmwasm_std::{coin, coins, Coin};
+use cosmwasm_std::{coin, coins, Coin, Decimal, Uint128};
 use cw_multi_test::{AppResponse, BankSudo, Executor, SudoMsg};
 use raffles::{
     msg::{ExecuteMsg as RaffleExecuteMsg, InstantiateMsg, QueryMsg as RaffleQueryMsg},
-    state::RaffleOptionsMsg,
+    state::{RaffleOptionsMsg, StakerFeeDiscount},
 };
 use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
@@ -47,6 +47,11 @@ pub fn instantate_raffle_contract(
         max_ticket_number: None,
         raffle_fee,
         creation_coins: vec![coin(50, NATIVE_DENOM)].into(),
+        atlas_dao_nft_address: None,
+        staker_fee_discount: StakerFeeDiscount {
+            discount: Decimal::zero(),
+            minimum_amount: Uint128::zero(),
+        },
     };
 
     params.app.instantiate_contract(

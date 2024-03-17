@@ -12,7 +12,10 @@ use crate::common_setup::{
 };
 use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
-use raffles::{msg::InstantiateMsg, state::ATLAS_DAO_STARGAZE_TREASURY};
+use raffles::{
+    msg::InstantiateMsg,
+    state::{StakerFeeDiscount, ATLAS_DAO_STARGAZE_TREASURY},
+};
 use sg721::CollectionInfo;
 use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
@@ -90,6 +93,11 @@ pub fn proper_raffle_instantiate() -> (StargazeApp, Addr, Addr) {
                     coin(20, "ustars".to_string()),
                 ]
                 .into(),
+                atlas_dao_nft_address: None,
+                staker_fee_discount: StakerFeeDiscount {
+                    discount: Decimal::zero(),
+                    minimum_amount: Uint128::zero(),
+                },
             },
             &[],
             "raffle",

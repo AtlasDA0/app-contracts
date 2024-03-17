@@ -1,4 +1,4 @@
-use crate::state::{RaffleInfo, RaffleOptionsMsg, RaffleState};
+use crate::state::{RaffleInfo, RaffleOptionsMsg, RaffleState, StakerFeeDiscount};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin, Decimal, HexBinary, StdError, StdResult};
 use nois::NoisCallback;
@@ -26,6 +26,13 @@ pub struct InstantiateMsg {
     pub raffle_fee: Decimal,
 
     pub creation_coins: Option<Vec<Coin>>,
+
+    /// Fee bypass for Atlas Dao NFT holders
+    pub atlas_dao_nft_address: Option<String>,
+
+    /// Discount applied to stakers on fees (0.5 corresponds to paying only 50% treasury fees)
+    /// This is not applied on royalty fees
+    pub staker_fee_discount: StakerFeeDiscount,
 }
 
 impl InstantiateMsg {
@@ -69,6 +76,8 @@ pub enum ExecuteMsg {
         nois_proxy_addr: Option<String>,
         nois_proxy_coin: Option<Coin>,
         creation_coins: Option<Vec<Coin>>,
+        atlas_dao_nft_address: Option<String>,
+        staker_fee_discount: Option<StakerFeeDiscount>,
     },
     ModifyRaffle {
         raffle_id: u64,
