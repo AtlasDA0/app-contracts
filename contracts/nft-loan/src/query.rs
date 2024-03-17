@@ -9,23 +9,27 @@ use sg721_base::QueryMsg as Sg721QueryMsg;
 
 use crate::{
     error::ContractError,
+    lender_offer::lender_offers,
     msg::{
-        CollateralResponse, MultipleCollateralsAllResponse, MultipleCollateralsResponse,
-        MultipleOffersResponse, OfferResponse, 
+        CollateralResponse,
+        MultipleCollateralsAllResponse,
+        MultipleCollateralsResponse,
+        MultipleOffersResponse,
+        OfferResponse,
         // QueryFilters,
     },
     state::{
-        get_actual_state, get_offer, lender_offers, BorrowerInfo, CollateralInfo, Config,
-        BORROWER_INFO, COLLATERAL_INFO, CONFIG,
+        get_actual_state, get_offer, BorrowerInfo, CollateralInfo, Config, BORROWER_INFO,
+        COLLATERAL_INFO, CONFIG,
     },
 };
 
 // settings for pagination
-const MAX_QUERY_LIMIT: u32 = 150;
-const DEFAULT_QUERY_LIMIT: u32 = 10;
+pub const MAX_QUERY_LIMIT: u32 = 150;
+pub const DEFAULT_QUERY_LIMIT: u32 = 10;
 
 pub fn query_config(deps: Deps) -> StdResult<Config> {
-    CONFIG.load(deps.storage).map_err(|err| err)
+    CONFIG.load(deps.storage)
 }
 
 // confirm ownership
@@ -137,9 +141,7 @@ pub fn query_collateral_info(
     loan_id: u64,
 ) -> StdResult<CollateralInfo> {
     let borrower = deps.api.addr_validate(&borrower)?;
-    COLLATERAL_INFO
-        .load(deps.storage, (borrower, loan_id))
-        .map_err(|err| err)
+    COLLATERAL_INFO.load(deps.storage, (borrower, loan_id))
 }
 
 pub fn query_collaterals(
@@ -157,14 +159,12 @@ pub fn query_collaterals(
         .prefix(borrower.clone())
         .range(deps.storage, None, start, Order::Descending)
         .map(|result| {
-            result
-                .map(|(loan_id, loan_info)| CollateralResponse {
-                    borrower: borrower.to_string(),
-                    loan_id,
-                    collateral: loan_info.clone(),
-                    loan_state: loan_info.state,
-                })
-                .map_err(|err| err)
+            result.map(|(loan_id, loan_info)| CollateralResponse {
+                borrower: borrower.to_string(),
+                loan_id,
+                collateral: loan_info.clone(),
+                loan_state: loan_info.state,
+            })
         })
         .take(limit)
         .collect::<Result<Vec<CollateralResponse>, StdError>>()?;
@@ -205,14 +205,12 @@ pub fn query_all_collaterals(
     let collaterals: Vec<CollateralResponse> = COLLATERAL_INFO
         .range(deps.storage, None, start, Order::Descending)
         .map(|result| {
-            result
-                .map(|(loan_id, loan_info)| CollateralResponse {
-                    borrower: loan_id.0.to_string(),
-                    loan_id: loan_id.1,
-                    collateral: loan_info.clone(),
-                    loan_state: loan_info.state,
-                })
-                .map_err(|err| err)
+            result.map(|(loan_id, loan_info)| CollateralResponse {
+                borrower: loan_id.0.to_string(),
+                loan_id: loan_id.1,
+                collateral: loan_info.clone(),
+                loan_state: loan_info.state,
+            })
         })
         .take(limit)
         .collect::<Result<Vec<CollateralResponse>, StdError>>()?;
@@ -280,7 +278,6 @@ pub fn query_lender_offers(
                 offer_info,
                 global_offer_id: key,
             })
-            .map_err(|err| err)
         })
         .take(limit)
         .collect::<StdResult<Vec<OfferResponse>>>()?;

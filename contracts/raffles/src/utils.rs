@@ -20,7 +20,7 @@ use utils::{
 };
 
 pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, ContractError> {
-    let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id.clone())?;
+    let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
     let config = CONFIG.load(deps.storage)?;
     let id: String = raffle_id.to_string();
     let nois_fee: Coin = config.nois_proxy_coin;
@@ -110,7 +110,7 @@ pub fn get_raffle_winner(
     let randomness: [u8; 32] = HexBinary::to_array(&raffle_info.randomness.unwrap())?;
 
     // We pick a winner id
-    let winner_id = int_in_range(randomness.into(), 0, raffle_info.number_of_tickets - 1);
+    let winner_id = int_in_range(randomness, 0, raffle_info.number_of_tickets - 1);
     let winner = RAFFLE_TICKETS.load(deps.storage, (raffle_id, winner_id))?;
 
     Ok(winner)
@@ -147,7 +147,7 @@ fn _get_raffle_end_asset_messages(
                 };
                 into_cosmos_msg(message, sg721_token.address.clone(), None)
             }
-            _ => return Err(StdError::generic_err("unreachable")),
+            _ => Err(StdError::generic_err("unreachable")),
         })
         .collect()
 }
@@ -182,7 +182,7 @@ pub fn can_buy_ticket(env: Env, raffle_info: RaffleInfo) -> Result<(), ContractE
     if get_raffle_state(env, raffle_info) == RaffleState::Started {
         Ok(())
     } else {
-        return Err(ContractError::CantBuyTickets {});
+        Err(ContractError::CantBuyTickets {})
     }
 }
 
@@ -192,7 +192,7 @@ pub fn get_raffle_winner_messages(
     raffle_info: RaffleInfo,
     raffle_id: u64,
 ) -> StdResult<Vec<CosmosMsg>> {
-    if raffle_info.winner.clone() == None {
+    if raffle_info.winner.is_none() {
         // refetch raffle winner with randomness
         get_raffle_winner(deps, env.clone(), raffle_id, raffle_info.clone()).unwrap();
     }

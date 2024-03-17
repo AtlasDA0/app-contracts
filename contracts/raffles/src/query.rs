@@ -267,8 +267,8 @@ pub fn query_ticket_count(
     raffle_id: u64,
     ticket_depositor: String,
 ) -> StdResult<u32> {
-    Ok(USER_TICKETS.load(
+    USER_TICKETS.load(
         deps.storage,
         (&deps.api.addr_validate(&ticket_depositor)?, raffle_id),
-    )?)
+    )
 }
