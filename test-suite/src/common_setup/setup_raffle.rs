@@ -82,7 +82,6 @@ pub fn proper_raffle_instantiate() -> (StargazeApp, Addr, Addr) {
                 owner: Some(OWNER_ADDR.to_string()),
                 fee_addr: Some(ATLAS_DAO_STARGAZE_TREASURY.to_owned()),
                 minimum_raffle_duration: None,
-                minimum_raffle_timeout: None,
                 max_ticket_number: None,
                 raffle_fee: Decimal::percent(50),
                 creation_coins: vec![

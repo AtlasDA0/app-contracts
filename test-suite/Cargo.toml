@@ -18,22 +18,28 @@ vanilla = []
 
 
 [dependencies]
-cosmwasm-std       = {workspace = true}
-anyhow             = {workspace = true}
-cosmwasm-schema    = {workspace = true}
-schemars           = {workspace = true}
-serde              = {workspace = true}
-sg-multi-test      = {workspace = true}
-cw-multi-test      = {workspace = true}
-cw721              = {workspace = true}
-vending-factory    = {workspace = true}
-vending-minter     = {workspace = true}
-sg2                = {workspace = true}
-nois               = {workspace = true}
+cosmwasm-std = { workspace = true }
+cw-storage-plus = { workspace = true }
 
-sg721-base         = { workspace = true, optional = true }
-sg-std             = { workspace = true, optional = true }
-sg721              = { workspace = true, optional = true }
-raffles             = { path = "../contracts/raffles", features=["library", "vanilla", "sg"]}
-nft-loans-nc       = { path = "../contracts/nft-loan", features=["vanilla", "sg"]}
-utils              = { path = "../packages/utils"}
+anyhow = { workspace = true }
+cosmwasm-schema = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true }
+sg-multi-test = { workspace = true }
+cw-multi-test = { workspace = true }
+cw721 = { workspace = true }
+vending-factory = { workspace = true }
+vending-minter = { workspace = true }
+sg2 = { workspace = true }
+nois = { workspace = true }
+
+sg721-base = { workspace = true, optional = true }
+sg-std = { workspace = true, optional = true }
+sg721 = { workspace = true, optional = true }
+raffles = { path = "../contracts/raffles", features = [
+    "library",
+    "vanilla",
+    "sg",
+] }
+nft-loans-nc = { path = "../contracts/nft-loan", features = ["vanilla", "sg"] }
+utils = { path = "../packages/utils" }

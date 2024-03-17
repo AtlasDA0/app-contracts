@@ -15,6 +15,14 @@ pub fn contract_raffles() -> Box<dyn Contract<StargazeMsgWrapper>> {
     .with_sudo(raffles::contract::sudo);
     Box::new(contract)
 }
+pub fn contract_fake_nois() -> Box<dyn Contract<StargazeMsgWrapper>> {
+    let contract = ContractWrapper::new(
+        super::nois_proxy::execute,
+        super::nois_proxy::instantiate,
+        super::nois_proxy::query,
+    );
+    Box::new(contract)
+}
 
 pub fn contract_vending_factory() -> Box<dyn Contract<StargazeMsgWrapper>> {
     let contract = ContractWrapper::new(

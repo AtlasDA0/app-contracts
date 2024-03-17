@@ -96,7 +96,6 @@ mod tests {
                     owner: Some(OWNER_ADDR.to_string()),
                     fee_addr: Some(OWNER_ADDR.to_owned()),
                     minimum_raffle_duration: Some(20),
-                    minimum_raffle_timeout: Some(420),
                     max_ticket_number: Some(max),
                     raffle_fee: Decimal::percent(50),
                     creation_coins: vec![
@@ -220,7 +219,7 @@ mod tests {
                     raffle_options: RaffleOptionsMsg {
                         raffle_start_timestamp: Some(block_info.time),
                         raffle_duration: None,
-                        raffle_timeout: None,
+
                         comment: None,
                         max_ticket_number: Some(80),
                         max_ticket_per_address: Some(80),
@@ -231,7 +230,6 @@ mod tests {
                         denom: "ustars".to_string(),
                         amount: Uint128::new(100u128),
                     }),
-                    autocycle: Some(false),
                 },
                 &[coin(50, "ustars")],
             )
@@ -466,7 +464,7 @@ mod tests {
                     raffle_options: RaffleOptionsMsg {
                         raffle_start_timestamp: Some(block_info.time),
                         raffle_duration: None,
-                        raffle_timeout: None,
+
                         comment: None,
                         max_ticket_number: Some(80),
                         max_ticket_per_address: Some(80),
@@ -477,7 +475,6 @@ mod tests {
                         denom: "ustars".to_string(),
                         amount: Uint128::new(100u128),
                     }),
-                    autocycle: Some(false),
                 },
                 &[coin(50, "ustars")],
             )
@@ -583,7 +580,6 @@ mod tests {
                 fee_addr: Addr::unchecked(OWNER_ADDR),
                 last_raffle_id: 0,
                 minimum_raffle_duration: 20,
-                minimum_raffle_timeout: 420,
                 raffle_fee: Decimal::percent(50),
                 locks: Locks {
                     lock: false,
@@ -777,7 +773,7 @@ mod tests {
                     raffle_options: RaffleOptionsMsg {
                         raffle_start_timestamp: Some(Timestamp::from_nanos(1647032600000000000)),
                         raffle_duration: None,
-                        raffle_timeout: None,
+
                         comment: None,
                         max_ticket_number: Some(3),
                         max_ticket_per_address: Some(1),
@@ -788,7 +784,6 @@ mod tests {
                         denom: "ustars".to_string(),
                         amount: Uint128::new(100u128),
                     }),
-                    autocycle: Some(false),
                 },
                 &[coin(50, "ustars")],
             )

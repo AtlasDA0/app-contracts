@@ -16,10 +16,10 @@ use nois::{int_in_range, ProxyExecuteMsg};
 
 use utils::{
     state::{into_cosmos_msg, AssetInfo},
-    types::{CosmosMsg, Response},
+    types::CosmosMsg,
 };
 
-pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, ContractError> {
+pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<CosmosMsg, ContractError> {
     let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
     let config = CONFIG.load(deps.storage)?;
     let id: String = raffle_id.to_string();
@@ -31,7 +31,7 @@ pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, Contr
     }
 
     // request randomness
-    let response = Response::new().add_message(WasmMsg::Execute {
+    Ok(WasmMsg::Execute {
         contract_addr: config.nois_proxy_addr.into_string(),
         // GetNextRandomness requests the randomness from the proxy
         // The job id is needed to know what randomness we are referring to upon reception in the callback.
@@ -40,8 +40,8 @@ pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, Contr
         })?,
 
         funds: vec![nois_fee], // Pay from the contract
-    });
-    Ok(response)
+    }
+    .into())
 }
 
 /// Util to get the organizers and helpers messages to return when claiming a Raffle (returns the funds)

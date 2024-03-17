@@ -43,7 +43,6 @@ pub fn instantate_raffle_contract(
         owner: None, // confirm info.sender is default
         fee_addr: Some(admin_account.to_string()),
         minimum_raffle_duration: None,
-        minimum_raffle_timeout: None,
         max_ticket_number: None,
         raffle_fee,
         creation_coins: vec![coin(50, NATIVE_DENOM)].into(),
@@ -89,7 +88,7 @@ pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse,
             raffle_options: RaffleOptionsMsg {
                 raffle_start_timestamp: Some(current_time),
                 raffle_duration: None,
-                raffle_timeout: None,
+
                 comment: None,
                 max_ticket_number: None,
                 max_ticket_per_address: None,
@@ -100,7 +99,6 @@ pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse,
                 denom: "ustars".to_string(),
                 amount: ticket_price,
             }),
-            autocycle: Some(false),
         },
         &creation_fee,
     )
@@ -148,7 +146,7 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
             raffle_options: RaffleOptionsMsg {
                 raffle_start_timestamp: Some(current_time),
                 raffle_duration: duration,
-                raffle_timeout: None,
+
                 comment: None,
                 max_ticket_number: None,
                 max_ticket_per_address: max_per_addr,
@@ -159,7 +157,6 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
                 denom: "ustars".to_string(),
                 amount: raffle_ticket_price,
             }),
-            autocycle: Some(false),
         },
         &[coin(4, "ustars")],
     );

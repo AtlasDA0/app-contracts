@@ -71,7 +71,7 @@ mod tests {
                     raffle_options: RaffleOptions {
                         raffle_start_timestamp: Timestamp::from_nanos(1647032400000000000),
                         raffle_duration: 1,
-                        raffle_timeout: 120,
+
                         comment: None,
                         max_ticket_number: None,
                         max_ticket_per_address: None,
@@ -128,7 +128,7 @@ mod tests {
                     raffle_options: RaffleOptions {
                         raffle_start_timestamp: Timestamp::from_nanos(1647032400000000000),
                         raffle_duration: 1,
-                        raffle_timeout: 120,
+
                         comment: None,
                         max_ticket_number: None,
                         max_ticket_per_address: None,
@@ -313,7 +313,7 @@ mod tests {
                     raffle_options: RaffleOptionsMsg {
                         raffle_start_timestamp: None,
                         raffle_duration: None,
-                        raffle_timeout: None,
+
                         comment: Some("rust is dooope".to_string()),
                         max_ticket_number: None,
                         max_ticket_per_address: None,
@@ -338,7 +338,7 @@ mod tests {
                 raffle_options: RaffleOptionsMsg {
                     raffle_start_timestamp: None,
                     raffle_duration: None,
-                    raffle_timeout: None,
+
                     comment: Some("rust is dooope".to_string()),
                     max_ticket_number: None,
                     max_ticket_per_address: None,
@@ -381,7 +381,7 @@ mod tests {
                     raffle_options: RaffleOptionsMsg {
                         raffle_start_timestamp: None,
                         raffle_duration: None,
-                        raffle_timeout: None,
+
                         comment: Some("rust is dooope".to_string()),
                         max_ticket_number: None,
                         max_ticket_per_address: None,
@@ -424,7 +424,6 @@ mod tests {
                     raffle_options: RaffleOptions {
                         raffle_start_timestamp: Timestamp::from_nanos(1647032400000000000),
                         raffle_duration: 1u64,
-                        raffle_timeout: 120u64,
                         comment: Some("rust is dooope".to_string()),
                         max_ticket_number: None,
                         max_ticket_per_address: None,
@@ -446,7 +445,7 @@ mod tests {
                     raffle_options: RaffleOptionsMsg {
                         raffle_start_timestamp: Some(Timestamp::from_nanos(1647032399999999990)), // checks new raffle start time is < original
                         raffle_duration: Some(2),
-                        raffle_timeout: None,
+
                         comment: Some("rust is dooope".to_string()),
                         max_ticket_number: None,
                         max_ticket_per_address: None,
@@ -489,7 +488,6 @@ mod tests {
                     raffle_options: RaffleOptions {
                         raffle_start_timestamp: Timestamp::from_nanos(1647032400000000000),
                         raffle_duration: 2u64,
-                        raffle_timeout: 120u64,
                         comment: Some("rust is dooope".to_string()),
                         max_ticket_number: None,
                         max_ticket_per_address: None,

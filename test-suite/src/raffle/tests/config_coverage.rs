@@ -57,7 +57,7 @@ mod tests {
                 fee_addr: Addr::unchecked(OWNER_ADDR),
                 last_raffle_id: Some(0),
                 minimum_raffle_duration: 1,
-                minimum_raffle_timeout: 120,
+                minimum_
                 max_tickets_per_raffle: None,
                 raffle_fee: RAFFLE_TAX,
                 nois_proxy_addr: Addr::unchecked(NOIS_PROXY_ADDR),
@@ -86,7 +86,7 @@ mod tests {
                     owner: None,
                     fee_addr: None,
                     minimum_raffle_duration: None,
-                    minimum_raffle_timeout: None,
+                    minimum_
                     raffle_fee: None,
                     nois_proxy_addr: None,
                     nois_proxy_coin: None,
