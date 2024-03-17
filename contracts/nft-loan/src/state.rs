@@ -1,7 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{
-    ensure, Addr, Coin, Decimal, Env, StdError, StdResult, Storage, Timestamp, Uint128,
-};
+use cosmwasm_std::{Addr, Coin, Decimal, Env, StdError, StdResult, Storage, Timestamp, Uint128};
 use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, MultiIndex};
 use utils::state::{AssetInfo, Locks};
 
@@ -174,20 +172,20 @@ pub fn lender_offers<'a>() -> IndexedMap<'a, &'a str, OfferInfo, LenderOfferInde
 pub fn is_loan_modifiable(collateral: &CollateralInfo) -> Result<(), ContractError> {
     match collateral.state {
         LoanState::Published => Ok(()),
-        _ => return Err(ContractError::NotModifiable {}),
+        _ => Err(ContractError::NotModifiable {}),
     }
 }
 pub fn is_loan_acceptable(collateral: &CollateralInfo) -> Result<(), ContractError> {
     match collateral.state {
         LoanState::Published => Ok(()),
-        _ => return Err(ContractError::NotAcceptable {}),
+        _ => Err(ContractError::NotAcceptable {}),
     }
 }
 
 pub fn is_loan_counterable(collateral: &CollateralInfo) -> Result<(), ContractError> {
     match collateral.state {
         LoanState::Published => Ok(()),
-        _ => return Err(ContractError::NotCounterable {}),
+        _ => Err(ContractError::NotCounterable {}),
     }
 }
 
@@ -198,7 +196,7 @@ pub fn is_offer_refusable(
     is_loan_counterable(collateral).map_err(|_| ContractError::NotRefusable {})?;
     match offer_info.state {
         OfferState::Published => Ok(()),
-        _ => return Err(ContractError::NotRefusable {}),
+        _ => Err(ContractError::NotRefusable {}),
     }
 }
 
@@ -208,13 +206,13 @@ pub fn can_repay_loan(
     collateral: &CollateralInfo,
 ) -> Result<(), ContractError> {
     if is_loan_defaulted(storage, env, collateral).is_ok() {
-        return Err(ContractError::WrongLoanState {
+        Err(ContractError::WrongLoanState {
             state: LoanState::Defaulted {},
-        });
+        })
     } else if collateral.state != LoanState::Started {
-        return Err(ContractError::WrongLoanState {
+        Err(ContractError::WrongLoanState {
             state: collateral.state.clone(),
-        });
+        })
     } else {
         Ok(())
     }
@@ -232,17 +230,15 @@ pub fn is_loan_defaulted(
             if collateral.start_block.unwrap() + offer.terms.duration_in_blocks < env.block.height {
                 Ok(())
             } else {
-                return Err(ContractError::WrongLoanState {
+                Err(ContractError::WrongLoanState {
                     state: LoanState::Started,
-                });
+                })
             }
         }
         LoanState::Defaulted => Ok(()),
-        _ => {
-            return Err(ContractError::WrongLoanState {
-                state: collateral.state.clone(),
-            })
-        }
+        _ => Err(ContractError::WrongLoanState {
+            state: collateral.state.clone(),
+        }),
     }
 }
 
@@ -272,7 +268,7 @@ pub fn is_lender(
 pub fn is_collateral_withdrawable(collateral: &CollateralInfo) -> Result<(), ContractError> {
     match collateral.state {
         LoanState::Published => Ok(()),
-        _ => return Err(ContractError::NotWithdrawable {}),
+        _ => Err(ContractError::NotWithdrawable {}),
     }
 }
 

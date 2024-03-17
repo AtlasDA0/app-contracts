@@ -20,7 +20,7 @@ use utils::{
 };
 
 pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, ContractError> {
-    let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id.clone())?;
+    let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
     let config = CONFIG.load(deps.storage)?;
     let id: String = raffle_id.to_string();
     let nois_fee: Coin = config.nois_proxy_coin;
@@ -46,11 +46,11 @@ pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, Contr
 
 /// Util to get the organizers and helpers messages to return when claiming a Raffle (returns the funds)
 pub fn get_raffle_owner_finished_messages(
-    storage: &dyn Storage,
+    deps: Deps,
     _env: Env,
     raffle_info: RaffleInfo,
 ) -> Result<Vec<CosmosMsg>, ContractError> {
-    let config = CONFIG.load(storage)?;
+    let config = CONFIG.load(deps.storage)?;
 
     // We start by splitting the fees between owner & treasury
     let total_paid = match raffle_info.raffle_ticket_price.clone() {
@@ -60,7 +60,40 @@ pub fn get_raffle_owner_finished_messages(
     } * Uint128::from(raffle_info.number_of_tickets);
 
     // use raffle_fee % to calculate treasury distribution
-    let treasury_amount = total_paid * config.raffle_fee;
+    let mut treasury_amount = total_paid * config.raffle_fee;
+    {
+        if let Some(nft_address) = config.atlas_dao_nft_address {
+            // If the owner is an Atlas DAO NFT holder, they don't get the treasury_fee
+            let token_hold: cw721::TokensResponse = deps.querier.query_wasm_smart(
+                nft_address,
+                &sg721_base::msg::QueryMsg::Tokens {
+                    owner: raffle_info.owner.to_string(),
+                    start_after: None,
+                    limit: Some(1),
+                },
+            )?;
+            if !token_hold.tokens.is_empty() {
+                treasury_amount = Uint128::zero();
+            }
+        }
+    }
+
+    {
+        // If the owner is a Stargaze staker, they get a discount on the treasury fee
+        let stake_response: Uint128 = deps
+            .querier
+            .query_all_delegations(&raffle_info.owner)?
+            .into_iter()
+            .map(|delegation| delegation.amount.amount)
+            .sum();
+
+        println!("{:?} - {:?}", stake_response, config.staker_fee_discount);
+
+        if stake_response > config.staker_fee_discount.minimum_amount {
+            treasury_amount -= treasury_amount * config.staker_fee_discount.discount;
+        }
+    }
+
     let owner_amount = total_paid - treasury_amount;
 
     // Then we craft the messages needed for asset transfers
@@ -110,7 +143,7 @@ pub fn get_raffle_winner(
     let randomness: [u8; 32] = HexBinary::to_array(&raffle_info.randomness.unwrap())?;
 
     // We pick a winner id
-    let winner_id = int_in_range(randomness.into(), 0, raffle_info.number_of_tickets - 1);
+    let winner_id = int_in_range(randomness, 0, raffle_info.number_of_tickets - 1);
     let winner = RAFFLE_TICKETS.load(deps.storage, (raffle_id, winner_id))?;
 
     Ok(winner)
@@ -147,7 +180,7 @@ fn _get_raffle_end_asset_messages(
                 };
                 into_cosmos_msg(message, sg721_token.address.clone(), None)
             }
-            _ => return Err(StdError::generic_err("unreachable")),
+            _ => Err(StdError::generic_err("unreachable")),
         })
         .collect()
 }
@@ -182,7 +215,7 @@ pub fn can_buy_ticket(env: Env, raffle_info: RaffleInfo) -> Result<(), ContractE
     if get_raffle_state(env, raffle_info) == RaffleState::Started {
         Ok(())
     } else {
-        return Err(ContractError::CantBuyTickets {});
+        Err(ContractError::CantBuyTickets {})
     }
 }
 
@@ -192,7 +225,7 @@ pub fn get_raffle_winner_messages(
     raffle_info: RaffleInfo,
     raffle_id: u64,
 ) -> StdResult<Vec<CosmosMsg>> {
-    if raffle_info.winner.clone() == None {
+    if raffle_info.winner.is_none() {
         // refetch raffle winner with randomness
         get_raffle_winner(deps, env.clone(), raffle_id, raffle_info.clone()).unwrap();
     }

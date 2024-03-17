@@ -1,6 +1,6 @@
-use crate::state::{RaffleInfo, RaffleOptionsMsg, RaffleState};
+use crate::state::{RaffleInfo, RaffleOptionsMsg, RaffleState, StakerFeeDiscount};
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Coin, Decimal, HexBinary, StdError, StdResult};
+use cosmwasm_std::{Coin, Decimal, HexBinary, StdError, StdResult};
 use nois::NoisCallback;
 use utils::state::{is_valid_name, AssetInfo, Locks};
 
@@ -26,6 +26,13 @@ pub struct InstantiateMsg {
     pub raffle_fee: Decimal,
 
     pub creation_coins: Option<Vec<Coin>>,
+
+    /// Fee bypass for Atlas Dao NFT holders
+    pub atlas_dao_nft_address: Option<String>,
+
+    /// Discount applied to stakers on fees (0.5 corresponds to paying only 50% treasury fees)
+    /// This is not applied on royalty fees
+    pub staker_fee_discount: StakerFeeDiscount,
 }
 
 impl InstantiateMsg {
@@ -69,6 +76,8 @@ pub enum ExecuteMsg {
         nois_proxy_addr: Option<String>,
         nois_proxy_coin: Option<Coin>,
         creation_coins: Option<Vec<Coin>>,
+        atlas_dao_nft_address: Option<String>,
+        staker_fee_discount: Option<StakerFeeDiscount>,
     },
     ModifyRaffle {
         raffle_id: u64,
@@ -131,16 +140,19 @@ pub struct QueryFilters {
 #[cw_serde]
 pub struct ConfigResponse {
     pub name: String,
-    pub owner: Addr,
-    pub fee_addr: Addr,
+    pub owner: String,
+    pub fee_addr: String,
     pub last_raffle_id: u64,
     pub minimum_raffle_duration: u64, // The minimum interval in which users can buy raffle tickets
     pub minimum_raffle_timeout: u64, // The minimum interval during which users can provide entropy to the contract
+    pub max_tickets_per_raffle: Option<u32>,
     pub raffle_fee: Decimal, // The percentage of the resulting ticket-tokens that will go to the treasury
     pub locks: Locks,        // Wether the contract can accept new raffles
-    pub nois_proxy_addr: Addr,
+    pub nois_proxy_addr: String,
     pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,
+    pub atlas_dao_nft_address: Option<String>,
+    pub staker_fee_discount: StakerFeeDiscount,
 }
 
 #[cw_serde]

@@ -196,7 +196,7 @@ mod tests {
             // ticket_price: None,
             // max_ticket_per_addr: None,
         };
-        create_loan_function(create_raffle_params.into()).unwrap();
+        create_loan_function(create_raffle_params).unwrap();
 
         let _invalid_toggle_lock = app
             .execute_contract(
@@ -211,7 +211,7 @@ mod tests {
             .wrap()
             .query_wasm_smart(loan_addr.to_string(), &LoanQueryMsg::Config {})
             .unwrap();
-        assert_eq!(res.locks.lock, true);
+        assert!(res.locks.lock);
 
         let create_raffle_params: CreateLoanParams<'_> = CreateLoanParams {
             app: &mut app,
@@ -245,7 +245,7 @@ mod tests {
             loan_contract_addr: loan_addr.clone(),
             owner_addr: owner_address.clone(),
         };
-        create_loan_function(create_loan_params.into()).unwrap();
+        create_loan_function(create_loan_params).unwrap();
 
         let _invalid_toggle_lock = app
             .wasm_sudo(loan_addr.clone(), &LoanSudoMsg::ToggleLock { lock: true })
@@ -256,7 +256,7 @@ mod tests {
             .wrap()
             .query_wasm_smart(loan_addr.to_string(), &LoanQueryMsg::Config {})
             .unwrap();
-        assert_eq!(res.locks.sudo_lock, true);
+        assert!(res.locks.sudo_lock);
 
         let create_loan_params: CreateLoanParams<'_> = CreateLoanParams {
             app: &mut app,

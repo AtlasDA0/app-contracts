@@ -1,6 +1,6 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    ensure, Addr, Coin, Decimal, Env, HexBinary, StdError, StdResult, Storage, Timestamp,
+    ensure, Addr, Coin, Decimal, Env, HexBinary, StdError, StdResult, Storage, Timestamp, Uint128,
 };
 
 use cw_storage_plus::{Item, Map};
@@ -43,6 +43,19 @@ pub struct Config {
     /// The expected fee token denomination of the nois_proxy contract
     pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,
+
+    /// Fee bypass for Atlas Dao NFT holders
+    pub atlas_dao_nft_address: Option<Addr>,
+
+    /// Discount applied to stakers on fees (0.5 corresponds to paying only 50% treasury fees)
+    /// This is not applied on royalty fees
+    pub staker_fee_discount: StakerFeeDiscount,
+}
+
+#[cw_serde]
+pub struct StakerFeeDiscount {
+    pub discount: Decimal,
+    pub minimum_amount: Uint128,
 }
 
 impl Config {
@@ -126,7 +139,7 @@ pub fn get_raffle_state(env: Env, raffle_info: RaffleInfo) -> RaffleState {
             .raffle_start_timestamp
             .plus_seconds(raffle_info.raffle_options.raffle_duration)
             .plus_seconds(raffle_info.raffle_options.raffle_timeout)
-        || raffle_info.randomness == None
+        || raffle_info.randomness.is_none()
     {
         RaffleState::Closed
     } else if raffle_info.winner.is_none() {

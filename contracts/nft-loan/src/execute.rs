@@ -18,7 +18,7 @@ use {
         },
     },
     cosmwasm_std::{
-        coins, ensure_eq, Addr, BankMsg, Coin, Decimal, DepsMut, Empty, Env, MessageInfo, StdError,
+        coins, ensure_eq, Addr, BankMsg, Decimal, DepsMut, Empty, Env, MessageInfo, StdError,
         StdResult, Storage,
     },
     cw721::Cw721ExecuteMsg,
@@ -104,9 +104,8 @@ pub fn list_collaterals(
 
     let fee = info
         .funds
-        .iter()
-        .find(|c| config.listing_fee_coins.contains(&c))
-        .map(|c| Coin::from(c.clone()))
+        .into_iter()
+        .find(|c| config.listing_fee_coins.contains(c))
         .unwrap_or_default();
 
     if !config.listing_fee_coins.contains(&fee) {
@@ -184,7 +183,7 @@ pub fn modify_collaterals(
         (borrower.clone(), loan_id),
         |collateral| match collateral {
             // will panic if msg sender is not calling a loan_id it owns
-            None => return Err(ContractError::LoanNotFound {}),
+            None => Err(ContractError::LoanNotFound {}),
             Some(mut collateral) => {
                 is_loan_modifiable(&collateral)?;
 

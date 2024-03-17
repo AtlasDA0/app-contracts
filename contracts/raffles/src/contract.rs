@@ -83,6 +83,11 @@ pub fn instantiate(
         nois_proxy_coin: msg.nois_proxy_coin,
         creation_coins,
         max_tickets_per_raffle: Some(msg.max_ticket_number.unwrap_or(MAX_TICKET_NUMBER)),
+        atlas_dao_nft_address: msg
+            .atlas_dao_nft_address
+            .map(|a| deps.api.addr_validate(&a))
+            .transpose()?,
+        staker_fee_discount: msg.staker_fee_discount,
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -167,6 +172,8 @@ pub fn execute(
             nois_proxy_addr,
             nois_proxy_coin,
             creation_coins,
+            atlas_dao_nft_address,
+            staker_fee_discount,
         } => execute_update_config(
             deps,
             env,
@@ -181,6 +188,8 @@ pub fn execute(
             nois_proxy_addr,
             nois_proxy_coin,
             creation_coins,
+            atlas_dao_nft_address,
+            staker_fee_discount,
         ),
     }
 }

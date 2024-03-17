@@ -16,7 +16,7 @@ use sg2::msg::{CollectionParams, CreateMinterMsg, Sg2ExecuteMsg};
 use sg_std::NATIVE_DENOM;
 use vending_factory::msg::VendingMinterInitMsgExtension;
 
-use sg_multi_test::StargazeApp;
+use crate::common_setup::app::StargazeApp;
 
 pub fn build_init_msg(
     init_msg: Option<VendingMinterInitMsgExtension>,

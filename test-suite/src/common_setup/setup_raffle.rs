@@ -1,6 +1,6 @@
 use std::vec;
 
-use super::{helpers::setup_block_time, msg::RaffleCodeIds};
+use super::{app::StargazeApp, helpers::setup_block_time, msg::RaffleCodeIds};
 use crate::common_setup::{
     contract_boxes::{
         contract_raffles, contract_sg721_base, contract_vending_factory, contract_vending_minter,
@@ -12,9 +12,11 @@ use crate::common_setup::{
 };
 use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
-use raffles::{msg::InstantiateMsg, state::ATLAS_DAO_STARGAZE_TREASURY};
+use raffles::{
+    msg::InstantiateMsg,
+    state::{StakerFeeDiscount, ATLAS_DAO_STARGAZE_TREASURY},
+};
 use sg721::CollectionInfo;
-use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
 use utils::state::NOIS_AMOUNT;
 use vending_factory::{
@@ -36,8 +38,8 @@ pub fn proper_raffle_instantiate() -> (StargazeApp, Addr, Addr) {
             Addr::unchecked(OWNER_ADDR),
             &vending_factory::msg::InstantiateMsg {
                 params: VendingMinterParams {
-                    code_id: code_ids.minter_code_id.clone(),
-                    allowed_sg721_code_ids: vec![code_ids.sg721_code_id.clone()],
+                    code_id: code_ids.minter_code_id,
+                    allowed_sg721_code_ids: vec![code_ids.sg721_code_id],
                     frozen: false,
                     creation_fee: Coin {
                         denom: NATIVE_DENOM.to_string(),
@@ -78,7 +80,7 @@ pub fn proper_raffle_instantiate() -> (StargazeApp, Addr, Addr) {
             &InstantiateMsg {
                 name: RAFFLE_NAME.to_string(),
                 nois_proxy_addr: NOIS_PROXY_ADDR.to_string(),
-                nois_proxy_coin: coin(NOIS_AMOUNT.into(), NATIVE_DENOM.to_string()),
+                nois_proxy_coin: coin(NOIS_AMOUNT, NATIVE_DENOM.to_string()),
                 owner: Some(OWNER_ADDR.to_string()),
                 fee_addr: Some(ATLAS_DAO_STARGAZE_TREASURY.to_owned()),
                 minimum_raffle_duration: None,
@@ -90,6 +92,11 @@ pub fn proper_raffle_instantiate() -> (StargazeApp, Addr, Addr) {
                     coin(20, "ustars".to_string()),
                 ]
                 .into(),
+                atlas_dao_nft_address: None,
+                staker_fee_discount: StakerFeeDiscount {
+                    discount: Decimal::zero(),
+                    minimum_amount: Uint128::zero(),
+                },
             },
             &[],
             "raffle",
@@ -119,39 +126,37 @@ pub fn configure_raffle_assets(
     create_minter: bool,
 ) -> &mut StargazeApp {
     let router = app;
-    let current_time = router.block_info().time.clone();
+    let current_time = router.block_info().time;
 
     if create_minter {
         let _create_nft_minter = router.execute_contract(
             owner_addr.clone(),
             sg_factory_addr.clone(),
-            &SgVendingFactoryExecuteMsg::CreateMinter {
-                0: VendingMinterCreateMsg {
-                    init_msg: vending_factory::msg::VendingMinterInitMsgExtension {
-                        base_token_uri: "ipfs://aldkfjads".to_string(),
-                        payment_address: Some(OWNER_ADDR.to_string()),
-                        start_time: current_time.clone(),
-                        num_tokens: 100,
-                        mint_price: coin(Uint128::new(100000u128).u128(), NATIVE_DENOM),
-                        per_address_limit: 3,
-                        whitelist: None,
-                    },
-                    collection_params: sg2::msg::CollectionParams {
-                        code_id: 4,
-                        name: "Collection Name".to_string(),
-                        symbol: "COL".to_string(),
-                        info: CollectionInfo {
-                            creator: owner_addr.to_string(),
-                            description: String::from("Atlanauts"),
-                            image: "https://example.com/image.png".to_string(),
-                            external_link: Some("https://example.com/external.html".to_string()),
-                            start_trading_time: None,
-                            explicit_content: Some(false),
-                            royalty_info: None,
-                        },
+            &SgVendingFactoryExecuteMsg::CreateMinter(VendingMinterCreateMsg {
+                init_msg: vending_factory::msg::VendingMinterInitMsgExtension {
+                    base_token_uri: "ipfs://aldkfjads".to_string(),
+                    payment_address: Some(OWNER_ADDR.to_string()),
+                    start_time: current_time,
+                    num_tokens: 100,
+                    mint_price: coin(Uint128::new(100000u128).u128(), NATIVE_DENOM),
+                    per_address_limit: 3,
+                    whitelist: None,
+                },
+                collection_params: sg2::msg::CollectionParams {
+                    code_id: 4,
+                    name: "Collection Name".to_string(),
+                    symbol: "COL".to_string(),
+                    info: CollectionInfo {
+                        creator: owner_addr.to_string(),
+                        description: String::from("Atlanauts"),
+                        image: "https://example.com/image.png".to_string(),
+                        external_link: Some("https://example.com/external.html".to_string()),
+                        start_trading_time: None,
+                        explicit_content: Some(false),
+                        royalty_info: None,
                     },
                 },
-            },
+            }),
             &[Coin {
                 denom: NATIVE_DENOM.to_string(),
                 amount: Uint128::new(100000u128),
@@ -194,10 +199,6 @@ pub fn raffle_template_code_ids(router: &mut StargazeApp) -> RaffleCodeIds {
     let minter_code_id = router.store_code(contract_vending_minter());
     let sg721_code_id = router.store_code(contract_sg721_base());
 
-    println!("raffle_code_id: {raffle_code_id}");
-    println!("minter_code_id: {minter_code_id}");
-    println!("factory_code_id: {factory_code_id}");
-    println!("sg721_code_id: {sg721_code_id}");
     RaffleCodeIds {
         raffle_code_id,
         minter_code_id,

@@ -6,6 +6,7 @@ mod tests {
     use cw_multi_test::Executor;
     use cw_multi_test::{BankSudo, SudoMsg};
     use nois::NoisCallback;
+    use raffles::state::StakerFeeDiscount;
     use raffles::{
         error::ContractError,
         msg::{ConfigResponse, ExecuteMsg},
@@ -17,7 +18,7 @@ mod tests {
 
     use raffles::msg::InstantiateMsg;
     #[cfg(feature = "sg")]
-    use {sg721::CollectionInfo, sg_multi_test::StargazeApp};
+    use {crate::common_setup::app::StargazeApp, sg721::CollectionInfo};
 
     use crate::common_setup::{
         contract_boxes::{
@@ -51,8 +52,8 @@ mod tests {
                 Addr::unchecked(OWNER_ADDR),
                 &vending_factory::msg::InstantiateMsg {
                     params: VendingMinterParams {
-                        code_id: minter_id.clone(),
-                        allowed_sg721_code_ids: vec![sg721_id.clone()],
+                        code_id: minter_id,
+                        allowed_sg721_code_ids: vec![sg721_id],
                         frozen: false,
                         creation_fee: Coin {
                             denom: "ustars".to_string(),
@@ -92,7 +93,7 @@ mod tests {
                 &InstantiateMsg {
                     name: RAFFLE_NAME.to_string(),
                     nois_proxy_addr: NOIS_PROXY_ADDR.to_string(),
-                    nois_proxy_coin: coin(NOIS_AMOUNT.into(), NATIVE_DENOM.to_string()),
+                    nois_proxy_coin: coin(NOIS_AMOUNT, NATIVE_DENOM.to_string()),
                     owner: Some(OWNER_ADDR.to_string()),
                     fee_addr: Some(OWNER_ADDR.to_owned()),
                     minimum_raffle_duration: Some(20),
@@ -100,10 +101,15 @@ mod tests {
                     max_ticket_number: Some(3),
                     raffle_fee: Decimal::percent(50),
                     creation_coins: vec![
-                        coin(CREATION_FEE_AMNT.into(), NATIVE_DENOM.to_string()),
-                        coin(CREATION_FEE_AMNT.into(), "usstars".to_string()),
+                        coin(CREATION_FEE_AMNT, NATIVE_DENOM.to_string()),
+                        coin(CREATION_FEE_AMNT, "usstars".to_string()),
                     ]
                     .into(),
+                    atlas_dao_nft_address: None,
+                    staker_fee_discount: StakerFeeDiscount {
+                        discount: Decimal::zero(),
+                        minimum_amount: Uint128::zero(),
+                    },
                 },
                 &[],
                 "raffle",
@@ -132,8 +138,8 @@ mod tests {
             query_config,
             ConfigResponse {
                 name: RAFFLE_NAME.to_string(),
-                owner: Addr::unchecked(OWNER_ADDR),
-                fee_addr: Addr::unchecked(OWNER_ADDR),
+                owner: OWNER_ADDR.to_string(),
+                fee_addr: OWNER_ADDR.to_string(),
                 last_raffle_id: 0,
                 minimum_raffle_duration: 20,
                 minimum_raffle_timeout: 420,
@@ -142,17 +148,23 @@ mod tests {
                     lock: false,
                     sudo_lock: false,
                 },
-                nois_proxy_addr: Addr::unchecked("nois"),
+                nois_proxy_addr: "nois".to_string(),
                 nois_proxy_coin: coin(500000, NATIVE_DENOM),
                 creation_coins: vec![
                     coin(CREATION_FEE_AMNT, NATIVE_DENOM.to_string()),
                     coin(CREATION_FEE_AMNT, "usstars".to_string())
                 ],
+                atlas_dao_nft_address: None,
+                staker_fee_discount: StakerFeeDiscount {
+                    discount: Decimal::zero(),
+                    minimum_amount: Uint128::zero()
+                },
+                max_tickets_per_raffle: Some(3),
             }
         );
 
-        let current_time = app.block_info().time.clone();
-        let current_block = app.block_info().height.clone();
+        let current_time = app.block_info().time;
+        let current_block = app.block_info().height;
         let chainid = app.block_info().chain_id.clone();
 
         // fund test account
@@ -205,33 +217,31 @@ mod tests {
         let _create_nft_minter = app.execute_contract(
             Addr::unchecked(OWNER_ADDR),
             factory_addr.clone(),
-            &vending_factory::msg::ExecuteMsg::CreateMinter {
-                0: VendingMinterCreateMsg {
-                    init_msg: vending_factory::msg::VendingMinterInitMsgExtension {
-                        base_token_uri: "ipfs://aldkfjads".to_string(),
-                        payment_address: Some(OWNER_ADDR.to_string()),
-                        start_time: current_time.clone(),
-                        num_tokens: 100,
-                        mint_price: coin(Uint128::new(100000u128).u128(), NATIVE_DENOM),
-                        per_address_limit: 3,
-                        whitelist: None,
-                    },
-                    collection_params: sg2::msg::CollectionParams {
-                        code_id: 4,
-                        name: "Collection Name".to_string(),
-                        symbol: "COL".to_string(),
-                        info: CollectionInfo {
-                            creator: "creator".to_string(),
-                            description: String::from("Atlanauts"),
-                            image: "https://example.com/image.png".to_string(),
-                            external_link: Some("https://example.com/external.html".to_string()),
-                            start_trading_time: None,
-                            explicit_content: Some(false),
-                            royalty_info: None,
-                        },
+            &vending_factory::msg::ExecuteMsg::CreateMinter(VendingMinterCreateMsg {
+                init_msg: vending_factory::msg::VendingMinterInitMsgExtension {
+                    base_token_uri: "ipfs://aldkfjads".to_string(),
+                    payment_address: Some(OWNER_ADDR.to_string()),
+                    start_time: current_time,
+                    num_tokens: 100,
+                    mint_price: coin(Uint128::new(100000u128).u128(), NATIVE_DENOM),
+                    per_address_limit: 3,
+                    whitelist: None,
+                },
+                collection_params: sg2::msg::CollectionParams {
+                    code_id: 4,
+                    name: "Collection Name".to_string(),
+                    symbol: "COL".to_string(),
+                    info: CollectionInfo {
+                        creator: "creator".to_string(),
+                        description: String::from("Atlanauts"),
+                        image: "https://example.com/image.png".to_string(),
+                        external_link: Some("https://example.com/external.html".to_string()),
+                        start_trading_time: None,
+                        explicit_content: Some(false),
+                        royalty_info: None,
                     },
                 },
-            },
+            }),
             &[Coin {
                 denom: NATIVE_DENOM.to_string(),
                 amount: Uint128::new(100000u128),
@@ -390,7 +400,7 @@ mod tests {
 
         // move forward in time
         app.set_block(BlockInfo {
-            height: current_block.clone() + 1,
+            height: current_block + 1,
             time: current_time.clone().plus_nanos(200000000000),
             chain_id: chainid.clone(),
         });
@@ -398,7 +408,7 @@ mod tests {
         // ensure raffle duration
         // move forward in time
         app.set_block(BlockInfo {
-            height: current_block.clone() + 100,
+            height: current_block + 100,
             time: current_time.clone().plus_seconds(1000),
             chain_id: chainid.clone(),
         });
@@ -429,7 +439,7 @@ mod tests {
                 &ExecuteMsg::NoisReceive {
                     callback: NoisCallback {
                         job_id: "raffle-0".to_string(),
-                        published: current_time.clone(),
+                        published: current_time,
                         randomness: HexBinary::from_hex(
                             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa420",
                         )

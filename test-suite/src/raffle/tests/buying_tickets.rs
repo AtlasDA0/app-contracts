@@ -29,7 +29,7 @@ mod tests {
         let params = CreateRaffleParams {
             app: &mut app,
             raffle_contract_addr: raffle_addr.clone(),
-            owner_addr: owner_addr,
+            owner_addr,
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: Uint128::new(4),
             max_ticket_per_addr: None,
@@ -90,7 +90,7 @@ mod tests {
             let params = CreateRaffleParams {
                 app: &mut app,
                 raffle_contract_addr: raffle_addr.clone(),
-                owner_addr: owner_addr,
+                owner_addr,
                 creation_fee: vec![coin(4, NATIVE_DENOM)],
                 ticket_price: Uint128::new(4),
                 max_ticket_per_addr: Some(1),
@@ -137,7 +137,7 @@ mod tests {
         //     let params = CreateRaffleParams {
         //         app: &mut app,
         //         raffle_contract_addr: raffle_addr.clone(),
-        //         owner_addr: owner_addr,
+        //         owner_addr,
         //         creation_fee: vec![coin(4, NATIVE_DENOM)],
         //         ticket_price: Some(4),
         //         max_ticket_per_addr: None,
@@ -201,7 +201,7 @@ mod tests {
             let params = CreateRaffleParams {
                 app: &mut app,
                 raffle_contract_addr: raffle_addr.clone(),
-                owner_addr: owner_addr,
+                owner_addr,
                 creation_fee: vec![coin(4, NATIVE_DENOM)],
                 ticket_price: Uint128::new(4),
                 max_ticket_per_addr: None,
@@ -237,16 +237,14 @@ mod tests {
             let ticket_count = 2u32;
             let sent_coin = Coin::new(20, "ustars".to_string());
             let sent_assets = AssetInfo::Coin(sent_coin.clone());
-            let assets_wanted = AssetInfo::Coin(Coin::new(
-                (ticket_count.clone() * ticket_count.clone()).into(),
-                "ustars",
-            ));
+            let assets_wanted =
+                AssetInfo::Coin(Coin::new((ticket_count * ticket_count).into(), "ustars"));
 
             configure_raffle_assets(&mut app, owner_addr.clone(), factory_addr, true);
             let params = CreateRaffleParams {
                 app: &mut app,
                 raffle_contract_addr: raffle_addr.clone(),
-                owner_addr: owner_addr,
+                owner_addr,
                 creation_fee: vec![coin(4, NATIVE_DENOM)],
                 ticket_price: Uint128::new(4),
                 max_ticket_per_addr: None,
@@ -265,8 +263,8 @@ mod tests {
                     raffle_addr.clone(),
                     &RaffleExecuteMsg::BuyTicket {
                         raffle_id: 0,
-                        ticket_count: ticket_count.clone(),
-                        sent_assets: sent_assets,
+                        ticket_count,
+                        sent_assets,
                     },
                     &[sent_coin.clone()],
                 )
@@ -274,7 +272,7 @@ mod tests {
             assert_error(
                 Err(bad_ticket_purchase),
                 ContractError::PaymentNotSufficient {
-                    ticket_count: ticket_count.clone(),
+                    ticket_count,
                     assets_wanted: assets_wanted.clone(),
                     assets_received: utils::state::AssetInfo::Coin(sent_coin),
                 }
@@ -290,7 +288,7 @@ mod tests {
                     raffle_addr.clone(),
                     &RaffleExecuteMsg::BuyTicket {
                         raffle_id: 0,
-                        ticket_count: ticket_count.clone(),
+                        ticket_count,
                         sent_assets: sent_assets.clone(),
                     },
                     &[sent_coin.clone()],
@@ -299,7 +297,7 @@ mod tests {
             assert_error(
                 Err(bad_ticket_purchase),
                 ContractError::PaymentNotSufficient {
-                    ticket_count: ticket_count.clone(),
+                    ticket_count,
                     assets_wanted: assets_wanted.clone(),
                     assets_received: utils::state::AssetInfo::Coin(sent_coin),
                 }
@@ -316,7 +314,7 @@ mod tests {
                     raffle_addr.clone(),
                     &RaffleExecuteMsg::BuyTicket {
                         raffle_id: 0,
-                        ticket_count: ticket_count.clone(),
+                        ticket_count,
                         sent_assets: sent_assets.clone(),
                     },
                     &[sent_coin.clone()],
