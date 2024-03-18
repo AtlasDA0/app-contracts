@@ -394,7 +394,7 @@ mod tests {
     fn close_after_minimum_tickets_sold() {
         let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10));
         let (owner_addr, _, _) = setup_accounts(&mut app);
-        let (one, two, three, _, _, _) = setup_raffle_participants(&mut app);
+        let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
         let token = mint_one_token(&mut app, &contracts);
         // create raffle
         let params = CreateRaffleParams {
@@ -410,7 +410,7 @@ mod tests {
                 token_id: token.token_id.to_string(),
             })],
             duration: None,
-            min_ticket_number: None,
+            min_ticket_number: Some(4),
         };
         create_raffle_setup(params).unwrap();
 
@@ -424,47 +424,21 @@ mod tests {
             num_tickets: 3,
             funds_send: vec![coin(12, "ustars")],
         };
-        // simulate the puchase of tickets
-        let _purchase_tickets = buy_tickets_template(params).unwrap();
-        let params = PurchaseTicketsParams {
-            app: &mut app,
-            raffle_contract_addr: contracts.raffle.clone(),
-            msg_senders: vec![two.clone()],
-            raffle_id: 0,
-            num_tickets: 3,
-            funds_send: vec![coin(12, "ustars")],
-        };
-        // simulate the puchase of tickets
-        let _purchase_tickets = buy_tickets_template(params).unwrap();
-        let params = PurchaseTicketsParams {
-            app: &mut app,
-            raffle_contract_addr: contracts.raffle.clone(),
-            msg_senders: vec![three.clone()],
-            raffle_id: 0,
-            num_tickets: 4,
-            funds_send: vec![coin(16, "ustars")],
-        };
-        // simulate the puchase of tickets
         let _purchase_tickets = buy_tickets_template(params).unwrap();
 
-        let res = raffle_info(&app, &contracts, 0);
-        assert_eq!(res.raffle_info.unwrap().number_of_tickets, 10);
-
-        // We can't buy anymore tickets after the last one is sold
+        // We advance time until the raffle is over
+        // However, we can't provide randomness yet :/
+        finish_raffle_timeout(&mut app, &contracts, 0, 130).unwrap_err();
+        // We need to add more tickets to the raffle to be able to claim
         let params = PurchaseTicketsParams {
             app: &mut app,
             raffle_contract_addr: contracts.raffle.clone(),
-            msg_senders: vec![three.clone()],
+            msg_senders: vec![one.clone()],
             raffle_id: 0,
             num_tickets: 1,
             funds_send: vec![coin(4, "ustars")],
         };
-        // simulate the puchase of tickets
-        let purchase_err = buy_tickets_template(params).unwrap_err();
-        assert_error(
-            Err(purchase_err),
-            ContractError::CantBuyTickets {}.to_string(),
-        );
+        let _purchase_tickets = buy_tickets_template(params).unwrap();
 
         let owner_balance_before = app.wrap().query_balance(&owner_addr, "ustars").unwrap();
         finish_raffle_timeout(&mut app, &contracts, 0, 1).unwrap();
@@ -478,11 +452,8 @@ mod tests {
         );
 
         // verify winner is always owner
-        assert_eq!(
-            two,
-            res.winner.unwrap(),
-            "winner should always be the owner if no tickets were bought"
-        );
+        assert_eq!(one, res.winner.unwrap(), "You have the wrong winner ");
+
         // verify no tickets can be bought after raffle ends
         let params = PurchaseTicketsParams {
             app: &mut app,
@@ -503,7 +474,7 @@ mod tests {
         let owner_balance_after = app.wrap().query_balance(&owner_addr, "ustars").unwrap();
 
         assert_eq!(
-            owner_balance_before.amount + Decimal::percent(50) * Uint128::from(4 * 10u128), // 50% fee of 10 tickets
+            owner_balance_before.amount + Decimal::percent(50) * Uint128::from(4 * 4u128), // 50% fee of 4 tickets
             owner_balance_after.amount
         );
     }

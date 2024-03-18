@@ -452,11 +452,13 @@ pub fn _buy_tickets(
         Some(current_ticket_count) => Ok(current_ticket_count + ticket_count),
         None => Ok(ticket_count),
     })?;
+    let old_number_of_tickets = raffle_info.number_of_tickets;
     raffle_info.number_of_tickets += ticket_count;
 
     // If all tickets have been bought, we stop the raffle.
     // The raffle duration is amended to reflect that
     // We also send a nois request in that case
+    // If not enough were bought before and we passed the threshold, we can send the randomness trigger as well
     let nois_message = if let Some(max_ticket_number) = raffle_info.raffle_options.max_ticket_number
     {
         if raffle_info.number_of_tickets >= max_ticket_number {
@@ -469,6 +471,24 @@ pub fn _buy_tickets(
     } else {
         None
     };
+    let nois_message = nois_message.or(
+        if let Some(min_ticket_number) = raffle_info.raffle_options.min_ticket_number {
+            if env.block.time
+                > raffle_info
+                    .raffle_options
+                    .raffle_start_timestamp
+                    .plus_seconds(raffle_info.raffle_options.raffle_duration)
+                && old_number_of_tickets < min_ticket_number
+                && raffle_info.number_of_tickets >= min_ticket_number
+            {
+                Some(get_nois_randomness(deps.as_ref(), raffle_id)?)
+            } else {
+                None
+            }
+        } else {
+            None
+        },
+    );
 
     RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 

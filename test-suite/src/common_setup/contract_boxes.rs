@@ -20,7 +20,8 @@ pub fn contract_fake_nois() -> Box<dyn Contract<StargazeMsgWrapper>> {
         super::nois_proxy::execute,
         super::nois_proxy::instantiate,
         super::nois_proxy::query,
-    );
+    )
+    .with_reply(super::nois_proxy::reply);
     Box::new(contract)
 }
 

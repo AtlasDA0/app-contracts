@@ -1,7 +1,7 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
     coins, to_json_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, HexBinary, MessageInfo,
-    StdError, StdResult, Timestamp,
+    Reply, StdError, StdResult, SubMsg, Timestamp,
 };
 use cw_storage_plus::{Item, Map};
 use nois::{NoisCallback, ProxyExecuteMsg};
@@ -12,6 +12,7 @@ pub const NOIS_AMOUNT: u128 = 500000; // 0.5 tokens
 pub const TEST_NOIS_PREFIX: &str = "test-trigger-";
 pub const RANDOMNESS_SEED: &str =
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115";
+pub const ERROR_ON_NOIS_EXEC: &str = "error_on_nois_exec";
 #[cw_serde]
 pub struct Config {
     nois: String,
@@ -94,19 +95,19 @@ pub fn register_randmoness_for_later(
 
         // Remove job
         RANDOMNESS.remove(deps.storage, (info.sender.clone(), job_id.to_string()));
-        Ok(
-            Response::new().add_message(CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
-                contract_addr: info.sender.to_string(),
-                msg: to_json_binary(&raffles::msg::ExecuteMsg::NoisReceive {
-                    callback: NoisCallback {
-                        job_id: job_id.to_string(),
-                        published: env.block.time,
-                        randomness: HexBinary::from_hex(RANDOMNESS_SEED)?,
-                    },
-                })?,
-                funds: vec![],
-            })),
-        )
+
+        let execute_msg = CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
+            contract_addr: info.sender.to_string(),
+            msg: to_json_binary(&raffles::msg::ExecuteMsg::NoisReceive {
+                callback: NoisCallback {
+                    job_id: job_id.to_string(),
+                    published: env.block.time,
+                    randomness: HexBinary::from_hex(RANDOMNESS_SEED)?,
+                },
+            })?,
+            funds: vec![],
+        });
+        Ok(Response::new().add_submessage(SubMsg::reply_always(execute_msg, 16)))
     } else {
         let config = CONFIG.load(deps.storage)?;
         if info.funds != coins(NOIS_AMOUNT, config.nois) {
@@ -119,5 +120,17 @@ pub fn register_randmoness_for_later(
             &RandomnessForLater { after },
         )?;
         Ok(Response::new())
+    }
+}
+
+pub fn reply(_deps: DepsMut, _env: Env, msg: Reply) -> StdResult<Response> {
+    match msg.id {
+        16 => match msg.result {
+            cosmwasm_std::SubMsgResult::Ok(_) => Ok(Response::new()),
+            cosmwasm_std::SubMsgResult::Err(err) => {
+                Ok(Response::new().add_attribute(ERROR_ON_NOIS_EXEC, err.to_string()))
+            }
+        },
+        _ => panic!("unexpected nois mock proxy reply"),
     }
 }

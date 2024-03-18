@@ -75,7 +75,6 @@ pub fn setup_raffle_participants(router: &mut StargazeApp) -> (Addr, Addr, Addr,
                 amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
             }
         }))
-        .map_err(|err| println!("{err:?}"))
         .ok();
     router
         .sudo(SudoMsg::Bank({
@@ -84,7 +83,6 @@ pub fn setup_raffle_participants(router: &mut StargazeApp) -> (Addr, Addr, Addr,
                 amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
             }
         }))
-        .map_err(|err| println!("{err:?}"))
         .ok();
     router
         .sudo(SudoMsg::Bank({
@@ -93,7 +91,6 @@ pub fn setup_raffle_participants(router: &mut StargazeApp) -> (Addr, Addr, Addr,
                 amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
             }
         }))
-        .map_err(|err| println!("{err:?}"))
         .ok();
     router
         .sudo(SudoMsg::Bank({
@@ -102,7 +99,6 @@ pub fn setup_raffle_participants(router: &mut StargazeApp) -> (Addr, Addr, Addr,
                 amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
             }
         }))
-        .map_err(|err| println!("{err:?}"))
         .ok();
     router
         .sudo(SudoMsg::Bank({
@@ -111,7 +107,6 @@ pub fn setup_raffle_participants(router: &mut StargazeApp) -> (Addr, Addr, Addr,
                 amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
             }
         }))
-        .map_err(|err| println!("{err:?}"))
         .ok();
     router
         .sudo(SudoMsg::Bank({
@@ -120,7 +115,6 @@ pub fn setup_raffle_participants(router: &mut StargazeApp) -> (Addr, Addr, Addr,
                 amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
             }
         }))
-        .map_err(|err| println!("{err:?}"))
         .ok();
 
     // check native balances

@@ -1,5 +1,6 @@
-use crate::common_setup::nois_proxy::TEST_NOIS_PREFIX;
+use crate::common_setup::nois_proxy::{ERROR_ON_NOIS_EXEC, TEST_NOIS_PREFIX};
 use crate::common_setup::{msg::RaffleContracts, setup_minter::common::constants::OWNER_ADDR};
+use anyhow::bail;
 use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Empty, Uint128};
 use cw_multi_test::Executor;
 use nois::ProxyExecuteMsg;
@@ -206,7 +207,7 @@ pub fn send_nois_ibc_message(
     raffle_id: u64,
 ) -> anyhow::Result<()> {
     // We send a nois message (that is automatic in the real world)
-    app.execute_contract(
+    let response = app.execute_contract(
         contracts.raffle.clone(),
         contracts.nois.clone(),
         &ProxyExecuteMsg::GetNextRandomness {
@@ -214,7 +215,25 @@ pub fn send_nois_ibc_message(
         },
         &[],
     )?;
-    Ok(())
+    // We get the error value
+    let error_value = response
+        .events
+        .into_iter()
+        .filter(|e| e.ty == "wasm")
+        .flat_map(|e| {
+            e.attributes
+                .into_iter()
+                .filter(|a| a.key == ERROR_ON_NOIS_EXEC)
+                .map(|a| a.value)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    if error_value.is_empty() {
+        Ok(())
+    } else {
+        bail!("Error on executing on nois randomnesss : {:?}", error_value)
+    }
 }
 
 pub fn assert_treasury_balance(app: &StargazeApp, denom: &str, amount: u128) {
