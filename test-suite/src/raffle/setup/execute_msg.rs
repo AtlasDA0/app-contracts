@@ -8,6 +8,8 @@ use raffles::{
 use sg_multi_test::StargazeApp;
 use utils::state::AssetInfo;
 
+use crate::common_setup::setup_minter::common::constants::CREATION_FEE_AMNT_STARS;
+
 use super::test_msgs::{CreateRaffleParams, PurchaseTicketsParams};
 
 // Template for creating raffles
@@ -110,7 +112,7 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
                 amount: raffle_ticket_price,
             }),
         },
-        &[coin(4, "ustars")],
+        &[coin(CREATION_FEE_AMNT_STARS, "ustars")],
     );
     // confirm owner is set
     // assert!(

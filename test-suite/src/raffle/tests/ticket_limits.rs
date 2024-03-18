@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Decimal, HexBinary, Timestamp, Uint128};
+    use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Decimal, Timestamp, Uint128};
     use cw_multi_test::Executor;
     use cw_multi_test::{BankSudo, SudoMsg};
-    use nois::NoisCallback;
+
     use raffles::state::{ATLAS_DAO_STARGAZE_TREASURY, MINIMUM_RAFFLE_DURATION};
     use raffles::{
         error::ContractError,
@@ -13,6 +13,7 @@ mod tests {
 
     use utils::state::{AssetInfo, Locks, Sg721Token, NATIVE_DENOM};
 
+    use crate::common_setup::nois_proxy::{NOIS_AMOUNT, NOIS_DENOM};
     use crate::common_setup::setup_minter::common::constants::{
         CREATION_FEE_AMNT_NATIVE, CREATION_FEE_AMNT_STARS,
     };
@@ -191,7 +192,7 @@ mod tests {
         let (mut app, contracts) = proper_raffle_instantiate_precise(Some(80));
         let token = mint_one_token(&mut app, &contracts);
 
-        let current_time = app.block_info().time;
+        let _current_time = app.block_info().time;
         let current_block = app.block_info().height;
         let chainid = app.block_info().chain_id.clone();
 
@@ -319,7 +320,7 @@ mod tests {
                     sudo_lock: false,
                 },
                 nois_proxy_addr: contracts.nois.clone(),
-                nois_proxy_coin: coin(500000, NATIVE_DENOM),
+                nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM),
                 creation_coins: vec![
                     coin(CREATION_FEE_AMNT_NATIVE, NATIVE_DENOM.to_string()),
                     coin(CREATION_FEE_AMNT_STARS, "ustars".to_string())

@@ -16,8 +16,10 @@ mod tests {
 
     use crate::{
         common_setup::{
-            helpers::assert_error, msg::RaffleContracts, setup_accounts_and_block::setup_accounts,
-            setup_minter::common::constants::SG721_CONTRACT,
+            helpers::assert_error,
+            msg::RaffleContracts,
+            setup_accounts_and_block::setup_accounts,
+            setup_minter::common::constants::{CREATION_FEE_AMNT_NATIVE, SG721_CONTRACT},
             setup_raffle::proper_raffle_instantiate,
         },
         raffle::setup::{
@@ -106,8 +108,8 @@ mod tests {
                 raffle_info: Some(RaffleInfo {
                     owner: owner_addr,
                     assets: vec![AssetInfo::Sg721Token(Sg721Token {
-                        address: SG721_CONTRACT.to_string(),
-                        token_id: "63".to_string()
+                        address: token.nft.to_string(),
+                        token_id: token.token_id.clone()
                     })],
                     raffle_ticket_price: AssetInfo::Coin(coin(4, NATIVE_DENOM)),
                     number_of_tickets: 0,
@@ -199,7 +201,7 @@ mod tests {
             app: &mut app,
             raffle_contract_addr: contracts.raffle.clone(),
             owner_addr: one.clone(),
-            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            creation_fee: vec![coin(CREATION_FEE_AMNT_NATIVE, NATIVE_DENOM)],
             ticket_price: Uint128::new(4),
             max_ticket_per_addr: None,
             raffle_start_timestamp: None,
@@ -333,8 +335,8 @@ mod tests {
                 raffle_info: Some(RaffleInfo {
                     owner: owner_addr.clone(),
                     assets: vec![AssetInfo::Sg721Token(Sg721Token {
-                        address: SG721_CONTRACT.to_string(),
-                        token_id: 63.to_string(),
+                        address: token.nft.to_string(),
+                        token_id: token.token_id.clone()
                     })],
                     raffle_ticket_price: AssetInfo::Coin(Coin {
                         denom: NATIVE_DENOM.to_string(),
@@ -390,8 +392,8 @@ mod tests {
                 raffle_info: Some(RaffleInfo {
                     owner: owner_addr,
                     assets: vec![AssetInfo::Sg721Token(Sg721Token {
-                        address: SG721_CONTRACT.to_string(),
-                        token_id: 63.to_string(),
+                        address: token.nft.to_string(),
+                        token_id: token.token_id.clone()
                     })],
                     raffle_ticket_price: AssetInfo::Coin(Coin {
                         denom: NATIVE_DENOM.to_string(),

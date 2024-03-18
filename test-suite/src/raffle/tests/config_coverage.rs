@@ -6,18 +6,18 @@ mod tests {
     use raffles::{
         error::ContractError,
         msg::{ExecuteMsg, QueryMsg as RaffleQueryMsg},
-        state::Config,
+        state::{Config, ATLAS_DAO_STARGAZE_TREASURY},
     };
-    use utils::state::{
-        AssetInfo, Locks, Sg721Token, SudoMsg as RaffleSudoMsg, NATIVE_DENOM, NOIS_AMOUNT,
-    };
+    use utils::state::{AssetInfo, Locks, Sg721Token, SudoMsg as RaffleSudoMsg, NATIVE_DENOM};
 
     use crate::{
         common_setup::{
             helpers::assert_error,
+            nois_proxy::{NOIS_AMOUNT, NOIS_DENOM},
             setup_accounts_and_block::setup_accounts,
             setup_minter::common::constants::{
-                CREATION_FEE_AMNT_STARS, OWNER_ADDR, RAFFLE_NAME, RAFFLE_TAX, SG721_CONTRACT,
+                CREATION_FEE_AMNT_NATIVE, CREATION_FEE_AMNT_STARS, OWNER_ADDR, RAFFLE_NAME,
+                RAFFLE_TAX, SG721_CONTRACT,
             },
             setup_raffle::proper_raffle_instantiate,
         },
@@ -41,14 +41,17 @@ mod tests {
             Config {
                 name: RAFFLE_NAME.into(),
                 owner: Addr::unchecked(OWNER_ADDR),
-                fee_addr: Addr::unchecked(OWNER_ADDR),
+                fee_addr: Addr::unchecked(ATLAS_DAO_STARGAZE_TREASURY),
                 last_raffle_id: Some(0),
                 minimum_raffle_duration: 1,
                 max_tickets_per_raffle: None,
                 raffle_fee: RAFFLE_TAX,
                 nois_proxy_addr: contracts.nois.clone(),
-                nois_proxy_coin: coin(NOIS_AMOUNT, NATIVE_DENOM),
-                creation_coins: vec![coin(CREATION_FEE_AMNT_STARS, NATIVE_DENOM)],
+                nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM),
+                creation_coins: vec![
+                    coin(CREATION_FEE_AMNT_NATIVE, NATIVE_DENOM),
+                    coin(CREATION_FEE_AMNT_STARS, NATIVE_DENOM)
+                ],
                 locks: Locks {
                     lock: false,
                     sudo_lock: false,
@@ -132,7 +135,7 @@ mod tests {
                     minimum_raffle_duration: Some(60),
                     raffle_fee: Some(Decimal::percent(99)),
                     nois_proxy_addr: Some("new-owner".to_string()),
-                    nois_proxy_coin: Some(coin(NOIS_AMOUNT, NATIVE_DENOM)),
+                    nois_proxy_coin: Some(coin(NOIS_AMOUNT, NOIS_DENOM)),
                     creation_coins: Some(vec![coin(420, "new-new")]),
                     max_tickets_per_raffle: None,
                 },
@@ -156,7 +159,7 @@ mod tests {
                 max_tickets_per_raffle: None,
                 raffle_fee: Decimal::percent(99),
                 nois_proxy_addr: Addr::unchecked("new-owner"),
-                nois_proxy_coin: coin(NOIS_AMOUNT, NATIVE_DENOM),
+                nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM),
                 creation_coins: vec![coin(420, "new-new")],
                 locks: Locks {
                     lock: false,
@@ -176,7 +179,7 @@ mod tests {
             app: &mut app,
             raffle_contract_addr: contracts.raffle.clone(),
             owner_addr: owner_address.clone(),
-            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            creation_fee: vec![coin(CREATION_FEE_AMNT_STARS, NATIVE_DENOM)],
             ticket_price: Uint128::new(4),
             max_ticket_per_addr: None,
             raffle_start_timestamp: None,
@@ -207,7 +210,7 @@ mod tests {
             app: &mut app,
             raffle_contract_addr: contracts.raffle.clone(),
             owner_addr: owner_address.clone(),
-            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            creation_fee: vec![coin(CREATION_FEE_AMNT_STARS, NATIVE_DENOM)],
             ticket_price: Uint128::new(4),
             max_ticket_per_addr: None,
             raffle_start_timestamp: None,
@@ -248,7 +251,7 @@ mod tests {
             app: &mut app,
             raffle_contract_addr: contracts.raffle.clone(),
             owner_addr: owner_address.clone(),
-            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            creation_fee: vec![coin(CREATION_FEE_AMNT_STARS, NATIVE_DENOM)],
             ticket_price: Uint128::new(4),
             max_ticket_per_addr: None,
             raffle_start_timestamp: None,
@@ -278,7 +281,7 @@ mod tests {
             app: &mut app,
             raffle_contract_addr: contracts.raffle.clone(),
             owner_addr: owner_address.clone(),
-            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            creation_fee: vec![coin(CREATION_FEE_AMNT_STARS, NATIVE_DENOM)],
             ticket_price: Uint128::new(4),
             max_ticket_per_addr: None,
             raffle_start_timestamp: None,

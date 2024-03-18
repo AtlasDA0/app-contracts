@@ -5,10 +5,13 @@ use cosmwasm_std::{
 };
 use cw_storage_plus::{Item, Map};
 use nois::{NoisCallback, ProxyExecuteMsg};
-use utils::{state::NOIS_AMOUNT, types::Response};
+use utils::types::Response;
 
+pub const NOIS_DENOM: &str = "unois";
+pub const NOIS_AMOUNT: u128 = 500000; // 0.5 tokens
 pub const TEST_NOIS_PREFIX: &str = "test-trigger-";
-
+pub const RANDOMNESS_SEED: &str =
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115";
 #[cw_serde]
 pub struct Config {
     nois: String,
@@ -96,9 +99,7 @@ pub fn register_randmoness_for_later(
                     callback: NoisCallback {
                         job_id: job_id.to_string(),
                         published: env.block.time,
-                        randomness: HexBinary::from_hex(
-                            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
-                        )?,
+                        randomness: HexBinary::from_hex(RANDOMNESS_SEED)?,
                     },
                 })?,
                 funds: vec![],

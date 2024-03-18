@@ -4,7 +4,7 @@ use super::{
     contract_boxes::contract_fake_nois,
     helpers::setup_block_time,
     msg::{RaffleCodeIds, RaffleContracts},
-    nois_proxy,
+    nois_proxy::{self, NOIS_AMOUNT, NOIS_DENOM},
     setup_accounts_and_block::setup_accounts,
     setup_minter::common::constants::{CREATION_FEE_AMNT_NATIVE, CREATION_FEE_AMNT_STARS},
 };
@@ -20,7 +20,6 @@ use cw_multi_test::{BankSudo, Executor, SudoMsg};
 use raffles::{msg::InstantiateMsg, state::ATLAS_DAO_STARGAZE_TREASURY};
 use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
-use utils::state::NOIS_AMOUNT;
 use vending_factory::state::{ParamsExtension, VendingMinterParams};
 
 pub fn proper_raffle_instantiate() -> (StargazeApp, RaffleContracts) {
@@ -84,7 +83,7 @@ pub fn proper_raffle_instantiate_precise(
             code_ids.nois_code_id,
             Addr::unchecked(OWNER_ADDR),
             &nois_proxy::InstantiateMsg {
-                nois: NATIVE_DENOM.to_string(),
+                nois: NOIS_DENOM.to_string(),
             },
             &[],
             "nois-contract",
@@ -100,7 +99,7 @@ pub fn proper_raffle_instantiate_precise(
             &InstantiateMsg {
                 name: RAFFLE_NAME.to_string(),
                 nois_proxy_addr: nois_addr.to_string(),
-                nois_proxy_coin: coin(NOIS_AMOUNT, NATIVE_DENOM.to_string()),
+                nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM.to_string()),
                 owner: Some(OWNER_ADDR.to_string()),
                 fee_addr: Some(ATLAS_DAO_STARGAZE_TREASURY.to_owned()),
                 minimum_raffle_duration: None,
@@ -122,7 +121,7 @@ pub fn proper_raffle_instantiate_precise(
     app.sudo(SudoMsg::Bank({
         BankSudo::Mint {
             to_address: raffle_contract_addr.clone().to_string(),
-            amount: vec![coin(100000000000u128, "ustars".to_string())],
+            amount: vec![coin(100000000000u128, NOIS_DENOM.to_string())],
         }
     }))
     .unwrap();

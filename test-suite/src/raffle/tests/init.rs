@@ -1,10 +1,11 @@
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::{coin, Addr, Decimal};
-    use utils::state::{NATIVE_DENOM, NOIS_AMOUNT};
+    use utils::state::NATIVE_DENOM;
 
     use crate::common_setup::{
         contract_boxes::custom_mock_app,
+        nois_proxy::{NOIS_AMOUNT, NOIS_DENOM},
         setup_minter::common::constants::{OWNER_ADDR, RAFFLE_NAME},
         setup_raffle::{proper_raffle_instantiate, raffle_template_code_ids},
     };
@@ -28,7 +29,7 @@ mod tests {
                 &InstantiateMsg {
                     name: RAFFLE_NAME.to_string(),
                     nois_proxy_addr: "nois-addr-placeholder".to_string(),
-                    nois_proxy_coin: coin(NOIS_AMOUNT, NATIVE_DENOM.to_string()),
+                    nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM),
                     owner: Some(OWNER_ADDR.to_string()),
                     fee_addr: Some("atlas-treasury-placeholder".to_owned()),
                     minimum_raffle_duration: None,

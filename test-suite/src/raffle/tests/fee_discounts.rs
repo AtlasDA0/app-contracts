@@ -99,7 +99,7 @@ mod tests {
                 &InstantiateMsg {
                     name: RAFFLE_NAME.to_string(),
                     nois_proxy_addr: NOIS_PROXY_ADDR.to_string(),
-                    nois_proxy_coin: coin(NOIS_AMOUNT, NATIVE_DENOM.to_string()),
+                    nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM),
                     owner: Some(OWNER_ADDR.to_string()),
                     fee_addr: Some(ATLAS_DAO_STARGAZE_TREASURY.to_owned()),
                     minimum_raffle_duration: None,
