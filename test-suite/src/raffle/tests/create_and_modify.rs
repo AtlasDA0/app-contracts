@@ -2,7 +2,7 @@
 mod tests {
     use cosmwasm_std::{coin, Addr, Coin, Timestamp, Uint128};
     use cw_multi_test::Executor;
-    use raffles::state::{RaffleInfo, RaffleOptions};
+    use raffles::state::{RaffleInfo, RaffleOptions, MAX_TICKET_NUMBER};
     use sg_multi_test::StargazeApp;
     use std::vec;
     use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
@@ -81,7 +81,7 @@ mod tests {
                         raffle_duration: 1,
 
                         comment: None,
-                        max_ticket_number: None,
+                        max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
                         raffle_preview: 0,
                         min_ticket_number: None,
@@ -121,7 +121,7 @@ mod tests {
                         raffle_duration: 1,
 
                         comment: None,
-                        max_ticket_number: None,
+                        max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
                         raffle_preview: 0,
                         min_ticket_number: None,
@@ -350,7 +350,7 @@ mod tests {
                         raffle_start_timestamp: Timestamp::from_nanos(1647032400000000000),
                         raffle_duration: 1u64,
                         comment: Some("rust is dooope".to_string()),
-                        max_ticket_number: None,
+                        max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
                         raffle_preview: 0,
                         min_ticket_number: None,
@@ -407,7 +407,7 @@ mod tests {
                         raffle_start_timestamp: Timestamp::from_nanos(1647032400000000000),
                         raffle_duration: 2u64,
                         comment: Some("rust is dooope".to_string()),
-                        max_ticket_number: None,
+                        max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
                         raffle_preview: 0,
                         min_ticket_number: None,
