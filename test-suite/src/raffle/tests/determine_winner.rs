@@ -481,7 +481,7 @@ mod tests {
     fn admin_randomness() {
         let (mut app, contracts) = proper_raffle_instantiate();
         let (owner_addr, _, _) = setup_accounts(&mut app);
-        let (one, two, three, _, _, _) = setup_raffle_participants(&mut app);
+        let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
         let token = mint_one_token(&mut app, &contracts);
         // create raffle
         let params = CreateRaffleParams {
