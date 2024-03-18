@@ -253,7 +253,7 @@ mod tests {
         let params = CreateRaffleParams {
             app: &mut app,
             raffle_contract_addr: raffle_addr.clone(),
-            owner_addr: owner_addr,
+            owner_addr,
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: Uint128::new(4),
             max_ticket_per_addr: None,

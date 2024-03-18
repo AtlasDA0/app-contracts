@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{coin, Addr, Coin, HexBinary, Uint128};
+    use cosmwasm_std::{coin, Addr, HexBinary, Uint128};
     use cw_multi_test::Executor;
     use nois::NoisCallback;
     use raffles::{
@@ -67,14 +67,14 @@ mod tests {
         );
 
         // move forward in time
-        let current_time = app.block_info().time.clone();
-        let current_block = app.block_info().height.clone();
+        let current_time = app.block_info().time;
+        let current_block = app.block_info().height;
         let chainid = app.block_info().chain_id.clone();
 
         setup_block_time(
             &mut app,
             current_time.clone().plus_seconds(130).nanos(),
-            Some(current_block.clone() + 100),
+            Some(current_block + 100),
             &chainid.clone(),
         );
 
@@ -103,7 +103,7 @@ mod tests {
                 &RaffleExecuteMsg::NoisReceive {
                     callback: NoisCallback {
                         job_id: "raffle-0".to_string(),
-                        published: current_time.clone(),
+                        published: current_time,
                         randomness: HexBinary::from_hex(
                             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
                         )
@@ -125,7 +125,7 @@ mod tests {
                 &RaffleExecuteMsg::NoisReceive {
                     callback: NoisCallback {
                         job_id: "raffle-0".to_string(),
-                        published: current_time.clone(),
+                        published: current_time,
                         randomness: HexBinary::from_hex(
                             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
                         )
@@ -272,7 +272,7 @@ mod tests {
         setup_block_time(
             &mut app,
             current_time.clone().plus_seconds(130).nanos(),
-            Some(current_block.clone() + 100),
+            Some(current_block + 100),
             &chainid.clone(),
         );
 

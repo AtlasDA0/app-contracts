@@ -84,8 +84,8 @@ mod tests {
                 Addr::unchecked(OWNER_ADDR),
                 &vending_factory::msg::InstantiateMsg {
                     params: VendingMinterParams {
-                        code_id: minter_id.clone(),
-                        allowed_sg721_code_ids: vec![sg721_id.clone()],
+                        code_id: minter_id,
+                        allowed_sg721_code_ids: vec![sg721_id],
                         frozen: false,
                         creation_fee: Coin {
                             denom: NATIVE_DENOM.to_string(),
@@ -146,39 +146,37 @@ mod tests {
     fn loan() {
         let (mut app, nft_loan_addr, factory_addr) = proper_instantiate();
 
-        let current_time = app.block_info().time.clone();
+        let current_time = app.block_info().time;
 
         // create nft minter
         let _create_nft_minter = app.execute_contract(
             Addr::unchecked(OWNER_ADDR),
             factory_addr.clone(),
-            &vending_factory::msg::ExecuteMsg::CreateMinter {
-                0: VendingMinterCreateMsg {
-                    init_msg: vending_factory::msg::VendingMinterInitMsgExtension {
-                        base_token_uri: "ipfs://aldkfjads".to_string(),
-                        payment_address: Some(OWNER_ADDR.to_string()),
-                        start_time: current_time.clone(),
-                        num_tokens: 100,
-                        mint_price: coin(Uint128::new(100000u128).u128(), NATIVE_DENOM),
-                        per_address_limit: 3,
-                        whitelist: None,
-                    },
-                    collection_params: sg2::msg::CollectionParams {
-                        code_id: 4,
-                        name: "Collection Name".to_string(),
-                        symbol: "COL".to_string(),
-                        info: CollectionInfo {
-                            creator: "creator".to_string(),
-                            description: String::from("Atlanauts"),
-                            image: "https://example.com/image.png".to_string(),
-                            external_link: Some("https://example.com/external.html".to_string()),
-                            start_trading_time: None,
-                            explicit_content: Some(false),
-                            royalty_info: None,
-                        },
+            &vending_factory::msg::ExecuteMsg::CreateMinter(VendingMinterCreateMsg {
+                init_msg: vending_factory::msg::VendingMinterInitMsgExtension {
+                    base_token_uri: "ipfs://aldkfjads".to_string(),
+                    payment_address: Some(OWNER_ADDR.to_string()),
+                    start_time: current_time,
+                    num_tokens: 100,
+                    mint_price: coin(Uint128::new(100000u128).u128(), NATIVE_DENOM),
+                    per_address_limit: 3,
+                    whitelist: None,
+                },
+                collection_params: sg2::msg::CollectionParams {
+                    code_id: 4,
+                    name: "Collection Name".to_string(),
+                    symbol: "COL".to_string(),
+                    info: CollectionInfo {
+                        creator: "creator".to_string(),
+                        description: String::from("Atlanauts"),
+                        image: "https://example.com/image.png".to_string(),
+                        external_link: Some("https://example.com/external.html".to_string()),
+                        start_trading_time: None,
+                        explicit_content: Some(false),
+                        royalty_info: None,
                     },
                 },
-            },
+            }),
             &[Coin {
                 denom: NATIVE_DENOM.to_string(),
                 amount: Uint128::new(100000u128),
@@ -326,14 +324,14 @@ mod tests {
         // verify collateral cannot be withdraw after loan is accepted
 
         // move forward in time
-        let current_time = app.block_info().time.clone();
-        let current_block = app.block_info().height.clone();
+        let current_time = app.block_info().time;
+        let current_block = app.block_info().height;
         let chainid = app.block_info().chain_id.clone();
 
         println!("{:#?}", current_block);
 
         app.set_block(BlockInfo {
-            height: current_block.clone() + 20,
+            height: current_block + 20,
             time: current_time.clone().plus_seconds(20),
             chain_id: chainid.clone(),
         });
