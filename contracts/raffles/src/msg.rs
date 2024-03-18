@@ -80,7 +80,12 @@ pub enum ExecuteMsg {
     NoisReceive {
         callback: NoisCallback,
     },
+
     // Admin messages
+    /// Provide job_id for randomness contract
+    UpdateRandomness {
+        raffle_id: u64,
+    },
     ToggleLock {
         lock: bool,
     },

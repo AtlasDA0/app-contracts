@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    coin, ensure, entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
-    QueryResponse, StdResult, Uint128,
+    coin, ensure, ensure_eq, entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env,
+    MessageInfo, QueryResponse, StdResult, Uint128,
 };
 
 use crate::{
@@ -16,6 +16,7 @@ use crate::{
         get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
         STATIC_RAFFLE_CREATION_FEE,
     },
+    utils::get_nois_randomness,
 };
 use utils::{
     state::{is_valid_name, Locks, SudoMsg, NATIVE_DENOM},
@@ -141,7 +142,6 @@ pub fn execute(
         } => execute_buy_tickets(deps, env, info, raffle_id, ticket_count, sent_assets),
         ExecuteMsg::Receive(msg) => execute_receive(deps, env, info, msg),
         ExecuteMsg::NoisReceive { callback } => execute_receive_nois(deps, env, info, callback),
-        // Admin messages
         ExecuteMsg::ToggleLock { lock } => execute_toggle_lock(deps, env, info, lock),
         ExecuteMsg::UpdateConfig {
             name,
@@ -167,6 +167,12 @@ pub fn execute(
             nois_proxy_coin,
             creation_coins,
         ),
+        ExecuteMsg::UpdateRandomness { raffle_id } => {
+            let config = CONFIG.load(deps.storage)?;
+            ensure_eq!(info.sender, config.owner, ContractError::Unauthorized);
+            let msg = get_nois_randomness(deps.as_ref(), raffle_id)?;
+            Ok(Response::new().add_message(msg))
+        }
     }
 }
 

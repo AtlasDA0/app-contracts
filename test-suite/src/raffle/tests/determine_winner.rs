@@ -426,22 +426,12 @@ mod tests {
         };
         let _purchase_tickets = buy_tickets_template(params).unwrap();
 
-        // We advance time until the raffle is over
-        // However, we can't provide randomness yet :/
-        finish_raffle_timeout(&mut app, &contracts, 0, 130).unwrap_err();
-        // We need to add more tickets to the raffle to be able to claim
-        let params = PurchaseTicketsParams {
-            app: &mut app,
-            raffle_contract_addr: contracts.raffle.clone(),
-            msg_senders: vec![one.clone()],
-            raffle_id: 0,
-            num_tickets: 1,
-            funds_send: vec![coin(4, "ustars")],
-        };
-        let _purchase_tickets = buy_tickets_template(params).unwrap();
-
+        let one_balance_before = app.wrap().query_balance(&one, "ustars").unwrap().amount;
         let owner_balance_before = app.wrap().query_balance(&owner_addr, "ustars").unwrap();
-        finish_raffle_timeout(&mut app, &contracts, 0, 1).unwrap();
+
+        finish_raffle_timeout(&mut app, &contracts, 0, 130).unwrap();
+
+        let one_balance_after = app.wrap().query_balance(&one, "ustars").unwrap().amount;
 
         // queries the raffle
         let res = raffle_info(&app, &contracts, 0).raffle_info.unwrap();
@@ -452,7 +442,11 @@ mod tests {
         );
 
         // verify winner is always owner
-        assert_eq!(one, res.winner.unwrap(), "You have the wrong winner ");
+        assert_eq!(
+            owner_addr,
+            res.winner.unwrap(),
+            "You have the wrong winner "
+        );
 
         // verify no tickets can be bought after raffle ends
         let params = PurchaseTicketsParams {
@@ -474,8 +468,12 @@ mod tests {
         let owner_balance_after = app.wrap().query_balance(&owner_addr, "ustars").unwrap();
 
         assert_eq!(
-            owner_balance_before.amount + Decimal::percent(50) * Uint128::from(4 * 4u128), // 50% fee of 4 tickets
+            owner_balance_before.amount, // Nothing happens, because the minimum was not reached
             owner_balance_after.amount
+        );
+        assert_eq!(
+            one_balance_before + Uint128::from(4 * 3u128), // 100% fee of 3 tickets
+            one_balance_after
         );
     }
 }

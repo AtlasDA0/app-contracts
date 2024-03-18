@@ -23,9 +23,9 @@ use crate::{
         MINIMUM_RAFFLE_DURATION, RAFFLE_INFO, RAFFLE_TICKETS, USER_TICKETS,
     },
     utils::{
-        can_buy_ticket, get_nois_randomness, get_raffle_owner_finished_messages,
-        get_raffle_owner_messages, get_raffle_winner, get_raffle_winner_messages, is_raffle_owner,
-        ticket_cost,
+        can_buy_ticket, get_nois_randomness, get_raffle_owner_funds_finished_messages,
+        get_raffle_owner_messages, get_raffle_refund_funds_finished_messages, get_raffle_winner,
+        get_raffle_winner_messages, is_raffle_owner, ticket_cost,
     },
 };
 
@@ -452,7 +452,6 @@ pub fn _buy_tickets(
         Some(current_ticket_count) => Ok(current_ticket_count + ticket_count),
         None => Ok(ticket_count),
     })?;
-    let old_number_of_tickets = raffle_info.number_of_tickets;
     raffle_info.number_of_tickets += ticket_count;
 
     // If all tickets have been bought, we stop the raffle.
@@ -471,24 +470,6 @@ pub fn _buy_tickets(
     } else {
         None
     };
-    let nois_message = nois_message.or(
-        if let Some(min_ticket_number) = raffle_info.raffle_options.min_ticket_number {
-            if env.block.time
-                > raffle_info
-                    .raffle_options
-                    .raffle_start_timestamp
-                    .plus_seconds(raffle_info.raffle_options.raffle_duration)
-                && old_number_of_tickets < min_ticket_number
-                && raffle_info.number_of_tickets >= min_ticket_number
-            {
-                Some(get_nois_randomness(deps.as_ref(), raffle_id)?)
-            } else {
-                None
-            }
-        } else {
-            None
-        },
-    );
 
     RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 
@@ -611,27 +592,44 @@ pub fn execute_receive_nois(
     // We determine the winner
     // Loads the raffle id and makes sure the raffle has ended and randomness from nois has been provided.
 
-    // If there was no participant, the winner is the raffle owner and we pay no fees whatsoever
-    if raffle_info.number_of_tickets == 0u32 {
+    // If there was no participant, the winner is the raffle owner
+    // If the minimum number of tickets is not reached, the winner is the raffle owner as well
+    let msgs = if raffle_info.number_of_tickets == 0u32 {
         raffle_info.winner = Some(raffle_info.owner.clone());
+        // No funds re-imbursement
+        get_raffle_winner_messages(deps.as_ref(), env.clone(), raffle_info.clone())?
+    } else if raffle_info.number_of_tickets
+        < raffle_info.raffle_options.min_ticket_number.unwrap_or(0)
+    {
+        raffle_info.winner = Some(raffle_info.owner.clone());
+        // No funds re-imbursement
+        let nft_msg = get_raffle_winner_messages(deps.as_ref(), env.clone(), raffle_info.clone())?;
+        let refund_msgs = get_raffle_refund_funds_finished_messages(
+            deps.storage,
+            env.clone(),
+            raffle_info.clone(),
+            raffle_id,
+        )?;
+        [refund_msgs, nft_msg].concat()
     } else {
         // We calculate the winner of the raffle and save it to the contract. The raffle is now claimed !
         let winner = get_raffle_winner(deps.as_ref(), env.clone(), raffle_id, raffle_info.clone())?;
         raffle_info.winner = Some(winner);
-    }
+        let owner_funds_msg = get_raffle_owner_funds_finished_messages(
+            deps.storage,
+            env.clone(),
+            raffle_info.clone(),
+        )?;
+        let nft_msg = get_raffle_winner_messages(deps.as_ref(), env.clone(), raffle_info.clone())?;
+
+        [owner_funds_msg, nft_msg].concat()
+    };
 
     RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 
-    // We send the assets to the winner, and fees to the treasury
-    let winner_transfer_messages =
-        get_raffle_winner_messages(deps.as_ref(), env.clone(), raffle_info.clone(), raffle_id)?;
-    let funds_transfer_messages =
-        get_raffle_owner_finished_messages(deps.storage, env, raffle_info.clone())?;
-
     // We distribute the ticket prices to the owner and in part to the treasury
     Ok(Response::new()
-        .add_messages(winner_transfer_messages)
-        .add_messages(funds_transfer_messages)
+        .add_messages(msgs)
         .add_attribute("action", "claim")
         .add_attribute("raffle_id", raffle_id.to_string())
         .add_attribute("winner", raffle_info.winner.unwrap()))
