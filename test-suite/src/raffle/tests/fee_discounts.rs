@@ -374,13 +374,8 @@ mod tests {
             .unwrap();
 
         // queries the raffle
-        let res: RaffleResponse = app
-            .wrap()
-            .query_wasm_smart(
-                raffle_addr.clone(),
-                &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
-            )
-            .unwrap();
+        let res = raffle_info(&app, &contracts, 0);
+
         // verify randomness state has been updated
         assert!(
             res.raffle_info.unwrap().randomness.is_some(),
@@ -398,13 +393,7 @@ mod tests {
             .unwrap();
 
         // queries the raffle
-        let res: RaffleResponse = app
-            .wrap()
-            .query_wasm_smart(
-                raffle_addr.clone(),
-                &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
-            )
-            .unwrap();
+        let res = raffle_info(&app, &contracts, 0);
 
         // verify winner is always owner
         assert_eq!(
@@ -589,13 +578,8 @@ mod tests {
             .unwrap();
 
         // queries the raffle
-        let res: RaffleResponse = app
-            .wrap()
-            .query_wasm_smart(
-                raffle_addr.clone(),
-                &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
-            )
-            .unwrap();
+        let res = raffle_info(&app, &contracts, 0);
+
         // verify randomness state has been updated
         assert!(
             res.raffle_info.unwrap().randomness.is_some(),
@@ -613,13 +597,7 @@ mod tests {
             .unwrap();
 
         // queries the raffle
-        let res: RaffleResponse = app
-            .wrap()
-            .query_wasm_smart(
-                raffle_addr.clone(),
-                &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
-            )
-            .unwrap();
+        let res = raffle_info(&app, &contracts, 0);
 
         // verify winner is always owner
         assert_eq!(
@@ -805,13 +783,8 @@ mod tests {
             .unwrap();
 
         // queries the raffle
-        let res: RaffleResponse = app
-            .wrap()
-            .query_wasm_smart(
-                raffle_addr.clone(),
-                &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
-            )
-            .unwrap();
+        let res = raffle_info(&app, &contracts, 0);
+
         // verify randomness state has been updated
         assert!(
             res.raffle_info.unwrap().randomness.is_some(),
@@ -829,13 +802,7 @@ mod tests {
             .unwrap();
 
         // queries the raffle
-        let res: RaffleResponse = app
-            .wrap()
-            .query_wasm_smart(
-                raffle_addr.clone(),
-                &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
-            )
-            .unwrap();
+        let res = raffle_info(&app, &contracts, 0);
 
         // verify winner is always owner
         assert_eq!(

@@ -1,15 +1,5 @@
-use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
+use cosmwasm_std::{Addr, Coin, Timestamp, Uint128};
 use utils::state::AssetInfo;
-
-pub struct InstantiateRaffleParams<'a> {
-    pub app: &'a mut sg_multi_test::StargazeApp,
-    pub admin_account: Addr,
-    pub funds_amount: u128,
-    pub fee_rate: Decimal,
-    pub name: String,
-    pub nois_proxy_coin: Coin,
-    pub nois_proxy_addr: String,
-}
 
 pub struct CreateRaffleParams<'a> {
     pub app: &'a mut sg_multi_test::StargazeApp,

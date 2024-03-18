@@ -1,62 +1,14 @@
 use anyhow::Error as anyhow_error;
-use cosmwasm_std::{coin, coins, Coin};
+use cosmwasm_std::{coin, Coin};
 use cw_multi_test::{AppResponse, BankSudo, Executor, SudoMsg};
 use raffles::{
-    msg::{ExecuteMsg as RaffleExecuteMsg, InstantiateMsg, QueryMsg as RaffleQueryMsg},
+    msg::{ExecuteMsg as RaffleExecuteMsg, QueryMsg as RaffleQueryMsg},
     state::RaffleOptionsMsg,
 };
 use sg_multi_test::StargazeApp;
-use sg_std::NATIVE_DENOM;
 use utils::state::AssetInfo;
 
-use crate::common_setup::contract_boxes::contract_raffles;
-
-use super::test_msgs::{CreateRaffleParams, InstantiateRaffleParams, PurchaseTicketsParams};
-
-pub fn instantate_raffle_contract(
-    params: InstantiateRaffleParams,
-) -> Result<cosmwasm_std::Addr, anyhow_error> {
-    // define contract instantiation values
-    let admin_account = params.admin_account;
-    let funds_amount = params.funds_amount;
-    let name = params.name;
-    let nois_coin = params.nois_proxy_coin;
-    let raffle_fee = params.fee_rate;
-    let nois_proxy_addr = params.nois_proxy_addr;
-
-    params
-        .app
-        .sudo(SudoMsg::Bank({
-            BankSudo::Mint {
-                to_address: admin_account.to_string(),
-                amount: coins(funds_amount, NATIVE_DENOM),
-            }
-        }))
-        .map_err(|err| println!("{err:?}"))
-        .ok();
-
-    let raffle_code_id = params.app.store_code(contract_raffles());
-    let msg: InstantiateMsg = InstantiateMsg {
-        name,
-        nois_proxy_addr: nois_proxy_addr.to_string(),
-        nois_proxy_coin: nois_coin,
-        owner: None, // confirm info.sender is default
-        fee_addr: Some(admin_account.to_string()),
-        minimum_raffle_duration: None,
-        max_ticket_number: None,
-        raffle_fee,
-        creation_coins: vec![coin(50, NATIVE_DENOM)].into(),
-    };
-
-    params.app.instantiate_contract(
-        raffle_code_id,
-        admin_account.clone(),
-        &msg,
-        &coins(funds_amount, NATIVE_DENOM),
-        "sg-raffles",
-        Some(admin_account.to_string()),
-    )
-}
+use super::test_msgs::{CreateRaffleParams, PurchaseTicketsParams};
 
 // Template for creating raffles
 pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse, anyhow_error> {

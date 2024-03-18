@@ -3,9 +3,11 @@ use cosmwasm_std::{
     coins, to_json_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, HexBinary, MessageInfo,
     StdError, StdResult, Timestamp,
 };
-use cw_storage_plus::{Item, Map, Prefixer};
+use cw_storage_plus::{Item, Map};
 use nois::{NoisCallback, ProxyExecuteMsg};
-use utils::types::Response;
+use utils::{state::NOIS_AMOUNT, types::Response};
+
+pub const TEST_NOIS_PREFIX: &str = "test-trigger-";
 
 #[cw_serde]
 pub struct Config {
@@ -21,16 +23,20 @@ const CONFIG: Item<Config> = Item::new("config");
 const RANDOMNESS: Map<(Addr, String), RandomnessForLater> = Map::new("randomnesss");
 
 #[cw_serde]
-pub struct InstantiateMsg {}
+pub struct InstantiateMsg {
+    pub nois: String,
+}
 #[cw_serde]
 pub struct QueryMsg {}
 
 pub fn instantiate(
-    _deps: DepsMut,
+    deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
-    _msg: InstantiateMsg,
+    msg: InstantiateMsg,
 ) -> Result<Response, StdError> {
+    CONFIG.save(deps.storage, &Config { nois: msg.nois })?;
+
     Ok(Response::new())
 }
 
@@ -60,26 +66,7 @@ fn resubmit_randomness_right_now(
     info: MessageInfo,
     job_id: String,
 ) -> StdResult<Response> {
-    let config = CONFIG.load(deps.storage)?;
-    if info.funds != coins(1_000_000, config.nois) {
-        return Err(StdError::generic_err("Nois not enough funds sent to proxy"));
-    }
-
-    Ok(
-        Response::new().add_message(CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
-            contract_addr: info.sender.to_string(),
-            msg: to_json_binary(&raffles::msg::ExecuteMsg::NoisReceive {
-                callback: NoisCallback {
-                    job_id,
-                    published: env.block.time,
-                    randomness: HexBinary::from_hex(
-                        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
-                    )?,
-                },
-            })?,
-            funds: vec![],
-        })),
-    )
+    register_randmoness_for_later(deps, env.clone(), info, env.block.time, job_id)
 }
 
 pub fn register_randmoness_for_later(
@@ -89,7 +76,7 @@ pub fn register_randmoness_for_later(
     after: Timestamp,
     job_id: String,
 ) -> Result<Response, StdError> {
-    if let Some(job_id) = job_id.strip_prefix("test-trigger-") {
+    if let Some(job_id) = job_id.strip_prefix(TEST_NOIS_PREFIX) {
         // This is a bypass for the test contract to trigger the randomness
         let job = RANDOMNESS.load(deps.storage, (info.sender.clone(), job_id.to_string()))?;
 
@@ -118,6 +105,10 @@ pub fn register_randmoness_for_later(
             })),
         )
     } else {
+        let config = CONFIG.load(deps.storage)?;
+        if info.funds != coins(NOIS_AMOUNT, config.nois) {
+            return Err(StdError::generic_err("Nois not enough funds sent to proxy"));
+        }
         // Here we just register the randomnesss for later
         RANDOMNESS.save(
             deps.storage,

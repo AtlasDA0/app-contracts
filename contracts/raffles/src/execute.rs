@@ -145,7 +145,7 @@ pub fn execute_create_raffle(
         .plus_seconds(raffle_options.clone().raffle_duration.unwrap_or_default())
         .plus_seconds(6);
 
-    let res = Response::new();
+    let mut msgs = vec![];
 
     // bypass sending fee if static raffle creation cost is 0
     if !fee.amount.is_zero() {
@@ -156,7 +156,7 @@ pub fn execute_create_raffle(
         }
         .into();
         // add msg to response
-        res.clone().add_message(transfer_fee_msg);
+        msgs.push(transfer_fee_msg);
     };
 
     // GetNextRandomness requests the randomness from the proxy after the expected raffle duration
@@ -169,9 +169,10 @@ pub fn execute_create_raffle(
         })?,
         funds: vec![nois_fee], // Pay from the contract
     };
-    res.clone().add_message(nois_msg);
+    msgs.push(nois_msg.into());
 
-    Ok(res
+    Ok(Response::new()
+        .add_messages(msgs)
         .add_messages(transfer_messages)
         .add_attribute("action", "create_raffle")
         .add_attribute("raffle_id", raffle_id.to_string())

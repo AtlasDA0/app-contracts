@@ -14,40 +14,27 @@ mod tests {
 
     use crate::{
         common_setup::{
-            contract_boxes::custom_mock_app,
             helpers::assert_error,
             setup_accounts_and_block::setup_accounts,
             setup_minter::common::constants::{
-                CREATION_FEE_AMNT, MINT_PRICE, NOIS_PROXY_ADDR, OWNER_ADDR, RAFFLE_NAME,
-                RAFFLE_TAX, SG721_CONTRACT,
+                CREATION_FEE_AMNT_STARS, OWNER_ADDR, RAFFLE_NAME, RAFFLE_TAX, SG721_CONTRACT,
             },
-            setup_raffle::{configure_raffle_assets, proper_raffle_instantiate},
+            setup_raffle::proper_raffle_instantiate,
         },
         raffle::setup::{
-            execute_msg::{
-                buy_tickets_template, create_raffle_function, instantate_raffle_contract,
-            },
-            test_msgs::{CreateRaffleParams, InstantiateRaffleParams, PurchaseTicketsParams},
+            execute_msg::{buy_tickets_template, create_raffle_function},
+            helpers::mint_one_token,
+            test_msgs::{CreateRaffleParams, PurchaseTicketsParams},
         },
     };
 
     #[test]
     fn test_raffle_config_query() {
-        let mut app = custom_mock_app();
-        let params = InstantiateRaffleParams {
-            app: &mut app,
-            admin_account: Addr::unchecked(OWNER_ADDR),
-            funds_amount: MINT_PRICE,
-            fee_rate: RAFFLE_TAX,
-            name: RAFFLE_NAME.into(),
-            nois_proxy_coin: coin(NOIS_AMOUNT, NATIVE_DENOM),
-            nois_proxy_addr: NOIS_PROXY_ADDR.to_string(),
-        };
-        let raffle_addr = instantate_raffle_contract(params).unwrap();
+        let (app, contracts) = proper_raffle_instantiate();
 
         let query_config: Config = app
             .wrap()
-            .query_wasm_smart(raffle_addr, &RaffleQueryMsg::Config {})
+            .query_wasm_smart(contracts.raffle.clone(), &RaffleQueryMsg::Config {})
             .unwrap();
         assert_eq!(
             query_config,
@@ -59,9 +46,9 @@ mod tests {
                 minimum_raffle_duration: 1,
                 max_tickets_per_raffle: None,
                 raffle_fee: RAFFLE_TAX,
-                nois_proxy_addr: Addr::unchecked(NOIS_PROXY_ADDR),
+                nois_proxy_addr: contracts.nois.clone(),
                 nois_proxy_coin: coin(NOIS_AMOUNT, NATIVE_DENOM),
-                creation_coins: vec![coin(CREATION_FEE_AMNT, NATIVE_DENOM)],
+                creation_coins: vec![coin(CREATION_FEE_AMNT_STARS, NATIVE_DENOM)],
                 locks: Locks {
                     lock: false,
                     sudo_lock: false,
@@ -72,14 +59,14 @@ mod tests {
 
     #[test]
     fn test_raffle_contract_config_permissions_coverage() {
-        let (mut app, raffle_addr, _) = proper_raffle_instantiate();
+        let (mut app, contracts) = proper_raffle_instantiate();
         let current_time = app.block_info().time;
         // errors
         // unable to update contract config
         let error_updating_config = app
             .execute_contract(
                 Addr::unchecked("not-owner"),
-                raffle_addr.clone(),
+                contracts.raffle.clone(),
                 &ExecuteMsg::UpdateConfig {
                     name: Some("not-owner".to_string()),
                     owner: None,
@@ -98,7 +85,7 @@ mod tests {
         let error_locking_contract = app
             .execute_contract(
                 Addr::unchecked("not-owner"),
-                raffle_addr.clone(),
+                contracts.raffle.clone(),
                 &raffles::msg::ExecuteMsg::ToggleLock { lock: true },
                 &[],
             )
@@ -107,7 +94,7 @@ mod tests {
         let error_not_proxy_providing_randomness = app
             .execute_contract(
                 Addr::unchecked("not-nois-proxy"),
-                raffle_addr.clone(),
+                contracts.raffle.clone(),
                 &raffles::msg::ExecuteMsg::NoisReceive {
                     callback: NoisCallback {
                         job_id: "raffle-0".to_string(),
@@ -137,7 +124,7 @@ mod tests {
         let _updating_config = app
             .execute_contract(
                 Addr::unchecked(OWNER_ADDR),
-                raffle_addr.clone(),
+                contracts.raffle.clone(),
                 &ExecuteMsg::UpdateConfig {
                     name: Some("new-owner".to_string()),
                     owner: Some("new-owner".to_string()),
@@ -155,7 +142,7 @@ mod tests {
         // good responses
         let res: Config = app
             .wrap()
-            .query_wasm_smart(raffle_addr.clone(), &RaffleQueryMsg::Config {})
+            .query_wasm_smart(contracts.raffle.clone(), &RaffleQueryMsg::Config {})
             .unwrap();
         println!("{:#?}", res);
         assert_eq!(
@@ -181,20 +168,21 @@ mod tests {
 
     #[test]
     fn good_toggle_lock() {
-        let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
+        let (mut app, contracts) = proper_raffle_instantiate();
         let (owner_address, one, _) = setup_accounts(&mut app);
-        configure_raffle_assets(&mut app, owner_address.clone(), factory_addr, true);
+        let token = mint_one_token(&mut app, &contracts);
+
         let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
             app: &mut app,
-            raffle_contract_addr: raffle_addr.clone(),
+            raffle_contract_addr: contracts.raffle.clone(),
             owner_addr: owner_address.clone(),
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: Uint128::new(4),
             max_ticket_per_addr: None,
             raffle_start_timestamp: None,
             raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                address: SG721_CONTRACT.to_string(),
-                token_id: "63".to_string(),
+                address: token.nft.to_string(),
+                token_id: token.token_id,
             })],
             duration: None,
         };
@@ -203,7 +191,7 @@ mod tests {
         let _invalid_toggle_lock = app
             .execute_contract(
                 owner_address.clone(),
-                raffle_addr.clone(),
+                contracts.raffle.clone(),
                 &ExecuteMsg::ToggleLock { lock: true },
                 &[],
             )
@@ -211,13 +199,13 @@ mod tests {
         // confirm the state is now true
         let res: Config = app
             .wrap()
-            .query_wasm_smart(raffle_addr.to_string(), &RaffleQueryMsg::Config {})
+            .query_wasm_smart(contracts.raffle.to_string(), &RaffleQueryMsg::Config {})
             .unwrap();
         assert!(res.locks.lock);
 
         let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
             app: &mut app,
-            raffle_contract_addr: raffle_addr.clone(),
+            raffle_contract_addr: contracts.raffle.clone(),
             owner_addr: owner_address.clone(),
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: Uint128::new(4),
@@ -239,7 +227,7 @@ mod tests {
 
         let params = PurchaseTicketsParams {
             app: &mut app,
-            raffle_contract_addr: raffle_addr.clone(),
+            raffle_contract_addr: contracts.raffle.clone(),
             msg_senders: vec![one.clone()],
             raffle_id: 0,
             num_tickets: 1,
@@ -252,20 +240,21 @@ mod tests {
 
     #[test]
     fn good_toggle_sudo_lock() {
-        let (mut app, raffle_addr, factory_addr) = proper_raffle_instantiate();
+        let (mut app, contracts) = proper_raffle_instantiate();
         let (owner_address, one, _) = setup_accounts(&mut app);
-        configure_raffle_assets(&mut app, owner_address.clone(), factory_addr, true);
+        let token = mint_one_token(&mut app, &contracts);
+
         let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
             app: &mut app,
-            raffle_contract_addr: raffle_addr.clone(),
+            raffle_contract_addr: contracts.raffle.clone(),
             owner_addr: owner_address.clone(),
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: Uint128::new(4),
             max_ticket_per_addr: None,
             raffle_start_timestamp: None,
             raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                address: SG721_CONTRACT.to_string(),
-                token_id: "63".to_string(),
+                address: token.nft.to_string(),
+                token_id: token.token_id,
             })],
             duration: None,
         };
@@ -273,7 +262,7 @@ mod tests {
 
         let _invalid_toggle_lock = app
             .wasm_sudo(
-                raffle_addr.clone(),
+                contracts.raffle.clone(),
                 &RaffleSudoMsg::ToggleLock { lock: true },
             )
             .unwrap();
@@ -281,13 +270,13 @@ mod tests {
         // confirm the state is now true
         let res: Config = app
             .wrap()
-            .query_wasm_smart(raffle_addr.to_string(), &RaffleQueryMsg::Config {})
+            .query_wasm_smart(contracts.raffle.to_string(), &RaffleQueryMsg::Config {})
             .unwrap();
         assert!(res.locks.sudo_lock);
 
         let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
             app: &mut app,
-            raffle_contract_addr: raffle_addr.clone(),
+            raffle_contract_addr: contracts.raffle.clone(),
             owner_addr: owner_address.clone(),
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: Uint128::new(4),
@@ -309,7 +298,7 @@ mod tests {
 
         let params = PurchaseTicketsParams {
             app: &mut app,
-            raffle_contract_addr: raffle_addr.clone(),
+            raffle_contract_addr: contracts.raffle.clone(),
             msg_senders: vec![one.clone()],
             raffle_id: 0,
             num_tickets: 1,
