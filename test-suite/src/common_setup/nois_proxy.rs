@@ -85,9 +85,11 @@ pub fn register_randmoness_for_later(
 
         // Make sure we are after the job_id
         if env.block.time < job.after {
-            return Err(StdError::generic_err(
-                "Too soon to test-trigger randomness providing",
-            ));
+            return Err(StdError::generic_err(format!(
+                "Too soon to test-trigger randomness providing, expected {}, got {}",
+                job.after.seconds(),
+                env.block.time.seconds()
+            )));
         }
 
         // Remove job

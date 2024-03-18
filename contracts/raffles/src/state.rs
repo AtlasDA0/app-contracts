@@ -162,7 +162,15 @@ impl RaffleOptions {
                 .unwrap_or(config.minimum_raffle_duration)
                 .max(config.minimum_raffle_duration),
             comment: raffle_options.comment,
-            max_ticket_number: raffle_options.max_ticket_number,
+            max_ticket_number: if let Some(global_max) = config.max_tickets_per_raffle {
+                if let Some(this_max) = raffle_options.max_ticket_number {
+                    Some(global_max.min(this_max))
+                } else {
+                    Some(global_max)
+                }
+            } else {
+                raffle_options.max_ticket_number
+            },
             max_ticket_per_address: raffle_options.max_ticket_per_address,
             raffle_preview: raffle_options
                 .raffle_preview

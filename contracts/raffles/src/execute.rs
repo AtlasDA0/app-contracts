@@ -366,7 +366,7 @@ pub fn execute_buy_tickets(
     };
 
     // Then we verify the funds sent match the raffle conditions and we save the ticket that was bought
-    _buy_tickets(
+    let messages = _buy_tickets(
         deps,
         env.clone(),
         info.sender.clone(),
@@ -376,6 +376,7 @@ pub fn execute_buy_tickets(
     )?;
 
     Ok(Response::new()
+        .add_messages(messages)
         .add_messages(transfer_messages)
         .add_attribute("action", "buy_ticket")
         .add_attribute("raffle_id", raffle_id.to_string())
@@ -461,7 +462,6 @@ pub fn _buy_tickets(
         if raffle_info.number_of_tickets >= max_ticket_number {
             raffle_info.raffle_options.raffle_duration = env.block.time.seconds()
                 - raffle_info.raffle_options.raffle_start_timestamp.seconds();
-
             Some(get_nois_randomness(deps.as_ref(), raffle_id)?)
         } else {
             None

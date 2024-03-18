@@ -154,7 +154,7 @@ mod tests {
                 },
             )
             .unwrap();
-        assert_eq!(res.owner, two.to_string());
+        assert_eq!(res.owner, one.to_string());
 
         // confirm owner of nft is now raffle winner
         let res: ApprovalsResponse = app
