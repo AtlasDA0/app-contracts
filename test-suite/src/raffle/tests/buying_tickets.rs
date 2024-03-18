@@ -41,8 +41,9 @@ mod tests {
                 token_id: token.token_id.to_string(),
             })],
             duration: None,
+            min_ticket_number: None,
         };
-        create_raffle_setup(params);
+        create_raffle_setup(params).unwrap();
     }
 
     #[test]
@@ -191,8 +192,9 @@ mod tests {
                     token_id: token.token_id,
                 })],
                 duration: None,
+                min_ticket_number: None,
             };
-            create_raffle_setup(params);
+            create_raffle_setup(params).unwrap();
 
             let bad_ticket_purchase = app.execute_contract(
                 one.clone(),

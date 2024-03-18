@@ -8,25 +8,52 @@ mod tests {
         msg::{ExecuteMsg, QueryMsg as RaffleQueryMsg},
         state::{Config, ATLAS_DAO_STARGAZE_TREASURY},
     };
+    use sg_multi_test::StargazeApp;
     use utils::state::{AssetInfo, Locks, Sg721Token, SudoMsg as RaffleSudoMsg, NATIVE_DENOM};
 
     use crate::{
         common_setup::{
             helpers::assert_error,
+            msg::RaffleContracts,
             nois_proxy::{NOIS_AMOUNT, NOIS_DENOM},
             setup_accounts_and_block::setup_accounts,
             setup_minter::common::constants::{
                 CREATION_FEE_AMNT_NATIVE, CREATION_FEE_AMNT_STARS, OWNER_ADDR, RAFFLE_NAME,
-                RAFFLE_TAX, SG721_CONTRACT,
+                RAFFLE_TAX,
             },
             setup_raffle::proper_raffle_instantiate,
         },
         raffle::setup::{
             execute_msg::{buy_tickets_template, create_raffle_function},
-            helpers::mint_one_token,
+            helpers::{mint_one_token, TokenMint},
             test_msgs::{CreateRaffleParams, PurchaseTicketsParams},
         },
     };
+
+    fn create_raffle(
+        app: &mut StargazeApp,
+        contracts: &RaffleContracts,
+        token: &TokenMint,
+    ) -> anyhow::Result<()> {
+        let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
+            app,
+            raffle_contract_addr: contracts.raffle.clone(),
+            owner_addr: Addr::unchecked(OWNER_ADDR),
+            creation_fee: vec![coin(CREATION_FEE_AMNT_STARS, NATIVE_DENOM)],
+            ticket_price: Uint128::new(4),
+            max_ticket_per_addr: None,
+            raffle_start_timestamp: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+                address: token.nft.to_string(),
+                token_id: token.token_id.clone(),
+            })],
+            duration: None,
+            min_ticket_number: None,
+        };
+        create_raffle_function(create_raffle_params)?;
+
+        Ok(())
+    }
 
     #[test]
     fn test_raffle_config_query() {
@@ -174,22 +201,7 @@ mod tests {
         let (mut app, contracts) = proper_raffle_instantiate();
         let (owner_address, one, _) = setup_accounts(&mut app);
         let token = mint_one_token(&mut app, &contracts);
-
-        let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
-            app: &mut app,
-            raffle_contract_addr: contracts.raffle.clone(),
-            owner_addr: owner_address.clone(),
-            creation_fee: vec![coin(CREATION_FEE_AMNT_STARS, NATIVE_DENOM)],
-            ticket_price: Uint128::new(4),
-            max_ticket_per_addr: None,
-            raffle_start_timestamp: None,
-            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                address: token.nft.to_string(),
-                token_id: token.token_id,
-            })],
-            duration: None,
-        };
-        create_raffle_function(create_raffle_params).unwrap();
+        create_raffle(&mut app, &contracts, &token).unwrap();
 
         let _invalid_toggle_lock = app
             .execute_contract(
@@ -206,23 +218,7 @@ mod tests {
             .unwrap();
         assert!(res.locks.lock);
 
-        let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
-            app: &mut app,
-            raffle_contract_addr: contracts.raffle.clone(),
-            owner_addr: owner_address.clone(),
-            creation_fee: vec![coin(CREATION_FEE_AMNT_STARS, NATIVE_DENOM)],
-            ticket_price: Uint128::new(4),
-            max_ticket_per_addr: None,
-            raffle_start_timestamp: None,
-            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                address: SG721_CONTRACT.to_string(),
-                token_id: "63".to_string(),
-            })],
-            duration: None,
-        };
-
-        // confirm raffles cannot be made & tickets cannot be bought
-        let locked_creation = create_raffle_function(create_raffle_params).unwrap_err();
+        let locked_creation = create_raffle(&mut app, &contracts, &token).unwrap_err();
         assert_error(
             Err(locked_creation),
             ContractError::ContractIsLocked {}.to_string(),
@@ -244,24 +240,10 @@ mod tests {
     #[test]
     fn good_toggle_sudo_lock() {
         let (mut app, contracts) = proper_raffle_instantiate();
-        let (owner_address, one, _) = setup_accounts(&mut app);
+        let (_, one, _) = setup_accounts(&mut app);
         let token = mint_one_token(&mut app, &contracts);
 
-        let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
-            app: &mut app,
-            raffle_contract_addr: contracts.raffle.clone(),
-            owner_addr: owner_address.clone(),
-            creation_fee: vec![coin(CREATION_FEE_AMNT_STARS, NATIVE_DENOM)],
-            ticket_price: Uint128::new(4),
-            max_ticket_per_addr: None,
-            raffle_start_timestamp: None,
-            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                address: token.nft.to_string(),
-                token_id: token.token_id,
-            })],
-            duration: None,
-        };
-        create_raffle_function(create_raffle_params).unwrap();
+        create_raffle(&mut app, &contracts, &token).unwrap();
 
         let _invalid_toggle_lock = app
             .wasm_sudo(
@@ -277,23 +259,7 @@ mod tests {
             .unwrap();
         assert!(res.locks.sudo_lock);
 
-        let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
-            app: &mut app,
-            raffle_contract_addr: contracts.raffle.clone(),
-            owner_addr: owner_address.clone(),
-            creation_fee: vec![coin(CREATION_FEE_AMNT_STARS, NATIVE_DENOM)],
-            ticket_price: Uint128::new(4),
-            max_ticket_per_addr: None,
-            raffle_start_timestamp: None,
-            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                address: SG721_CONTRACT.to_string(),
-                token_id: "63".to_string(),
-            })],
-            duration: None,
-        };
-
-        // confirm raffles cannot be made
-        let locked_creation = create_raffle_function(create_raffle_params).unwrap_err();
+        let locked_creation = create_raffle(&mut app, &contracts, &token).unwrap_err();
         assert_error(
             Err(locked_creation),
             ContractError::ContractIsLocked {}.to_string(),

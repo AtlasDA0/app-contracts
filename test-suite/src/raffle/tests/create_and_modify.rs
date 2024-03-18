@@ -16,10 +16,7 @@ mod tests {
 
     use crate::{
         common_setup::{
-            helpers::assert_error,
-            msg::RaffleContracts,
-            setup_accounts_and_block::setup_accounts,
-            setup_minter::common::constants::{CREATION_FEE_AMNT_NATIVE, SG721_CONTRACT},
+            helpers::assert_error, msg::RaffleContracts, setup_accounts_and_block::setup_accounts,
             setup_raffle::proper_raffle_instantiate,
         },
         raffle::setup::{
@@ -33,7 +30,7 @@ mod tests {
         contracts: &RaffleContracts,
         token: &TokenMint,
         owner_addr: Addr,
-    ) {
+    ) -> anyhow::Result<()> {
         let params = CreateRaffleParams {
             app,
             raffle_contract_addr: contracts.raffle.clone(),
@@ -47,8 +44,10 @@ mod tests {
                 token_id: token.token_id.to_string(),
             })],
             duration: None,
+            min_ticket_number: None,
         };
-        create_raffle_setup(params);
+        create_raffle_setup(params)?;
+        Ok(())
     }
 
     #[test]
@@ -56,7 +55,7 @@ mod tests {
         let (mut app, contracts) = proper_raffle_instantiate();
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let token = mint_one_token(&mut app, &contracts);
-        create_simple_raffle(&mut app, &contracts, &token, owner_addr.clone());
+        create_simple_raffle(&mut app, &contracts, &token, owner_addr.clone()).unwrap();
 
         let res = raffle_info(&app, &contracts, 0);
 
@@ -96,7 +95,7 @@ mod tests {
         let (mut app, contracts) = proper_raffle_instantiate();
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let token = mint_one_token(&mut app, &contracts);
-        create_simple_raffle(&mut app, &contracts, &token, owner_addr.clone());
+        create_simple_raffle(&mut app, &contracts, &token, owner_addr.clone()).unwrap();
 
         let res = raffle_info(&app, &contracts, 0);
 
@@ -135,7 +134,6 @@ mod tests {
         let (mut app, contracts) = proper_raffle_instantiate();
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let token = mint_one_token(&mut app, &contracts);
-        create_simple_raffle(&mut app, &contracts, &token, owner_addr.clone());
         // create a standard raffle
         let params = CreateRaffleParams {
             app: &mut app,
@@ -146,10 +144,11 @@ mod tests {
             max_ticket_per_addr: None,
             raffle_start_timestamp: None,
             raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                address: SG721_CONTRACT.to_string(),
-                token_id: "63".to_string(),
+                address: token.nft.to_string(),
+                token_id: token.token_id.clone(),
             })],
             duration: None,
+            min_ticket_number: None,
         };
         let msg = create_raffle_function(params);
         // confirm owner is set
@@ -180,6 +179,7 @@ mod tests {
                 token_id: token.token_id,
             })],
             duration: None,
+            min_ticket_number: None,
         };
         let msg = create_raffle_function(params);
         // confirm owner is set
@@ -197,21 +197,7 @@ mod tests {
         let (_, one, _) = setup_accounts(&mut app);
         let token = mint_one_token(&mut app, &contracts);
         // create a standard raffle
-        let params = CreateRaffleParams {
-            app: &mut app,
-            raffle_contract_addr: contracts.raffle.clone(),
-            owner_addr: one.clone(),
-            creation_fee: vec![coin(CREATION_FEE_AMNT_NATIVE, NATIVE_DENOM)],
-            ticket_price: Uint128::new(4),
-            max_ticket_per_addr: None,
-            raffle_start_timestamp: None,
-            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                address: token.nft.to_string(),
-                token_id: token.token_id,
-            })],
-            duration: None,
-        };
-        let msg = create_raffle_function(params);
+        let msg = create_simple_raffle(&mut app, &contracts, &token, one.clone());
         // confirm owner is set
         assert!(msg.is_err(), "There should be an error on this response");
 
@@ -226,7 +212,7 @@ mod tests {
         let (mut app, contracts) = proper_raffle_instantiate();
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let token = mint_one_token(&mut app, &contracts);
-        create_simple_raffle(&mut app, &contracts, &token, owner_addr);
+        create_simple_raffle(&mut app, &contracts, &token, owner_addr).unwrap();
 
         let invalid_cancel_raffle = app
             .execute_contract(
@@ -247,7 +233,7 @@ mod tests {
         let (mut app, contracts) = proper_raffle_instantiate();
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let token = mint_one_token(&mut app, &contracts);
-        create_simple_raffle(&mut app, &contracts, &token, owner_addr.clone());
+        create_simple_raffle(&mut app, &contracts, &token, owner_addr.clone()).unwrap();
 
         let invalid_modify_raffle = app
             .execute_contract(
@@ -301,7 +287,7 @@ mod tests {
         let (mut app, contracts) = proper_raffle_instantiate();
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let token = mint_one_token(&mut app, &contracts);
-        create_simple_raffle(&mut app, &contracts, &token, owner_addr.clone());
+        create_simple_raffle(&mut app, &contracts, &token, owner_addr.clone()).unwrap();
 
         let _good_modify_raffle = app
             .execute_contract(

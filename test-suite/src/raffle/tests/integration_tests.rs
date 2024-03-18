@@ -1,10 +1,11 @@
 #[cfg(test)]
 mod tests {
 
-    use cosmwasm_std::{coin, BlockInfo, Uint128};
+    use cosmwasm_std::{coin, Addr, BlockInfo, Uint128};
     use cw721::{ApprovalsResponse, OwnerOfResponse};
     #[cfg(feature = "sg")]
     use sg721_base::QueryMsg as Sg721QueryMsg;
+    use sg_multi_test::StargazeApp;
     use std::vec;
     use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
 
@@ -15,30 +16,27 @@ mod tests {
 
     use crate::{
         common_setup::{
+            msg::RaffleContracts,
             setup_accounts_and_block::{setup_accounts, setup_raffle_participants},
-            setup_minter::common::constants::CREATION_FEE_AMNT_NATIVE,
             setup_raffle::proper_raffle_instantiate,
         },
         raffle::setup::{
             execute_msg::{buy_tickets_template, create_raffle_setup},
             helpers::{
                 assert_treasury_balance, finish_raffle_timeout, mint_additional_token,
-                mint_one_token, raffle_info,
+                mint_one_token, raffle_info, TokenMint,
             },
             test_msgs::{CreateRaffleParams, PurchaseTicketsParams},
         },
     };
-
-    #[test]
-    fn two_raffle_participants() {
-        // create testing app
-        let (mut app, contracts) = proper_raffle_instantiate();
-        let (owner_addr, one, two) = setup_accounts(&mut app);
-        let token = mint_one_token(&mut app, &contracts);
-        let (_, _, _, _, _, _) = setup_raffle_participants(&mut app);
-
+    fn create_simple_raffle(
+        app: &mut StargazeApp,
+        contracts: &RaffleContracts,
+        token: &TokenMint,
+        owner_addr: Addr,
+    ) {
         let params = CreateRaffleParams {
-            app: &mut app,
+            app,
             raffle_contract_addr: contracts.raffle.clone(),
             owner_addr: owner_addr.clone(),
             creation_fee: vec![coin(4, NATIVE_DENOM)],
@@ -50,10 +48,20 @@ mod tests {
                 token_id: token.token_id.clone(),
             })],
             duration: None,
+            min_ticket_number: None,
         };
+        create_raffle_setup(params).unwrap();
+    }
 
-        // create a raffle
-        create_raffle_setup(params);
+    #[test]
+    fn two_raffle_participants() {
+        // create testing app
+        let (mut app, contracts) = proper_raffle_instantiate();
+        let (owner_addr, one, two) = setup_accounts(&mut app);
+        let token = mint_one_token(&mut app, &contracts);
+        let (_, _, _, _, _, _) = setup_raffle_participants(&mut app);
+
+        create_simple_raffle(&mut app, &contracts, &token, owner_addr.clone());
 
         let _res: Config = app
             .wrap()
@@ -191,22 +199,7 @@ mod tests {
         let token = mint_one_token(&mut app, &contracts);
         let (_, _, _, _, _, _) = setup_raffle_participants(&mut app);
 
-        let params = CreateRaffleParams {
-            app: &mut app,
-            raffle_contract_addr: contracts.raffle.clone(),
-            owner_addr: owner_addr.clone(),
-            creation_fee: vec![coin(4, NATIVE_DENOM)],
-            ticket_price: Uint128::new(10),
-            max_ticket_per_addr: None,
-            raffle_start_timestamp: None,
-            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                address: token.nft.to_string().to_string(),
-                token_id: token.token_id.clone(),
-            })],
-            duration: None,
-        };
-        // create a raffle
-        create_raffle_setup(params);
+        create_simple_raffle(&mut app, &contracts, &token, owner_addr.clone());
 
         // addr_one buys ticket
         let params = PurchaseTicketsParams {
@@ -274,38 +267,10 @@ mod tests {
         let token1 = mint_additional_token(&mut app, &contracts, &token);
 
         // creates raffle1
-        let params1 = CreateRaffleParams {
-            app: &mut app,
-            raffle_contract_addr: contracts.raffle.clone(),
-            owner_addr: owner_addr.clone(),
-            creation_fee: vec![coin(4, NATIVE_DENOM)],
-            ticket_price: Uint128::new(10),
-            max_ticket_per_addr: None,
-            raffle_start_timestamp: None,
-            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                address: token.nft.to_string().to_string(),
-                token_id: token.token_id.clone(),
-            })],
-            duration: Some(50),
-        };
-        create_raffle_setup(params1);
+        create_simple_raffle(&mut app, &contracts, &token, owner_addr.clone());
 
         // creates raffle2
-        let params2 = CreateRaffleParams {
-            app: &mut app,
-            raffle_contract_addr: contracts.raffle.clone(),
-            owner_addr: owner_addr.clone(),
-            creation_fee: vec![coin(CREATION_FEE_AMNT_NATIVE, NATIVE_DENOM)],
-            ticket_price: Uint128::new(20),
-            max_ticket_per_addr: None,
-            raffle_start_timestamp: None,
-            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                address: token1.nft.to_string().to_string(),
-                token_id: token1.token_id.clone(),
-            })],
-            duration: Some(50),
-        };
-        create_raffle_setup(params2);
+        create_simple_raffle(&mut app, &contracts, &token1, owner_addr);
 
         let res: Config = app
             .wrap()
@@ -332,7 +297,7 @@ mod tests {
             msg_senders: vec![one.clone()],
             raffle_id: 1,
             num_tickets: 5,
-            funds_send: vec![coin(100, "ustars")],
+            funds_send: vec![coin(50, "ustars")],
         };
         buy_tickets_template(params).unwrap();
         // addr_two buys 10 tickets from raffle 2
@@ -342,7 +307,7 @@ mod tests {
             msg_senders: vec![two.clone()],
             raffle_id: 1,
             num_tickets: 10,
-            funds_send: vec![coin(200, "ustars")],
+            funds_send: vec![coin(100, "ustars")],
         };
         buy_tickets_template(params).unwrap();
         // addr_three buys 5 tickets from raffle 2
@@ -352,7 +317,7 @@ mod tests {
             msg_senders: vec![three.clone()],
             raffle_id: 1,
             num_tickets: 5,
-            funds_send: vec![coin(100, "ustars")],
+            funds_send: vec![coin(50, "ustars")],
         };
         buy_tickets_template(params).unwrap();
         // addr_three buys 5 tickets from raffle 1

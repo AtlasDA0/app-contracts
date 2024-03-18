@@ -8,6 +8,7 @@ pub struct CreateRaffleParams<'a> {
     pub creation_fee: Vec<Coin>,
     pub ticket_price: Uint128,
     pub max_ticket_per_addr: Option<u32>,
+    pub min_ticket_number: Option<u32>,
     pub raffle_nfts: Vec<AssetInfo>,
     pub duration: Option<u64>,
     pub raffle_start_timestamp: Option<Timestamp>,
