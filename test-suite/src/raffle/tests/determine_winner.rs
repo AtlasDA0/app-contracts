@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{coin, testing::mock_env, Decimal, HexBinary, Uint128};
+    use cosmwasm_std::{coin, testing::mock_env, Addr, Decimal, HexBinary, Uint128};
     use cw_multi_test::Executor;
     use nois::NoisCallback;
     use raffles::{error::ContractError, msg::ExecuteMsg as RaffleExecuteMsg, state::RaffleState};
@@ -475,5 +475,60 @@ mod tests {
             one_balance_before + Uint128::from(4 * 3u128), // 100% fee of 3 tickets
             one_balance_after
         );
+    }
+
+    #[test]
+    fn admin_randomness() {
+        let (mut app, contracts) = proper_raffle_instantiate();
+        let (owner_addr, _, _) = setup_accounts(&mut app);
+        let (one, two, three, _, _, _) = setup_raffle_participants(&mut app);
+        let token = mint_one_token(&mut app, &contracts);
+        // create raffle
+        let params = CreateRaffleParams {
+            app: &mut app,
+            raffle_contract_addr: contracts.raffle.clone(),
+            owner_addr: owner_addr.clone(),
+            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            ticket_price: Uint128::new(4),
+            max_ticket_per_addr: None,
+            raffle_start_timestamp: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+                address: token.nft.to_string(),
+                token_id: token.token_id.to_string(),
+            })],
+            duration: None,
+            min_ticket_number: None,
+        };
+        create_raffle_setup(params).unwrap();
+
+        // Purchasing tickets for 3 people
+        // ensure error if max tickets per address set is reached
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: contracts.raffle.clone(),
+            msg_senders: vec![one.clone()],
+            raffle_id: 0,
+            num_tickets: 3,
+            funds_send: vec![coin(12, "ustars")],
+        };
+        let _purchase_tickets = buy_tickets_template(params).unwrap();
+
+        app.execute_contract(
+            Addr::unchecked("bad-person"),
+            contracts.raffle.clone(),
+            &RaffleExecuteMsg::UpdateRandomness { raffle_id: 0 },
+            &[],
+        )
+        .unwrap_err();
+
+        app.execute_contract(
+            owner_addr,
+            contracts.raffle.clone(),
+            &RaffleExecuteMsg::UpdateRandomness { raffle_id: 0 },
+            &[],
+        )
+        .unwrap();
+
+        finish_raffle_timeout(&mut app, &contracts, 0, 130).unwrap();
     }
 }
