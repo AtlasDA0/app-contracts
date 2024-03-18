@@ -90,7 +90,7 @@ mod tests {
         use utils::state::Sg721Token;
 
         #[test]
-        fn _max_per_address_limit_test() {
+        fn max_per_address_limit_test() {
             let (mut app, contracts) = proper_raffle_instantiate();
             let (owner_addr, one, _) = setup_accounts(&mut app);
             let (_, _, _, _, _, _) = setup_raffle_participants(&mut app);
