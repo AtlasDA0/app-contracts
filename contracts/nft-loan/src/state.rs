@@ -8,6 +8,8 @@ use crate::error::ContractError;
 pub const CONFIG: Item<Config> = Item::new("config");
 pub const COLLATERAL_INFO: Map<(Addr, u64), CollateralInfo> = Map::new("collateral_info");
 pub const BORROWER_INFO: Map<&Addr, BorrowerInfo> = Map::new("borrower_info");
+pub const LOAN_EXTENSION_INFO: Map<(Addr, u64), LoanExtensionInfo> =
+    Map::new("loan_extension_info");
 pub const STATIC_LOAN_LISTING_FEE: u128 = 10;
 
 #[cw_serde]
@@ -135,6 +137,14 @@ pub struct LoanTerms {
     pub duration_in_blocks: u64,
 }
 
+#[cw_serde]
+pub struct LoanExtensionInfo {
+    pub comment: Option<String>,
+    pub extension_id: u32,
+    pub additional_interest: Uint128,
+    pub additional_duration: u64,
+}
+
 pub struct LenderOfferIndexes<'a> {
     pub lender: MultiIndex<'a, Addr, OfferInfo, String>,
     pub borrower: MultiIndex<'a, Addr, OfferInfo, String>,
@@ -216,6 +226,28 @@ pub fn can_repay_loan(
     } else {
         Ok(())
     }
+}
+
+pub fn can_request_extension(
+    _storage: &dyn Storage,
+    _env: Env,
+    collateral: &CollateralInfo,
+) -> Result<(), ContractError> {
+    if collateral.state == LoanState::Started {
+        Ok(())
+    } else {
+        Err(ContractError::WrongLoanState {
+            state: collateral.state.clone(),
+        })
+    }
+}
+
+pub fn can_accept_extension(
+    storage: &dyn Storage,
+    env: Env,
+    collateral: &CollateralInfo,
+) -> Result<(), ContractError> {
+    can_request_extension(storage, env, collateral)
 }
 
 pub fn is_loan_defaulted(

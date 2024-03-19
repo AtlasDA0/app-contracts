@@ -94,4 +94,7 @@ pub enum ContractError {
 
     #[error("Invalid Name")]
     InvalidName {},
+
+    #[error("Wrong loan extension id, got {got} expected {expected}")]
+    WrongExtensionId { expected: u32, got: u32 },
 }

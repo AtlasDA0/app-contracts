@@ -11,15 +11,15 @@ use crate::{
     error::ContractError,
     msg::{
         CollateralResponse,
+        ExtensionResponse,
         MultipleCollateralsAllResponse,
         MultipleCollateralsResponse,
         MultipleOffersResponse,
-        OfferResponse,
-        // QueryFilters,
+        OfferResponse, // QueryFilters,
     },
     state::{
         get_actual_state, get_offer, lender_offers, BorrowerInfo, CollateralInfo, Config,
-        BORROWER_INFO, COLLATERAL_INFO, CONFIG,
+        BORROWER_INFO, COLLATERAL_INFO, CONFIG, LOAN_EXTENSION_INFO,
     },
 };
 
@@ -287,6 +287,14 @@ pub fn query_lender_offers(
     })
 }
 
+pub fn query_extension(deps: Deps, borrower: String, loan_id: u64) -> StdResult<ExtensionResponse> {
+    let borrower = deps.api.addr_validate(&borrower)?;
+    let extension = LOAN_EXTENSION_INFO
+        .load(deps.storage, (borrower, loan_id))
+        .ok();
+
+    Ok(ExtensionResponse { extension })
+}
 // // used to filter query of collaterals
 // pub fn loan_filter(
 //     _api: &dyn Api,

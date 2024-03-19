@@ -1,9 +1,11 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Coin, Decimal, StdError, StdResult};
+use cosmwasm_std::{Coin, Decimal, StdError, StdResult, Uint128};
 
 use utils::state::{is_valid_name, AssetInfo};
 
-use crate::state::{BorrowerInfo, CollateralInfo, Config, LoanState, LoanTerms, OfferInfo};
+use crate::state::{
+    BorrowerInfo, CollateralInfo, Config, LoanExtensionInfo, LoanState, LoanTerms, OfferInfo,
+};
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -33,6 +35,7 @@ impl InstantiateMsg {
 
 #[cw_serde]
 pub enum ExecuteMsg {
+    // ******* Before Loan Starts ************* //
     //// We support both Cw721 and Cw1155
     ListCollaterals {
         tokens: Vec<AssetInfo>,
@@ -67,6 +70,8 @@ pub enum ExecuteMsg {
     WithdrawRefusedOffer {
         global_offer_id: String,
     },
+
+    // ******* Loan Start ************* //
     AcceptOffer {
         global_offer_id: String,
     },
@@ -75,6 +80,20 @@ pub enum ExecuteMsg {
         loan_id: u64,
         comment: Option<String>,
     },
+
+    // ******* After Loan Starts ************* //
+    RequestExtension {
+        loan_id: u64,
+        comment: Option<String>,
+        additional_interest: Uint128,
+        additional_duration: u64,
+    },
+    AcceptExtension {
+        borrower: String,
+        loan_id: u64,
+        extension_id: u32, // This is used to avoid borrowers from front-running lenders
+    },
+
     RepayBorrowedFunds {
         loan_id: u64,
     },
@@ -82,10 +101,11 @@ pub enum ExecuteMsg {
         borrower: String,
         loan_id: u64,
     },
+
+    // ******* General config ************* //
     ToggleLock {
         lock: bool,
     },
-    // TODO: Encode empathy
     /// Internal state
     SetOwner {
         owner: String,
@@ -148,6 +168,8 @@ pub enum QueryMsg {
         start_after: Option<String>,
         limit: Option<u32>,
     },
+    #[returns(ExtensionResponse)]
+    Extension { borrower: String, loan_id: u64 },
 }
 
 // loan info
@@ -194,4 +216,10 @@ pub struct QueryFilters {
     pub owner: Option<String>,
     pub borrower: Option<String>,
     pub lender: Option<String>,
+}
+
+// Queries the extension linked to the offer
+#[cw_serde]
+pub struct ExtensionResponse {
+    pub extension: Option<LoanExtensionInfo>,
 }
