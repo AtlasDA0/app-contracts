@@ -6,8 +6,8 @@ use crate::{
     state::{get_raffle_state, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO, RAFFLE_TICKETS},
 };
 use cosmwasm_std::{
-    coins, to_json_binary, Addr, BankMsg, Coin, Deps, Empty, Env, HexBinary, StdError, StdResult,
-    Storage, Uint128, WasmMsg,
+    coins, to_json_binary, Addr, BankMsg, Coin, Deps, Empty, Env, HexBinary, Order, StdError,
+    StdResult, Storage, Uint128, WasmMsg,
 };
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
@@ -16,10 +16,10 @@ use nois::{int_in_range, ProxyExecuteMsg};
 
 use utils::{
     state::{into_cosmos_msg, AssetInfo},
-    types::{CosmosMsg, Response},
+    types::CosmosMsg,
 };
 
-pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, ContractError> {
+pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<CosmosMsg, ContractError> {
     let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
     let config = CONFIG.load(deps.storage)?;
     let id: String = raffle_id.to_string();
@@ -31,7 +31,7 @@ pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, Contr
     }
 
     // request randomness
-    let response = Response::new().add_message(WasmMsg::Execute {
+    Ok(WasmMsg::Execute {
         contract_addr: config.nois_proxy_addr.into_string(),
         // GetNextRandomness requests the randomness from the proxy
         // The job id is needed to know what randomness we are referring to upon reception in the callback.
@@ -40,12 +40,12 @@ pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<Response, Contr
         })?,
 
         funds: vec![nois_fee], // Pay from the contract
-    });
-    Ok(response)
+    }
+    .into())
 }
 
 /// Util to get the organizers and helpers messages to return when claiming a Raffle (returns the funds)
-pub fn get_raffle_owner_finished_messages(
+pub fn get_raffle_owner_funds_finished_messages(
     storage: &dyn Storage,
     _env: Env,
     raffle_info: RaffleInfo,
@@ -90,6 +90,34 @@ pub fn get_raffle_owner_finished_messages(
         }
         _ => Err(ContractError::WrongFundsType {}),
     }
+}
+
+/// Util to get the refund of funds for raffle participants
+pub fn get_raffle_refund_funds_finished_messages(
+    storage: &dyn Storage,
+    _env: Env,
+    raffle_info: RaffleInfo,
+    raffle_id: u64,
+) -> Result<Vec<CosmosMsg>, ContractError> {
+    // We refund all the raffle ticket funds to the tickets buyers
+    let raffle_ticket_buyers = RAFFLE_TICKETS
+        .prefix(raffle_id)
+        .range(storage, None, None, Order::Descending)
+        .map(|r| {
+            r.and_then(|(_k, v)| {
+                // We get the funds transfer message
+                match &raffle_info.raffle_ticket_price {
+                    AssetInfo::Coin(ticket_price) => Ok(BankMsg::Send {
+                        to_address: v.to_string(),
+                        amount: vec![ticket_price.clone()],
+                    }
+                    .into()),
+                    _ => Err(StdError::generic_err("Invalid Ticket")),
+                }
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(raffle_ticket_buyers)
 }
 
 /// Picking the winner of the raffle
@@ -187,15 +215,10 @@ pub fn can_buy_ticket(env: Env, raffle_info: RaffleInfo) -> Result<(), ContractE
 }
 
 pub fn get_raffle_winner_messages(
-    deps: Deps,
+    _deps: Deps,
     env: Env,
     raffle_info: RaffleInfo,
-    raffle_id: u64,
 ) -> StdResult<Vec<CosmosMsg>> {
-    if raffle_info.winner.is_none() {
-        // refetch raffle winner with randomness
-        get_raffle_winner(deps, env.clone(), raffle_id, raffle_info.clone()).unwrap();
-    }
     let winner = raffle_info.winner.clone().unwrap();
     // generate state modifications for
     _get_raffle_end_asset_messages(env, raffle_info, winner.to_string())

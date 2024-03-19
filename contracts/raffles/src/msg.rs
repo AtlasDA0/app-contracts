@@ -18,8 +18,6 @@ pub struct InstantiateMsg {
     pub fee_addr: Option<String>,
     // Minimum lifecycle length of raffle
     pub minimum_raffle_duration: Option<u64>,
-    // Minimum cooldown from raffle end to determine winner
-    pub minimum_raffle_timeout: Option<u64>,
     // Maximum participant limit for a raffle
     pub max_ticket_number: Option<u32>,
     // % fee of raffle ticket sales to fee_addr
@@ -53,7 +51,6 @@ pub enum ExecuteMsg {
         assets: Vec<AssetInfo>,
         raffle_options: RaffleOptionsMsg,
         raffle_ticket_price: AssetInfo,
-        autocycle: Option<bool>,
     },
     CancelRaffle {
         raffle_id: u64,
@@ -63,7 +60,6 @@ pub enum ExecuteMsg {
         owner: Option<String>,
         fee_addr: Option<String>,
         minimum_raffle_duration: Option<u64>,
-        minimum_raffle_timeout: Option<u64>,
         max_tickets_per_raffle: Option<u32>,
         raffle_fee: Option<Decimal>,
         nois_proxy_addr: Option<String>,
@@ -81,19 +77,17 @@ pub enum ExecuteMsg {
         sent_assets: AssetInfo,
     },
     Receive(cw721::Cw721ReceiveMsg),
-    DetermineWinner {
-        raffle_id: u64,
-    },
     NoisReceive {
         callback: NoisCallback,
     },
+
     // Admin messages
-    ToggleLock {
-        lock: bool,
-    },
-    // provide job_id for randomness contract
+    /// Provide job_id for randomness contract
     UpdateRandomness {
         raffle_id: u64,
+    },
+    ToggleLock {
+        lock: bool,
     },
 }
 
@@ -135,7 +129,6 @@ pub struct ConfigResponse {
     pub fee_addr: Addr,
     pub last_raffle_id: u64,
     pub minimum_raffle_duration: u64, // The minimum interval in which users can buy raffle tickets
-    pub minimum_raffle_timeout: u64, // The minimum interval during which users can provide entropy to the contract
     pub raffle_fee: Decimal, // The percentage of the resulting ticket-tokens that will go to the treasury
     pub locks: Locks,        // Wether the contract can accept new raffles
     pub nois_proxy_addr: Addr,
