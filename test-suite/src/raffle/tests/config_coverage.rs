@@ -49,6 +49,7 @@ mod tests {
             })],
             duration: None,
             min_ticket_number: None,
+            max_tickets: None,
         };
         create_raffle_function(create_raffle_params)?;
 

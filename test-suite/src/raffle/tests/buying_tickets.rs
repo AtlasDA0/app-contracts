@@ -26,6 +26,7 @@ mod tests {
         contracts: &RaffleContracts,
         token: &TokenMint,
         owner_addr: Addr,
+        max_tickets_per_addr: Option<u32>,
         max_tickets: Option<u32>,
     ) {
         let params = CreateRaffleParams {
@@ -34,7 +35,7 @@ mod tests {
             owner_addr,
             creation_fee: vec![coin(4, NATIVE_DENOM)],
             ticket_price: Uint128::new(4),
-            max_ticket_per_addr: max_tickets,
+            max_ticket_per_addr: max_tickets_per_addr,
             raffle_start_timestamp: None,
             raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
                 address: token.nft.to_string(),
@@ -42,6 +43,7 @@ mod tests {
             })],
             duration: None,
             min_ticket_number: None,
+            max_tickets,
         };
         create_raffle_setup(params).unwrap();
     }
@@ -52,7 +54,7 @@ mod tests {
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
         let token = mint_one_token(&mut app, &contracts);
-        create_simple_raffle(&mut app, &contracts, &token, owner_addr, None);
+        create_simple_raffle(&mut app, &contracts, &token, owner_addr, None, None);
 
         // customize ticket purchase params
         let params = PurchaseTicketsParams {
@@ -96,7 +98,7 @@ mod tests {
             let (owner_addr, one, _) = setup_accounts(&mut app);
             let (_, _, _, _, _, _) = setup_raffle_participants(&mut app);
             let token = mint_one_token(&mut app, &contracts);
-            create_simple_raffle(&mut app, &contracts, &token, owner_addr, Some(1));
+            create_simple_raffle(&mut app, &contracts, &token, owner_addr, Some(1), None);
 
             // ensure error if max tickets per address set is reached
             let bad_ticket_purchase = app
@@ -117,6 +119,51 @@ mod tests {
                     max: 1,
                     nb_before: 0,
                     nb_after: 2,
+                }
+                .to_string(),
+            );
+        }
+
+        #[test]
+        fn max_tickets() {
+            let (mut app, contracts) = proper_raffle_instantiate();
+            let (owner_addr, one, two) = setup_accounts(&mut app);
+            let (_, _, _, _, _, _) = setup_raffle_participants(&mut app);
+            let token = mint_one_token(&mut app, &contracts);
+            create_simple_raffle(&mut app, &contracts, &token, owner_addr, Some(20), Some(10));
+
+            // ensure error if max tickets per address set is reached
+            let _good_ticket_purchase = app
+                .execute_contract(
+                    one.clone(),
+                    contracts.raffle.clone(),
+                    &RaffleExecuteMsg::BuyTicket {
+                        raffle_id: 0,
+                        ticket_count: 9,
+                        sent_assets: AssetInfo::Coin(Coin::new(36, "ustars".to_string())),
+                    },
+                    &[Coin::new(36, "ustars".to_string())],
+                )
+                .unwrap();
+
+            let bad_ticket_purchase = app
+                .execute_contract(
+                    two.clone(),
+                    contracts.raffle.clone(),
+                    &RaffleExecuteMsg::BuyTicket {
+                        raffle_id: 0,
+                        ticket_count: 2,
+                        sent_assets: AssetInfo::Coin(Coin::new(8, "ustars".to_string())),
+                    },
+                    &[Coin::new(8, "ustars".to_string())],
+                )
+                .unwrap_err();
+            assert_error(
+                Err(bad_ticket_purchase),
+                ContractError::TooMuchTickets {
+                    max: 10,
+                    nb_before: 9,
+                    nb_after: 11,
                 }
                 .to_string(),
             );
@@ -150,7 +197,7 @@ mod tests {
             let (owner_address, one, _) = setup_accounts(&mut app);
             let token = mint_one_token(&mut app, &contracts);
 
-            create_simple_raffle(&mut app, &contracts, &token, owner_address, None);
+            create_simple_raffle(&mut app, &contracts, &token, owner_address, None, None);
 
             let invalid_raffle_purchase = app
                 .execute_contract(
@@ -193,6 +240,7 @@ mod tests {
                 })],
                 duration: None,
                 min_ticket_number: None,
+                max_tickets: None,
             };
             create_raffle_setup(params).unwrap();
 
@@ -222,7 +270,7 @@ mod tests {
             let assets_wanted =
                 AssetInfo::Coin(Coin::new((ticket_count * ticket_count).into(), "ustars"));
             let token = mint_one_token(&mut app, &contracts);
-            create_simple_raffle(&mut app, &contracts, &token, owner_addr, None);
+            create_simple_raffle(&mut app, &contracts, &token, owner_addr, None, None);
 
             // Too many tokens sent
             let bad_ticket_purchase = app

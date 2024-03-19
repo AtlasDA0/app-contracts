@@ -101,7 +101,7 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> anyhow::Result<()> {
                 raffle_duration: duration,
 
                 comment: None,
-                max_ticket_number: None,
+                max_ticket_number: params.max_tickets,
                 max_ticket_per_address: max_per_addr,
                 raffle_preview: None,
                 min_ticket_number: params.min_ticket_number,

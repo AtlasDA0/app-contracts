@@ -45,6 +45,7 @@ mod tests {
             })],
             duration: None,
             min_ticket_number: None,
+            max_tickets: None,
         };
         create_raffle_setup(params)?;
         Ok(())
@@ -149,6 +150,7 @@ mod tests {
             })],
             duration: None,
             min_ticket_number: None,
+            max_tickets: None,
         };
         let msg = create_raffle_function(params);
         // confirm owner is set
@@ -180,6 +182,7 @@ mod tests {
             })],
             duration: None,
             min_ticket_number: None,
+            max_tickets: None,
         };
         let msg = create_raffle_function(params);
         // confirm owner is set
