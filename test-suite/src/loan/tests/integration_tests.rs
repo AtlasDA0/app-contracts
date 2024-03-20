@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{coin, Addr, Coin, Decimal, StdError, Timestamp, Uint128};
+    use cosmwasm_std::{coin, coins, Addr, Coin, Decimal, StdError, Timestamp, Uint128};
     use cw721::OwnerOfResponse;
     use cw_multi_test::Executor;
     use sg721_base::QueryMsg as Sg721QueryMsg;
@@ -17,9 +17,12 @@ mod tests {
 
     use crate::{
         common_setup::{
-            helpers::assert_error,
+            helpers::{assert_error, assert_treasury_balance},
             setup_accounts_and_block::setup_accounts,
-            setup_loan::{configure_loan_assets, proper_loan_instantiate},
+            setup_loan::{
+                configure_loan_assets, proper_loan_instantiate, LOAN_FEE_RATE,
+                NATIVE_LOAN_LISTING_AMT,
+            },
             setup_minter::common::constants::OWNER_ADDR,
         },
         loan::setup::{execute_msg::create_loan_function, test_msgs::CreateLoanParams},
@@ -87,10 +90,7 @@ mod tests {
                     comment: Some("be water, my friend".to_string()),
                     loan_preview: None,
                 },
-                &[Coin {
-                    denom: NATIVE_DENOM.to_string(),
-                    amount: Uint128::new(25u128),
-                }],
+                &coins(NATIVE_LOAN_LISTING_AMT, NATIVE_DENOM),
             )
             .unwrap();
 
@@ -114,9 +114,15 @@ mod tests {
         // contract shouldnt hold fees
         assert_eq!(contract_bal_after, contract_bal_before);
         // sender should be 25 less
-        assert_eq!(sender_bal_after, sender_bal_before - Uint128::new(25u128));
+        assert_eq!(
+            sender_bal_after,
+            sender_bal_before - Uint128::new(NATIVE_LOAN_LISTING_AMT)
+        );
         // collector should have extra 25
-        assert_eq!(fee_bal_after, fee_bal_before + Uint128::new(25u128));
+        assert_eq!(
+            fee_bal_after,
+            fee_bal_before + Uint128::new(NATIVE_LOAN_LISTING_AMT)
+        );
         // query new collateral_offer
         let res: MultipleCollateralsResponse = app
             .wrap()
@@ -707,6 +713,19 @@ mod tests {
         // confirm nft is now in escrow by raffle
         assert_eq!(res.owner, loan_addr);
 
+        let balance_offerer_before = app
+            .wrap()
+            .query_balance(OFFERER_ADDR, NATIVE_DENOM)
+            .unwrap()
+            .amount;
+
+        // We make sure the test is setup correctly
+        let treasury_balance_before = app
+            .wrap()
+            .query_balance(TREASURY_ADDR, NATIVE_DENOM)
+            .unwrap()
+            .amount;
+        assert_treasury_balance(&app, NATIVE_DENOM, NATIVE_LOAN_LISTING_AMT * 3);
         // repay borrowed funds
         let _good_repay_borrowed_funds = app
             .execute_contract(
@@ -719,6 +738,26 @@ mod tests {
                 }],
             )
             .unwrap();
+
+        let balance_offerer_after = app
+            .wrap()
+            .query_balance(OFFERER_ADDR, NATIVE_DENOM)
+            .unwrap()
+            .amount;
+
+        assert_eq!(
+            balance_offerer_before
+                + Uint128::new(100)
+                + Uint128::new(50) * (Decimal::one() - Decimal::percent(LOAN_FEE_RATE)),
+            balance_offerer_after
+        );
+        assert_treasury_balance(
+            &app,
+            NATIVE_DENOM,
+            (treasury_balance_before
+                + Uint128::new(50) * (Decimal::one() - Decimal::percent(LOAN_FEE_RATE)))
+            .u128(),
+        );
 
         let res: CollateralInfo = app
             .wrap()

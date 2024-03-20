@@ -11,20 +11,22 @@ mod tests {
 
     use raffles::{
         msg::QueryMsg as RaffleQueryMsg,
-        state::{Config, RaffleState, ATLAS_DAO_STARGAZE_TREASURY},
+        state::{Config, RaffleState},
     };
 
     use crate::{
         common_setup::{
+            helpers::assert_treasury_balance,
             msg::RaffleContracts,
             setup_accounts_and_block::{setup_accounts, setup_raffle_participants},
+            setup_minter::common::constants::TREASURY_ADDR,
             setup_raffle::proper_raffle_instantiate,
         },
         raffle::setup::{
             execute_msg::{buy_tickets_template, create_raffle_setup},
             helpers::{
-                assert_treasury_balance, finish_raffle_timeout, mint_additional_token,
-                mint_one_token, raffle_info, TokenMint,
+                finish_raffle_timeout, mint_additional_token, mint_one_token, raffle_info,
+                TokenMint,
             },
             test_msgs::{CreateRaffleParams, PurchaseTicketsParams},
         },
@@ -130,7 +132,7 @@ mod tests {
         // The raffle creation fee goes to the treasury
         let res = app
             .wrap()
-            .query_balance(ATLAS_DAO_STARGAZE_TREASURY, NATIVE_DENOM.to_string());
+            .query_balance(TREASURY_ADDR, NATIVE_DENOM.to_string());
         assert_eq!(res.unwrap().amount, Uint128::new(50));
 
         let owner_balance_before = app

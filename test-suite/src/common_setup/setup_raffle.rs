@@ -6,7 +6,9 @@ use super::{
     msg::{RaffleCodeIds, RaffleContracts},
     nois_proxy::{self, NOIS_AMOUNT, NOIS_DENOM},
     setup_accounts_and_block::setup_accounts,
-    setup_minter::common::constants::{CREATION_FEE_AMNT_NATIVE, CREATION_FEE_AMNT_STARS},
+    setup_minter::common::constants::{
+        CREATION_FEE_AMNT_NATIVE, CREATION_FEE_AMNT_STARS, TREASURY_ADDR,
+    },
 };
 use crate::common_setup::{
     contract_boxes::{
@@ -17,7 +19,7 @@ use crate::common_setup::{
 };
 use cosmwasm_std::{coin, Addr, Coin, Decimal, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
-use raffles::{msg::InstantiateMsg, state::ATLAS_DAO_STARGAZE_TREASURY};
+use raffles::msg::InstantiateMsg;
 use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
 use vending_factory::state::{ParamsExtension, VendingMinterParams};
@@ -101,7 +103,7 @@ pub fn proper_raffle_instantiate_precise(
                 nois_proxy_addr: nois_addr.to_string(),
                 nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM.to_string()),
                 owner: Some(OWNER_ADDR.to_string()),
-                fee_addr: Some(ATLAS_DAO_STARGAZE_TREASURY.to_owned()),
+                fee_addr: Some(TREASURY_ADDR.to_owned()),
                 minimum_raffle_duration: None,
                 max_ticket_number,
                 raffle_fee: Decimal::percent(50),

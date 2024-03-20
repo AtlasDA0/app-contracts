@@ -2,7 +2,6 @@
 mod tests {
     use cosmwasm_std::{coin, Addr, Coin, Decimal};
     use cw_multi_test::Executor;
-    use raffles::state::ATLAS_DAO_STARGAZE_TREASURY;
     use sg_std::NATIVE_DENOM;
 
     use nft_loans_nc::{
@@ -20,6 +19,7 @@ mod tests {
             setup_loan::{configure_loan_assets, proper_loan_instantiate},
             setup_minter::common::constants::{
                 LOAN_INTEREST_TAX, LOAN_NAME, MINT_PRICE, MIN_COLLATERAL_LISTING, OWNER_ADDR,
+                TREASURY_ADDR,
             },
         },
         loan::setup::{
@@ -52,7 +52,7 @@ mod tests {
             Config {
                 name: LOAN_NAME.into(),
                 owner: Addr::unchecked(OWNER_ADDR.to_string()),
-                treasury_addr: Addr::unchecked(ATLAS_DAO_STARGAZE_TREASURY.to_string()),
+                treasury_addr: Addr::unchecked(TREASURY_ADDR.to_string()),
                 fee_rate: LOAN_INTEREST_TAX,
                 global_offer_index: 0,
                 listing_fee_coins: vec![
@@ -146,7 +146,7 @@ mod tests {
                 Addr::unchecked(OWNER_ADDR.to_string()),
                 nft_loan_addr.clone(),
                 &nft_loans_nc::msg::ExecuteMsg::SetFeeDestination {
-                    treasury_addr: ATLAS_DAO_STARGAZE_TREASURY.into(),
+                    treasury_addr: TREASURY_ADDR.into(),
                 },
                 &[],
             )
@@ -166,7 +166,7 @@ mod tests {
             Config {
                 name: LOAN_NAME.into(),
                 owner: Addr::unchecked(OWNER_ADDR.to_string()),
-                treasury_addr: Addr::unchecked(ATLAS_DAO_STARGAZE_TREASURY.to_string()),
+                treasury_addr: Addr::unchecked(TREASURY_ADDR.to_string()),
                 fee_rate: Decimal::percent(10),
                 listing_fee_coins: vec![
                     coin(4, "uflix"),

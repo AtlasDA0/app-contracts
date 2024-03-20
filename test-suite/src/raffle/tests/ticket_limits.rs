@@ -4,7 +4,7 @@ mod tests {
     use cw_multi_test::Executor;
     use cw_multi_test::{BankSudo, SudoMsg};
 
-    use raffles::state::{ATLAS_DAO_STARGAZE_TREASURY, MINIMUM_RAFFLE_DURATION};
+    use raffles::state::MINIMUM_RAFFLE_DURATION;
     use raffles::{
         error::ContractError,
         msg::{ConfigResponse, ExecuteMsg},
@@ -15,7 +15,7 @@ mod tests {
 
     use crate::common_setup::nois_proxy::{NOIS_AMOUNT, NOIS_DENOM};
     use crate::common_setup::setup_minter::common::constants::{
-        CREATION_FEE_AMNT_NATIVE, CREATION_FEE_AMNT_STARS,
+        CREATION_FEE_AMNT_NATIVE, CREATION_FEE_AMNT_STARS, TREASURY_ADDR,
     };
     use crate::common_setup::setup_raffle::proper_raffle_instantiate_precise;
     use crate::common_setup::{
@@ -152,7 +152,7 @@ mod tests {
             ConfigResponse {
                 name: RAFFLE_NAME.to_string(),
                 owner: Addr::unchecked(OWNER_ADDR),
-                fee_addr: Addr::unchecked(ATLAS_DAO_STARGAZE_TREASURY),
+                fee_addr: Addr::unchecked(TREASURY_ADDR),
                 last_raffle_id: 0,
                 minimum_raffle_duration: 1,
                 raffle_fee: Decimal::percent(50),

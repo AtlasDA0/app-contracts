@@ -6,7 +6,7 @@ mod tests {
     use raffles::{
         error::ContractError,
         msg::{ExecuteMsg, QueryMsg as RaffleQueryMsg},
-        state::{Config, ATLAS_DAO_STARGAZE_TREASURY},
+        state::Config,
     };
     use sg_multi_test::StargazeApp;
     use utils::state::{AssetInfo, Locks, Sg721Token, SudoMsg as RaffleSudoMsg, NATIVE_DENOM};
@@ -19,7 +19,7 @@ mod tests {
             setup_accounts_and_block::setup_accounts,
             setup_minter::common::constants::{
                 CREATION_FEE_AMNT_NATIVE, CREATION_FEE_AMNT_STARS, OWNER_ADDR, RAFFLE_NAME,
-                RAFFLE_TAX,
+                RAFFLE_TAX, TREASURY_ADDR,
             },
             setup_raffle::proper_raffle_instantiate,
         },
@@ -69,7 +69,7 @@ mod tests {
             Config {
                 name: RAFFLE_NAME.into(),
                 owner: Addr::unchecked(OWNER_ADDR),
-                fee_addr: Addr::unchecked(ATLAS_DAO_STARGAZE_TREASURY),
+                fee_addr: Addr::unchecked(TREASURY_ADDR),
                 last_raffle_id: Some(0),
                 minimum_raffle_duration: 1,
                 max_tickets_per_raffle: None,

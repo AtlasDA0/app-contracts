@@ -9,7 +9,7 @@ mod tests {
             ExecuteMsg as RaffleExecuteMsg, InstantiateMsg, QueryMsg as RaffleQueryMsg,
             RaffleResponse,
         },
-        state::{RaffleState, StakerFeeDiscount, ATLAS_DAO_STARGAZE_TREASURY},
+        state::{RaffleState, StakerFeeDiscount, TREASURY_ADDR},
     };
     use sg721::CollectionInfo;
     use std::vec;
@@ -101,7 +101,7 @@ mod tests {
                     nois_proxy_addr: NOIS_PROXY_ADDR.to_string(),
                     nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM),
                     owner: Some(OWNER_ADDR.to_string()),
-                    fee_addr: Some(ATLAS_DAO_STARGAZE_TREASURY.to_owned()),
+                    fee_addr: Some(TREASURY_ADDR.to_owned()),
                     minimum_raffle_duration: None,
                     max_ticket_number: None,
                     raffle_fee: Decimal::percent(50),

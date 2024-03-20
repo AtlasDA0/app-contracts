@@ -5,7 +5,6 @@ use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Empty, Uint128};
 use cw_multi_test::Executor;
 use nois::ProxyExecuteMsg;
 use raffles::msg::{QueryMsg, RaffleResponse};
-use raffles::state::ATLAS_DAO_STARGAZE_TREASURY;
 use sg721::CollectionInfo;
 use sg_multi_test::StargazeApp;
 use utils::state::NATIVE_DENOM;
@@ -234,11 +233,4 @@ pub fn send_nois_ibc_message(
     } else {
         bail!("Error on executing on nois randomnesss : {:?}", error_value)
     }
-}
-
-pub fn assert_treasury_balance(app: &StargazeApp, denom: &str, amount: u128) {
-    let treasury_balance = app
-        .wrap()
-        .query_balance(ATLAS_DAO_STARGAZE_TREASURY, denom.to_string());
-    assert_eq!(treasury_balance.unwrap().amount, Uint128::new(amount));
 }
