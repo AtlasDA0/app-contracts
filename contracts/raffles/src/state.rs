@@ -6,8 +6,6 @@ use cosmwasm_std::{
 use cw_storage_plus::{Item, Map};
 use utils::state::{AssetInfo, Locks};
 
-pub const ATLAS_DAO_STARGAZE_TREASURY: &str =
-    "stars1jyg4j6t4kdptgsx6q55mu0f434zqcfppkx6ww9gs7p4x7clgfrjq29sgmc";
 pub const CONFIG_KEY: &str = "config";
 pub const CONFIG: Item<Config> = Item::new(CONFIG_KEY);
 pub const MAX_TICKET_NUMBER: u32 = 100000; // The maximum amount of tickets () that can be in a raffle
