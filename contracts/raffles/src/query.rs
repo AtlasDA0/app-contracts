@@ -32,7 +32,6 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         fee_addr: config.fee_addr,
         last_raffle_id: config.last_raffle_id.unwrap_or(0),
         minimum_raffle_duration: config.minimum_raffle_duration,
-        minimum_raffle_timeout: config.minimum_raffle_timeout,
         raffle_fee: config.raffle_fee,
         locks: config.locks,
         nois_proxy_addr: config.nois_proxy_addr,
