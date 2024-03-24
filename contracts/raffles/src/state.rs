@@ -7,7 +7,10 @@ use cw20::{Cw20Coin, Cw20CoinVerified};
 use cw_storage_plus::{Item, Map};
 use utils::state::{AssetInfo, Locks};
 
-use crate::msg::{GatingOptionsMsg, RaffleOptionsMsg, TicketOptionsMsg};
+use crate::msg::{
+    GatingOptionsMsg, RaffleOptionsModifyMsg, RaffleOptionsMsg, TicketOptionsModifyMsg,
+    TicketOptionsMsg,
+};
 
 pub const CONFIG_KEY: &str = "config";
 pub const CONFIG: Item<Config> = Item::new(CONFIG_KEY);
@@ -176,43 +179,48 @@ impl From<GatingOptions> for GatingOptionsMsg {
 
 impl RaffleOptions {
     pub fn update(
-        &self,
+        self,
         deps: Deps,
         env: Env,
         assets_len: usize,
-        mut raffle_options: RaffleOptionsMsg,
+        raffle_modify: RaffleOptionsModifyMsg,
     ) -> StdResult<Self> {
-        raffle_options.raffle_start_timestamp = raffle_options
-            .raffle_start_timestamp
-            .or(Some(self.raffle_start_timestamp));
-
-        raffle_options.raffle_duration = raffle_options
-            .raffle_duration
-            .or(Some(self.raffle_duration));
-
-        raffle_options.comment = raffle_options.comment.or(self.comment.clone());
-        raffle_options.raffle_preview = raffle_options.raffle_preview.or(Some(self.raffle_preview));
+        let raffle_options = RaffleOptionsMsg {
+            raffle_start_timestamp: raffle_modify
+                .raffle_start_timestamp
+                .or(Some(self.raffle_start_timestamp)),
+            raffle_duration: raffle_modify.raffle_duration.or(Some(self.raffle_duration)),
+            comment: raffle_modify.comment.or(self.comment),
+            raffle_preview: raffle_modify.raffle_preview.or(Some(self.raffle_preview)),
+        };
 
         raffle_options.check(deps, env, assets_len)
     }
 }
 impl TicketOptions {
     pub fn update(
-        &self,
+        self,
         deps: Deps,
         assets_len: usize,
-        mut ticket_options: TicketOptionsMsg,
+        ticket_modify: TicketOptionsModifyMsg,
     ) -> StdResult<Self> {
-        ticket_options.max_ticket_number =
-            ticket_options.max_ticket_number.or(self.max_ticket_number);
-        ticket_options.max_ticket_per_address = ticket_options
-            .max_ticket_per_address
-            .or(self.max_ticket_per_address);
-        ticket_options.min_ticket_number =
-            ticket_options.min_ticket_number.or(self.min_ticket_number);
+        let ticket_options = TicketOptionsMsg {
+            raffle_ticket_price: ticket_modify
+                .raffle_ticket_price
+                .unwrap_or(self.raffle_ticket_price),
+            max_ticket_number: ticket_modify.min_ticket_number.or(self.min_ticket_number),
+            max_ticket_per_address: ticket_modify
+                .max_ticket_per_address
+                .or(self.max_ticket_per_address),
+            min_ticket_number: ticket_modify.min_ticket_number.or(self.min_ticket_number),
+            gating: ticket_modify
+                .gating
+                .unwrap_or(self.gating.into_iter().map(Into::into).collect()),
+            one_winner_per_asset: ticket_modify
+                .one_winner_per_asset
+                .unwrap_or(self.one_winner_per_asset),
+        };
 
-        let options = ticket_options.check(deps, assets_len)?;
-
-        Ok(options)
+        ticket_options.check(deps, assets_len)
     }
 }

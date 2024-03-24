@@ -16,7 +16,7 @@ use utils::{
 
 use crate::{
     error::ContractError,
-    msg::{ExecuteMsg, RaffleOptionsMsg, TicketOptionsMsg},
+    msg::{ExecuteMsg, RaffleOptionsModifyMsg, RaffleOptionsMsg, TicketOptionsModifyMsg, TicketOptionsMsg},
     query::is_nft_owner,
     state::{
         get_raffle_state, Config, RaffleInfo, RaffleState, CONFIG, MINIMUM_RAFFLE_DURATION,
@@ -268,8 +268,8 @@ pub fn execute_modify_raffle(
     env: Env,
     info: MessageInfo,
     raffle_id: u64,
-    raffle_options: RaffleOptionsMsg,
-    ticket_options: TicketOptionsMsg,
+    raffle_options: RaffleOptionsModifyMsg,
+    ticket_options: TicketOptionsModifyMsg,
 ) -> Result<Response, ContractError> {
     let mut raffle_info = is_raffle_owner(deps.storage, raffle_id, info.sender)?;
     let raffle_state = get_raffle_state(env.clone(), &raffle_info);

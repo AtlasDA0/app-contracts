@@ -71,8 +71,8 @@ pub enum ExecuteMsg {
     },
     ModifyRaffle {
         raffle_id: u64,
-        raffle_options: RaffleOptionsMsg,
-        ticket_options: TicketOptionsMsg,
+        raffle_options: RaffleOptionsModifyMsg,
+        ticket_options: TicketOptionsModifyMsg,
     },
     BuyTicket {
         raffle_id: u64,
@@ -179,6 +179,14 @@ pub struct RaffleOptionsMsg {
     pub raffle_preview: Option<u32>,
 }
 
+#[cw_serde]
+pub struct RaffleOptionsModifyMsg {
+    pub raffle_start_timestamp: Option<Timestamp>,
+    pub raffle_duration: Option<u64>,
+    pub comment: Option<String>,
+    pub raffle_preview: Option<u32>,
+}
+
 impl RaffleOptionsMsg {
     pub fn check(self, deps: Deps, env: Env, assets_len: usize) -> Result<RaffleOptions, StdError> {
         let config = CONFIG.load(deps.storage)?;
@@ -214,6 +222,16 @@ pub struct TicketOptionsMsg {
     pub min_ticket_number: Option<u32>,
     pub gating: Vec<GatingOptionsMsg>,
     pub one_winner_per_asset: bool,
+}
+
+#[cw_serde]
+pub struct TicketOptionsModifyMsg {
+    pub raffle_ticket_price: Option<AssetInfo>,
+    pub max_ticket_number: Option<u32>,
+    pub max_ticket_per_address: Option<u32>,
+    pub min_ticket_number: Option<u32>,
+    pub gating: Option<Vec<GatingOptionsMsg>>,
+    pub one_winner_per_asset: Option<bool>,
 }
 
 impl TicketOptionsMsg {

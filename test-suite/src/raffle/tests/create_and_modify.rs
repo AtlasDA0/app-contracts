@@ -3,7 +3,7 @@ mod tests {
     use cosmwasm_std::{coin, Addr, Coin, Timestamp, Uint128};
     use cw_multi_test::Executor;
     use raffles::{
-        msg::{RaffleOptionsMsg, TicketOptionsMsg},
+        msg::{RaffleOptionsModifyMsg, TicketOptionsModifyMsg},
         state::{RaffleInfo, RaffleOptions, TicketOptions, MAX_TICKET_NUMBER},
     };
     use sg_multi_test::StargazeApp;
@@ -258,20 +258,20 @@ mod tests {
                 contracts.raffle.clone(),
                 &ExecuteMsg::ModifyRaffle {
                     raffle_id: 0,
-                    raffle_options: RaffleOptionsMsg {
+                    raffle_options: RaffleOptionsModifyMsg {
                         raffle_start_timestamp: None,
                         raffle_duration: None,
 
                         comment: Some("rust is dooope".to_string()),
                         raffle_preview: None,
                     },
-                    ticket_options: TicketOptionsMsg {
+                    ticket_options: TicketOptionsModifyMsg {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
-                        one_winner_per_asset: false,
-                        gating: vec![],
+                        one_winner_per_asset: None,
+                        gating: None,
                         min_ticket_number: None,
-                        raffle_ticket_price: todo!(),
+                        raffle_ticket_price: None,
                     },
                 },
                 &[],
@@ -287,19 +287,19 @@ mod tests {
             contracts.raffle.clone(),
             &ExecuteMsg::ModifyRaffle {
                 raffle_id: 1,
-                raffle_options: RaffleOptionsMsg {
+                raffle_options: RaffleOptionsModifyMsg {
                     raffle_start_timestamp: None,
                     raffle_duration: None,
 
                     comment: Some("rust is dooope".to_string()),
                     raffle_preview: None,
                 },
-                ticket_options: TicketOptionsMsg {
+                ticket_options: TicketOptionsModifyMsg {
                     raffle_ticket_price: None,
                     max_ticket_number: None,
                     max_ticket_per_address: None,
-                    one_winner_per_asset: false,
-                    gating: vec![],
+                    one_winner_per_asset: None,
+                    gating: None,
                     min_ticket_number: None,
                 },
             },
@@ -320,19 +320,19 @@ mod tests {
                 contracts.raffle.clone(),
                 &ExecuteMsg::ModifyRaffle {
                     raffle_id: 0,
-                    raffle_options: RaffleOptionsMsg {
+                    raffle_options: RaffleOptionsModifyMsg {
                         raffle_start_timestamp: None,
                         raffle_duration: None,
 
                         comment: Some("rust is dooope".to_string()),
                         raffle_preview: None,
                     },
-                    ticket_options: TicketOptionsMsg {
+                    ticket_options: TicketOptionsModifyMsg {
                         raffle_ticket_price: None,
                         max_ticket_number: None,
                         max_ticket_per_address: None,
-                        one_winner_per_asset: false,
-                        gating: vec![],
+                        one_winner_per_asset: None,
+                        gating: None,
                         min_ticket_number: None,
                     },
                 },
@@ -385,19 +385,19 @@ mod tests {
                 contracts.raffle.clone(),
                 &ExecuteMsg::ModifyRaffle {
                     raffle_id: 0,
-                    raffle_options: RaffleOptionsMsg {
+                    raffle_options: RaffleOptionsModifyMsg {
                         raffle_start_timestamp: Some(Timestamp::from_nanos(1647032399999999990)), // checks new raffle start time is < original
                         raffle_duration: Some(2),
 
                         comment: Some("rust is dooope".to_string()),
                         raffle_preview: None,
                     },
-                    ticket_options: TicketOptionsMsg {
+                    ticket_options: TicketOptionsModifyMsg {
                         raffle_ticket_price: None,
                         max_ticket_number: None,
                         max_ticket_per_address: None,
-                        one_winner_per_asset: false,
-                        gating: vec![],
+                        one_winner_per_asset: None,
+                        gating: None,
                         min_ticket_number: None,
                     },
                 },
