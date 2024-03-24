@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::common_setup::contract_boxes::contract_cw20;
     use crate::raffle::setup::daodao::instantiate_with_staked_balances_governance;
     use crate::raffle::setup::helpers::mint_one_token;
     use crate::raffle::setup::helpers::TokenMint;
@@ -94,6 +95,72 @@ mod tests {
             .wrap()
             .query_wasm_smart(
                 raffle.clone(),
+                &RaffleQueryMsg::TicketCount {
+                    owner: one.to_string(),
+                    raffle_id: 0,
+                },
+            )
+            .unwrap();
+        assert_eq!(res, 1);
+    }
+
+    #[test]
+    fn cw20_gating() {
+        let (mut app, contracts) = proper_raffle_instantiate();
+        let (owner_addr, _, _) = setup_accounts(&mut app);
+        let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
+        let token = mint_one_token(&mut app, &contracts);
+
+        let code_id = app.store_code(contract_cw20());
+
+        let cw20_addr = app
+            .instantiate_contract(
+                code_id,
+                one.clone(),
+                &cw20_base::msg::InstantiateMsg {
+                    decimals: 6,
+                    initial_balances: vec![Cw20Coin {
+                        address: one.to_string(),
+                        amount: 100_000_000u128.into(),
+                    }],
+                    marketing: None,
+                    mint: None,
+                    symbol: "CWCW".to_string(),
+                    name: "cw20".to_string(),
+                },
+                &[],
+                "cw20_example",
+                None,
+            )
+            .unwrap();
+
+        create_raffle(
+            &mut app,
+            contracts.raffle.clone(),
+            owner_addr.clone(),
+            vec![GatingOptionsMsg::Cw20(Cw20Coin {
+                address: cw20_addr.to_string(),
+                amount: 13987u128.into(),
+            })],
+            &token,
+        );
+
+        // customize ticket purchase params
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: contracts.raffle.clone(),
+            msg_senders: vec![one.clone()],
+            raffle_id: 0,
+            num_tickets: 1,
+            funds_send: vec![coin(4, "ustars")],
+        };
+        // simulate the puchase of tickets
+        let _purchase_tickets = buy_tickets_template(params).unwrap();
+
+        let res: u32 = app
+            .wrap()
+            .query_wasm_smart(
+                contracts.raffle.clone(),
                 &RaffleQueryMsg::TicketCount {
                     owner: one.to_string(),
                     raffle_id: 0,
@@ -279,6 +346,60 @@ mod tests {
             };
             // Buying tickets fails because there are not enough tokens
             buy_tickets_template(params).unwrap_err();
+        }
+
+        #[test]
+        fn bad_cw20_gating() {
+            let (mut app, contracts) = proper_raffle_instantiate();
+            let (owner_addr, _, _) = setup_accounts(&mut app);
+            let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
+            let token = mint_one_token(&mut app, &contracts);
+
+            let code_id = app.store_code(contract_cw20());
+
+            let cw20_addr = app
+                .instantiate_contract(
+                    code_id,
+                    one.clone(),
+                    &cw20_base::msg::InstantiateMsg {
+                        decimals: 6,
+                        initial_balances: vec![Cw20Coin {
+                            address: one.to_string(),
+                            amount: 1_000u128.into(),
+                        }],
+                        marketing: None,
+                        mint: None,
+                        symbol: "CWCW".to_string(),
+                        name: "cw20".to_string(),
+                    },
+                    &[],
+                    "cw20_example",
+                    None,
+                )
+                .unwrap();
+
+            create_raffle(
+                &mut app,
+                contracts.raffle.clone(),
+                owner_addr.clone(),
+                vec![GatingOptionsMsg::Cw20(Cw20Coin {
+                    address: cw20_addr.to_string(),
+                    amount: 13987u128.into(),
+                })],
+                &token,
+            );
+
+            // customize ticket purchase params
+            let params = PurchaseTicketsParams {
+                app: &mut app,
+                raffle_contract_addr: contracts.raffle.clone(),
+                msg_senders: vec![one.clone()],
+                raffle_id: 0,
+                num_tickets: 1,
+                funds_send: vec![coin(4, "ustars")],
+            };
+            // simulate the puchase of tickets
+            let _purchase_tickets = buy_tickets_template(params).unwrap_err();
         }
 
         #[test]

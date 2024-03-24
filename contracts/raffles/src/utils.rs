@@ -302,7 +302,7 @@ pub fn buyer_can_buy_ticket(
                 let user_balance: cw20::BalanceResponse = deps.querier.query_wasm_smart(
                     &needed_amount.address,
                     &cw20_base::msg::QueryMsg::Balance {
-                        address: needed_amount.address.to_string(),
+                        address: buyer.clone(),
                     },
                 )?;
 
