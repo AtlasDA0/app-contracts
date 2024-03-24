@@ -4,11 +4,12 @@ mod tests {
     use cw_multi_test::Executor;
     use cw_multi_test::{BankSudo, SudoMsg};
 
-    use raffles::state::MINIMUM_RAFFLE_DURATION;
+    use raffles::msg::{RaffleOptionsMsg, TicketOptionsMsg};
+    use raffles::state::{TicketOptions, MINIMUM_RAFFLE_DURATION};
     use raffles::{
         error::ContractError,
         msg::{ConfigResponse, ExecuteMsg},
-        state::{RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState},
+        state::{RaffleInfo, RaffleOptions, RaffleState},
     };
 
     use utils::state::{AssetInfo, Locks, Sg721Token, NATIVE_DENOM};
@@ -71,17 +72,19 @@ mod tests {
                         raffle_duration: None,
 
                         comment: None,
+                        raffle_preview: None,
+                    },
+                    ticket_options: TicketOptionsMsg {
+                        raffle_ticket_price: AssetInfo::Coin(Coin {
+                            denom: "ustars".to_string(),
+                            amount: Uint128::new(100u128),
+                        }),
                         max_ticket_number: Some(80),
                         max_ticket_per_address: Some(80),
-                        raffle_preview: None,
                         min_ticket_number: None,
                         one_winner_per_asset: false,
-                        gating_raffle: vec![],
+                        gating: vec![],
                     },
-                    raffle_ticket_price: AssetInfo::Coin(Coin {
-                        denom: "ustars".to_string(),
-                        amount: Uint128::new(100u128),
-                    }),
                 },
                 &[coin(50, "ustars")],
             )
@@ -245,17 +248,19 @@ mod tests {
                         raffle_duration: None,
 
                         comment: None,
+                        raffle_preview: None,
+                    },
+                    ticket_options: TicketOptionsMsg {
+                        raffle_ticket_price: AssetInfo::Coin(Coin {
+                            denom: "ustars".to_string(),
+                            amount: Uint128::new(100u128),
+                        }),
                         max_ticket_number: Some(3),
                         max_ticket_per_address: Some(1),
-                        raffle_preview: None,
                         one_winner_per_asset: false,
-                        gating_raffle: vec![],
+                        gating: vec![],
                         min_ticket_number: None,
                     },
-                    raffle_ticket_price: AssetInfo::Coin(Coin {
-                        denom: "ustars".to_string(),
-                        amount: Uint128::new(100u128),
-                    }),
                 },
                 &[coin(50, "ustars")],
             )
@@ -284,7 +289,6 @@ mod tests {
                         token_id: token2.token_id.clone(),
                     })
                 ],
-                raffle_ticket_price: AssetInfo::Coin(Coin::new(100, "ustars".to_string())),
                 number_of_tickets: 0,
                 randomness: None,
                 winners: vec![],
@@ -293,12 +297,15 @@ mod tests {
                     raffle_start_timestamp: Timestamp::from_nanos(1647032600000000000),
                     raffle_duration: 1,
                     comment: None,
+                    raffle_preview: 0,
+                },
+                ticket_options: TicketOptions {
                     max_ticket_number: Some(3),
                     max_ticket_per_address: Some(1),
-                    raffle_preview: 0,
                     one_winner_per_asset: false,
-                    gating_raffle: vec![],
+                    gating: vec![],
                     min_ticket_number: None,
+                    raffle_ticket_price: AssetInfo::Coin(Coin::new(100, "ustars".to_string())),
                 }
             }
         );

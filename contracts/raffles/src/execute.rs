@@ -16,11 +16,11 @@ use utils::{
 
 use crate::{
     error::ContractError,
-    msg::ExecuteMsg,
+    msg::{ExecuteMsg, RaffleOptionsMsg, TicketOptionsMsg},
     query::is_nft_owner,
     state::{
-        get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState, CONFIG,
-        MINIMUM_RAFFLE_DURATION, RAFFLE_INFO, RAFFLE_TICKETS, USER_TICKETS,
+        get_raffle_state, Config, RaffleInfo, RaffleState, CONFIG, MINIMUM_RAFFLE_DURATION,
+        RAFFLE_INFO, RAFFLE_TICKETS, USER_TICKETS,
     },
     utils::{
         buyer_can_buy_ticket, can_buy_ticket, get_nois_randomness,
@@ -37,13 +37,13 @@ pub fn execute_create_raffle(
     info: MessageInfo,
     owner: Option<String>,
     all_assets: Vec<AssetInfo>,
-    raffle_ticket_price: AssetInfo,
     raffle_options: RaffleOptionsMsg,
+    ticket_options: TicketOptionsMsg,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
     // verify ticket cost atleast 1
-    match raffle_ticket_price.clone() {
+    match ticket_options.raffle_ticket_price.clone() {
         AssetInfo::Cw721Coin(_) => return Err(ContractError::InvalidTicketCost),
         AssetInfo::Coin(coin) => {
             if coin.amount < Uint128::one() {
@@ -137,8 +137,8 @@ pub fn execute_create_raffle(
         env.clone(),
         owner.clone().unwrap_or_else(|| info.sender.clone()),
         all_assets,
-        raffle_ticket_price,
         raffle_options.clone(),
+        ticket_options.clone(),
     )?;
     let raffle_lifecycle = raffle_options
         .raffle_start_timestamp
@@ -185,11 +185,9 @@ pub fn _create_raffle(
     env: Env,
     owner: Addr,
     all_assets: Vec<AssetInfo>,
-    raffle_ticket_price: AssetInfo,
     raffle_options: RaffleOptionsMsg,
+    ticket_options: TicketOptionsMsg,
 ) -> Result<u64, ContractError> {
-    let config = CONFIG.load(deps.storage)?;
-
     // We start by creating a new trade_id (simply incremented from the last id)
     let raffle_id: u64 = CONFIG
         .update(deps.storage, |mut c| -> StdResult<_> {
@@ -198,6 +196,9 @@ pub fn _create_raffle(
         })?
         .last_raffle_id
         .unwrap(); // This is safe because of the function architecture just there
+
+    let raffle_options = raffle_options.check(deps.as_ref(), env, all_assets.len())?;
+    let ticket_options = ticket_options.check(deps.as_ref(), all_assets.len())?;
 
     RAFFLE_INFO.update(deps.storage, raffle_id, |trade| match trade {
         // If the trade id already exists, the contract is faulty
@@ -208,18 +209,12 @@ pub fn _create_raffle(
         None => Ok(RaffleInfo {
             owner,
             assets: all_assets.clone(),
-            raffle_ticket_price: raffle_ticket_price.clone(), // No checks for the assetInfo type, the worst thing that can happen is an error when trying to buy a raffle ticket
             number_of_tickets: 0u32,
             randomness: None,
             winners: vec![],
             is_cancelled: false,
-            raffle_options: RaffleOptions::new(
-                deps.api,
-                env,
-                all_assets.len(),
-                raffle_options,
-                config,
-            )?,
+            raffle_options,
+            ticket_options,
         }),
     })?;
     Ok(raffle_id)
@@ -273,12 +268,11 @@ pub fn execute_modify_raffle(
     env: Env,
     info: MessageInfo,
     raffle_id: u64,
-    raffle_ticket_price: Option<AssetInfo>,
     raffle_options: RaffleOptionsMsg,
+    ticket_options: TicketOptionsMsg,
 ) -> Result<Response, ContractError> {
     let mut raffle_info = is_raffle_owner(deps.storage, raffle_id, info.sender)?;
-    let raffle_state = get_raffle_state(env, &raffle_info);
-    let config = CONFIG.load(deps.storage)?;
+    let raffle_state = get_raffle_state(env.clone(), &raffle_info);
     // We then verify there are not tickets bought
     if raffle_info.number_of_tickets != 0 {
         return Err(ContractError::RaffleAlreadyStarted {});
@@ -303,17 +297,18 @@ pub fn execute_modify_raffle(
     }
 
     // Then modify the raffle characteristics
-    raffle_info.raffle_options = RaffleOptions::new_from(
-        deps.api,
-        raffle_info.raffle_options,
+    raffle_info.raffle_options = raffle_info.raffle_options.update(
+        deps.as_ref(),
+        env,
         raffle_info.assets.len(),
         raffle_options,
-        config,
     )?;
-    // Then modify the ticket price
-    if let Some(raffle_ticket_price) = raffle_ticket_price {
-        raffle_info.raffle_ticket_price = raffle_ticket_price;
-    }
+    raffle_info.ticket_options = raffle_info.ticket_options.update(
+        deps.as_ref(),
+        raffle_info.assets.len(),
+        ticket_options,
+    )?;
+
     RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 
     Ok(Response::new()
@@ -412,7 +407,7 @@ pub fn _buy_tickets(
         if !x.amount.is_zero() && tc != assets {
             return Err(ContractError::PaymentNotSufficient {
                 ticket_count,
-                assets_wanted: raffle_info.raffle_ticket_price,
+                assets_wanted: raffle_info.ticket_options.raffle_ticket_price,
                 // TODO: print correct assets_wanted value
                 assets_received: assets,
             });
@@ -426,7 +421,7 @@ pub fn _buy_tickets(
     can_buy_ticket(env.clone(), raffle_info.clone())?;
 
     // Then we check the user has the right to buy `ticket_count` more tickets
-    if let Some(max_ticket_per_address) = raffle_info.raffle_options.max_ticket_per_address {
+    if let Some(max_ticket_per_address) = raffle_info.ticket_options.max_ticket_per_address {
         let current_ticket_count = USER_TICKETS
             .load(deps.storage, (&owner, raffle_id))
             .unwrap_or(0);
@@ -440,7 +435,7 @@ pub fn _buy_tickets(
     }
 
     // Then we check there are some ticket left to buy
-    if let Some(max_ticket_number) = raffle_info.raffle_options.max_ticket_number {
+    if let Some(max_ticket_number) = raffle_info.ticket_options.max_ticket_number {
         if raffle_info.number_of_tickets + ticket_count > max_ticket_number {
             return Err(ContractError::TooMuchTickets {
                 max: max_ticket_number,
@@ -469,7 +464,7 @@ pub fn _buy_tickets(
     // The raffle duration is amended to reflect that
     // We also send a nois request in that case
     // If not enough were bought before and we passed the threshold, we can send the randomness trigger as well
-    let nois_message = if let Some(max_ticket_number) = raffle_info.raffle_options.max_ticket_number
+    let nois_message = if let Some(max_ticket_number) = raffle_info.ticket_options.max_ticket_number
     {
         if raffle_info.number_of_tickets >= max_ticket_number {
             raffle_info.raffle_options.raffle_duration = env.block.time.seconds()
@@ -610,7 +605,7 @@ pub fn execute_receive_nois(
         // No funds re-imbursement
         get_raffle_winner_messages(deps.as_ref(), env.clone(), raffle_info.clone())?
     } else if raffle_info.number_of_tickets
-        < raffle_info.raffle_options.min_ticket_number.unwrap_or(0)
+        < raffle_info.ticket_options.min_ticket_number.unwrap_or(0)
     {
         raffle_info.winners = vec![raffle_info.owner.clone()];
         // No funds re-imbursement

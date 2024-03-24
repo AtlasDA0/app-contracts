@@ -1,9 +1,8 @@
 use anyhow::Error as anyhow_error;
 use cosmwasm_std::{coin, Coin};
 use cw_multi_test::{AppResponse, BankSudo, Executor, SudoMsg};
-use raffles::{
-    msg::{ExecuteMsg as RaffleExecuteMsg, QueryMsg as RaffleQueryMsg},
-    state::RaffleOptionsMsg,
+use raffles::msg::{
+    ExecuteMsg as RaffleExecuteMsg, QueryMsg as RaffleQueryMsg, RaffleOptionsMsg, TicketOptionsMsg,
 };
 use utils::state::AssetInfo;
 
@@ -43,17 +42,19 @@ pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse,
                 raffle_duration: None,
 
                 comment: None,
+                raffle_preview: None,
+            },
+            ticket_options: TicketOptionsMsg {
+                raffle_ticket_price: AssetInfo::Coin(Coin {
+                    denom: "ustars".to_string(),
+                    amount: ticket_price,
+                }),
                 max_ticket_number: None,
                 max_ticket_per_address: None,
-                raffle_preview: None,
-                one_winner_per_asset: false,
-                gating_raffle: vec![],
+                gating: vec![],
                 min_ticket_number: None,
+                one_winner_per_asset: false,
             },
-            raffle_ticket_price: AssetInfo::Coin(Coin {
-                denom: "ustars".to_string(),
-                amount: ticket_price,
-            }),
         },
         &creation_fee,
     )
@@ -103,17 +104,20 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> anyhow::Result<()> {
                 raffle_duration: duration,
 
                 comment: None,
+                raffle_preview: None,
+            },
+
+            ticket_options: TicketOptionsMsg {
+                raffle_ticket_price: AssetInfo::Coin(Coin {
+                    denom: "ustars".to_string(),
+                    amount: raffle_ticket_price,
+                }),
+                one_winner_per_asset: false,
+                gating: params.gating,
+                min_ticket_number: params.min_ticket_number,
                 max_ticket_number: params.max_tickets,
                 max_ticket_per_address: max_per_addr,
-                raffle_preview: None,
-                one_winner_per_asset: false,
-                gating_raffle: params.gating,
-                min_ticket_number: params.min_ticket_number,
             },
-            raffle_ticket_price: AssetInfo::Coin(Coin {
-                denom: "ustars".to_string(),
-                amount: raffle_ticket_price,
-            }),
         },
         &[coin(CREATION_FEE_AMNT_STARS, "ustars")],
     )?;

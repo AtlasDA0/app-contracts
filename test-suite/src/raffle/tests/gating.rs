@@ -15,8 +15,8 @@ mod tests {
     use cosmwasm_std::{coin, Addr, Coin, Uint128};
     use cw20::Cw20Coin;
     use cw_multi_test::{BankSudo, Executor, SudoMsg};
+    use raffles::msg::GatingOptionsMsg;
     use raffles::msg::QueryMsg as RaffleQueryMsg;
-    use raffles::state::GatingOptionsMsg;
     use sg_multi_test::StargazeApp;
     use std::vec;
     use utils::state::AssetInfo;

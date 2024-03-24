@@ -57,7 +57,7 @@ pub fn get_raffle_owner_funds_finished_messages(
     let config = CONFIG.load(storage)?;
 
     // We start by splitting the fees between owner & treasury
-    let total_paid = match raffle_info.raffle_ticket_price.clone() {
+    let total_paid = match raffle_info.ticket_options.raffle_ticket_price.clone() {
         // only native coins accepted for raffle fees currently
         AssetInfo::Coin(coin) => coin.amount,
         _ => return Err(ContractError::WrongFundsType {}),
@@ -68,7 +68,7 @@ pub fn get_raffle_owner_funds_finished_messages(
     let owner_amount = total_paid - treasury_amount;
 
     // Then we craft the messages needed for asset transfers
-    match raffle_info.raffle_ticket_price {
+    match raffle_info.ticket_options.raffle_ticket_price {
         AssetInfo::Coin(coin) => {
             let mut messages: Vec<CosmosMsg> = vec![];
             if treasury_amount != Uint128::zero() {
@@ -110,7 +110,7 @@ pub fn get_raffle_refund_funds_finished_messages(
         .map(|r| {
             r.and_then(|(_k, v)| {
                 // We get the funds transfer message
-                match &raffle_info.raffle_ticket_price {
+                match &raffle_info.ticket_options.raffle_ticket_price {
                     AssetInfo::Coin(ticket_price) => Ok(BankMsg::Send {
                         to_address: v.to_string(),
                         amount: vec![ticket_price.clone()],
@@ -141,7 +141,7 @@ pub fn get_raffle_winners(
     // We initiate the random number generator
     let randomness: [u8; 32] = HexBinary::to_array(&raffle_info.randomness.unwrap())?;
 
-    let nb_winners = if raffle_info.raffle_options.one_winner_per_asset {
+    let nb_winners = if raffle_info.ticket_options.one_winner_per_asset {
         raffle_info.assets.len()
     } else {
         1
@@ -272,7 +272,7 @@ pub fn is_raffle_owner(
 /// Computes the ticket cost for multiple tickets bought together
 pub fn ticket_cost(raffle_info: RaffleInfo, ticket_count: u32) -> Result<AssetInfo, ContractError> {
     // enforces only Coin is a ticket cost currently.
-    Ok(match raffle_info.raffle_ticket_price {
+    Ok(match raffle_info.ticket_options.raffle_ticket_price {
         AssetInfo::Coin(x) => AssetInfo::Coin(Coin {
             denom: x.denom,
             amount: Uint128::from(ticket_count) * x.amount,
@@ -297,8 +297,8 @@ pub fn buyer_can_buy_ticket(
 ) -> Result<(), ContractError> {
     // We also check if the raffle is token gated
     raffle_info
-        .raffle_options
-        .gating_raffle
+        .ticket_options
+        .gating
         .iter()
         .try_for_each(|options| match options {
             crate::state::GatingOptions::Cw721Coin(address) => {
