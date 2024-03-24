@@ -8,7 +8,6 @@ use crate::types::CosmosMsg;
 pub const DEFAULT_LIMIT: u64 = 30;
 pub const MAX_COMMENT_SIZE: u64 = 20_000;
 pub const RANDOM_BEACON_MAX_REQUEST_TIME_IN_THE_FUTURE: u64 = 7890000; // 3 months
-pub const NOIS_AMOUNT: u128 = 500000; // 0.5 tokens
 pub const NATIVE_DENOM: &str = "ustars"; // TODO: Setup native tokens repo
 
 // ASSETS

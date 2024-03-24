@@ -1,63 +1,15 @@
 use anyhow::Error as anyhow_error;
-use cosmwasm_std::{coin, coins, Coin};
+use cosmwasm_std::{coin, Coin};
 use cw_multi_test::{AppResponse, BankSudo, Executor, SudoMsg};
 use raffles::{
-    msg::{ExecuteMsg as RaffleExecuteMsg, InstantiateMsg, QueryMsg as RaffleQueryMsg},
+    msg::{ExecuteMsg as RaffleExecuteMsg, QueryMsg as RaffleQueryMsg},
     state::RaffleOptionsMsg,
 };
-use sg_multi_test::StargazeApp;
-use sg_std::NATIVE_DENOM;
 use utils::state::AssetInfo;
 
-use crate::common_setup::contract_boxes::contract_raffles;
+use crate::common_setup::setup_minter::common::constants::CREATION_FEE_AMNT_STARS;
 
-use super::test_msgs::{CreateRaffleParams, InstantiateRaffleParams, PurchaseTicketsParams};
-
-pub fn instantate_raffle_contract(
-    params: InstantiateRaffleParams,
-) -> Result<cosmwasm_std::Addr, anyhow_error> {
-    // define contract instantiation values
-    let admin_account = params.admin_account;
-    let funds_amount = params.funds_amount;
-    let name = params.name;
-    let nois_coin = params.nois_proxy_coin;
-    let raffle_fee = params.fee_rate;
-    let nois_proxy_addr = params.nois_proxy_addr;
-
-    params
-        .app
-        .sudo(SudoMsg::Bank({
-            BankSudo::Mint {
-                to_address: admin_account.to_string(),
-                amount: coins(funds_amount, NATIVE_DENOM),
-            }
-        }))
-        .map_err(|err| println!("{err:?}"))
-        .ok();
-
-    let raffle_code_id = params.app.store_code(contract_raffles());
-    let msg: InstantiateMsg = InstantiateMsg {
-        name,
-        nois_proxy_addr: nois_proxy_addr.to_string(),
-        nois_proxy_coin: nois_coin,
-        owner: None, // confirm info.sender is default
-        fee_addr: Some(admin_account.to_string()),
-        minimum_raffle_duration: None,
-        minimum_raffle_timeout: None,
-        max_ticket_number: None,
-        raffle_fee,
-        creation_coins: vec![coin(50, NATIVE_DENOM)].into(),
-    };
-
-    params.app.instantiate_contract(
-        raffle_code_id,
-        admin_account.clone(),
-        &msg,
-        &coins(funds_amount, NATIVE_DENOM),
-        "sg-raffles",
-        Some(admin_account.to_string()),
-    )
-}
+use super::test_msgs::{CreateRaffleParams, PurchaseTicketsParams};
 
 // Template for creating raffles
 pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse, anyhow_error> {
@@ -89,18 +41,18 @@ pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse,
             raffle_options: RaffleOptionsMsg {
                 raffle_start_timestamp: Some(current_time),
                 raffle_duration: None,
-                raffle_timeout: None,
+
                 comment: None,
                 max_ticket_number: None,
                 max_ticket_per_address: None,
                 raffle_preview: None,
                 one_winner_per_asset: false,
+                min_ticket_number: None,
             },
             raffle_ticket_price: AssetInfo::Coin(Coin {
                 denom: "ustars".to_string(),
                 amount: ticket_price,
             }),
-            autocycle: Some(false),
         },
         &creation_fee,
     )
@@ -128,7 +80,7 @@ pub fn buy_tickets_template(params: PurchaseTicketsParams) -> Result<AppResponse
     )
 }
 
-pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
+pub fn create_raffle_setup(params: CreateRaffleParams) -> anyhow::Result<()> {
     let router = params.app;
     let raffle_addr = params.raffle_contract_addr;
     let owner_addr = params.owner_addr;
@@ -139,7 +91,7 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
     let duration = params.duration;
 
     // create a raffle
-    let good_create_raffle = router.execute_contract(
+    router.execute_contract(
         owner_addr.clone(),
         raffle_addr.clone(),
         &RaffleExecuteMsg::CreateRaffle {
@@ -148,38 +100,28 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> &mut StargazeApp {
             raffle_options: RaffleOptionsMsg {
                 raffle_start_timestamp: Some(current_time),
                 raffle_duration: duration,
-                raffle_timeout: None,
+
                 comment: None,
-                max_ticket_number: None,
+                max_ticket_number: params.max_tickets,
                 max_ticket_per_address: max_per_addr,
                 raffle_preview: None,
                 one_winner_per_asset: false,
+                min_ticket_number: params.min_ticket_number,
             },
             raffle_ticket_price: AssetInfo::Coin(Coin {
                 denom: "ustars".to_string(),
                 amount: raffle_ticket_price,
             }),
-            autocycle: Some(false),
         },
-        &[coin(4, "ustars")],
-    );
-    // confirm owner is set
-    // assert!(
-    //     good_create_raffle.is_ok(),
-    //     "There is an issue creating a raffle"
-    // );
-    good_create_raffle.unwrap();
+        &[coin(CREATION_FEE_AMNT_STARS, "ustars")],
+    )?;
 
-    let res: raffles::msg::RaffleResponse = router
-        .wrap()
-        .query_wasm_smart(
-            raffle_addr.clone(),
-            &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
-        )
-        .unwrap();
+    let res: raffles::msg::RaffleResponse = router.wrap().query_wasm_smart(
+        raffle_addr.clone(),
+        &RaffleQueryMsg::RaffleInfo { raffle_id: 0 },
+    )?;
     assert_eq!(res.clone().raffle_info.unwrap().owner, "owner");
-
-    router
+    Ok(())
 }
 
 // pub fn determine_winner_template(params: DetermineWinnerParams) -> &mut StargazeApp {
