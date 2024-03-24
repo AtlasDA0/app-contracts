@@ -194,8 +194,6 @@ pub fn pick_m_single_winners_among_n(
             *map.get(&current_maximum).unwrap_or(&current_maximum),
         );
         results.push(selected_element);
-        println!("{:?}", results);
-        println!("{:?}", map);
     }
 
     Ok(results)
