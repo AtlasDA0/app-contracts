@@ -35,7 +35,7 @@ mod tests {
         contracts: &RaffleContracts,
         token: &TokenMint,
     ) -> anyhow::Result<()> {
-        let create_raffle_params: CreateRaffleParams<'_> = CreateRaffleParams {
+        let create_raffle_params = CreateRaffleParams {
             app,
             raffle_contract_addr: contracts.raffle.clone(),
             owner_addr: Addr::unchecked(OWNER_ADDR),
@@ -50,6 +50,7 @@ mod tests {
             duration: None,
             min_ticket_number: None,
             max_tickets: None,
+            gating: vec![],
         };
         create_raffle_function(create_raffle_params)?;
 

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use dao_interface::voting::VotingPowerAtHeightResponse;
 use rand_xoshiro::{rand_core::SeedableRng, Xoshiro256PlusPlus};
 #[cfg(feature = "sg")]
 use sg721::ExecuteMsg as Sg721ExecuteMsg;
@@ -9,8 +10,8 @@ use crate::{
     state::{get_raffle_state, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO, RAFFLE_TICKETS},
 };
 use cosmwasm_std::{
-    coins, to_json_binary, Addr, BankMsg, Coin, Deps, Empty, Env, HexBinary, Order, StdError,
-    StdResult, Storage, Uint128, WasmMsg,
+    coins, ensure, to_json_binary, Addr, BankMsg, Coin, Deps, Empty, Env, HexBinary, Order,
+    StdError, StdResult, Storage, Uint128, WasmMsg,
 };
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
@@ -133,7 +134,7 @@ pub fn get_raffle_winners(
     // if randomness not has been provided then we expect an error
     if raffle_info.randomness.is_none() {
         return Err(ContractError::WrongStateForClaim {
-            status: get_raffle_state(env, raffle_info),
+            status: get_raffle_state(env, &raffle_info),
         });
     }
 
@@ -284,11 +285,114 @@ pub fn ticket_cost(raffle_info: RaffleInfo, ticket_count: u32) -> Result<AssetIn
 
 /// Can only buy a ticket when the raffle has started and is not closed
 pub fn can_buy_ticket(env: Env, raffle_info: RaffleInfo) -> Result<(), ContractError> {
-    if get_raffle_state(env, raffle_info) == RaffleState::Started {
+    if get_raffle_state(env, &raffle_info) == RaffleState::Started {
         Ok(())
     } else {
         Err(ContractError::CantBuyTickets {})
     }
+}
+
+pub fn buyer_can_buy_ticket(
+    deps: Deps,
+    raffle_info: &RaffleInfo,
+    buyer: String,
+) -> Result<(), ContractError> {
+    // We also check if the raffle is token gated
+    raffle_info
+        .raffle_options
+        .gating_raffle
+        .iter()
+        .try_for_each(|options| match options {
+            crate::state::GatingOptions::Cw721Coin(address) => {
+                let owner_query: cw721::TokensResponse = deps.querier.query_wasm_smart(
+                    address,
+                    &cw721_base::QueryMsg::<Empty>::Tokens {
+                        owner: buyer.clone(),
+                        start_after: None,
+                        limit: None,
+                    },
+                )?;
+                ensure!(
+                    !owner_query.tokens.is_empty(),
+                    ContractError::NotGatingCondition {
+                        condition: options.clone(),
+                        user: buyer.clone()
+                    }
+                );
+                Ok::<_, ContractError>(())
+            }
+            crate::state::GatingOptions::Coin(needed_coins) => {
+                // We verify the sender has enough coins in their wallet
+                let user_balance = deps
+                    .querier
+                    .query_balance(buyer.clone(), needed_coins.denom.clone())?;
+
+                ensure!(
+                    user_balance.amount >= needed_coins.amount,
+                    ContractError::NotGatingCondition {
+                        condition: options.clone(),
+                        user: buyer.clone()
+                    }
+                );
+                Ok(())
+            }
+            crate::state::GatingOptions::Sg721Token(address) => {
+                let owner_query: cw721::TokensResponse = deps.querier.query_wasm_smart(
+                    address,
+                    &sg721_base::QueryMsg::Tokens {
+                        owner: buyer.clone(),
+                        start_after: None,
+                        limit: None,
+                    },
+                )?;
+                ensure!(
+                    !owner_query.tokens.is_empty(),
+                    ContractError::NotGatingCondition {
+                        condition: options.clone(),
+                        user: buyer.to_string()
+                    }
+                );
+                Ok::<_, ContractError>(())
+            }
+            crate::state::GatingOptions::DaoVotingPower {
+                dao_address,
+                min_voting_power,
+            } => {
+                let voting_power: VotingPowerAtHeightResponse = deps.querier.query_wasm_smart(
+                    dao_address,
+                    &dao_interface::msg::QueryMsg::VotingPowerAtHeight {
+                        address: buyer.clone(),
+                        height: None,
+                    },
+                )?;
+                ensure!(
+                    voting_power.power >= *min_voting_power,
+                    ContractError::NotGatingCondition {
+                        condition: options.clone(),
+                        user: buyer.clone()
+                    }
+                );
+                Ok::<_, ContractError>(())
+            }
+            crate::state::GatingOptions::Cw20(needed_amount) => {
+                // We verify the sender has enough coins in their wallet
+                let user_balance: cw20::BalanceResponse = deps.querier.query_wasm_smart(
+                    &needed_amount.address,
+                    &cw20_base::msg::QueryMsg::Balance {
+                        address: buyer.clone(),
+                    },
+                )?;
+
+                ensure!(
+                    user_balance.balance >= needed_amount.amount,
+                    ContractError::NotGatingCondition {
+                        condition: options.clone(),
+                        user: buyer.clone()
+                    }
+                );
+                Ok(())
+            }
+        })
 }
 
 pub fn get_raffle_winner_messages(

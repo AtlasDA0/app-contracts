@@ -63,3 +63,12 @@ pub fn contract_nft_loans() -> Box<dyn Contract<StargazeMsgWrapper>> {
     .with_sudo(nft_loans_nc::contract::sudo);
     Box::new(contract)
 }
+
+pub fn contract_cw20() -> Box<dyn Contract<StargazeMsgWrapper>> {
+    let contract = ContractWrapper::new_with_empty(
+        cw20_base::contract::execute,
+        cw20_base::contract::instantiate,
+        cw20_base::contract::query,
+    );
+    Box::new(contract)
+}
