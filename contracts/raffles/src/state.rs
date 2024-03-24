@@ -183,7 +183,17 @@ impl RaffleOptions {
                 })
                 .unwrap_or(0u32),
             one_winner_per_asset: raffle_options.one_winner_per_asset,
-            min_ticket_number: raffle_options.min_ticket_number,
+            // We need to enforce a min ticket number in case we have one winner per asset
+            // Because one ticket can't win more than one NFT
+            min_ticket_number: if raffle_options.one_winner_per_asset {
+                if let Some(min_ticket_number) = raffle_options.min_ticket_number {
+                    Some(min_ticket_number.min(assets_len as u32))
+                } else {
+                    Some(assets_len as u32)
+                }
+            } else {
+                raffle_options.min_ticket_number
+            },
         }
     }
 
@@ -220,7 +230,17 @@ impl RaffleOptions {
                 })
                 .unwrap_or(current_options.raffle_preview),
             one_winner_per_asset: raffle_options.one_winner_per_asset,
-            min_ticket_number: raffle_options.min_ticket_number,
+            // We need to enforce a min ticket number in case we have one winner per asset
+            // Because one ticket can't win more than one NFT
+            min_ticket_number: if raffle_options.one_winner_per_asset {
+                if let Some(min_ticket_number) = raffle_options.min_ticket_number {
+                    Some(min_ticket_number.min(assets_len as u32))
+                } else {
+                    Some(assets_len as u32)
+                }
+            } else {
+                raffle_options.min_ticket_number
+            },
         }
     }
 }

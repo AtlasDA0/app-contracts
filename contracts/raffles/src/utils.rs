@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+use rand_xoshiro::{rand_core::SeedableRng, Xoshiro256PlusPlus};
 #[cfg(feature = "sg")]
 use sg721::ExecuteMsg as Sg721ExecuteMsg;
 
@@ -12,8 +15,8 @@ use cosmwasm_std::{
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
 
-use nois::{ints_in_range, ProxyExecuteMsg};
-
+use nois::ProxyExecuteMsg;
+use rand::Rng;
 use utils::{
     state::{into_cosmos_msg, AssetInfo},
     types::CosmosMsg,
@@ -143,13 +146,71 @@ pub fn get_raffle_winners(
         1
     };
 
-    let winner_ids = ints_in_range(randomness, nb_winners, 0, raffle_info.number_of_tickets - 1);
+    let winner_ids =
+        pick_m_single_winners_among_n(randomness, raffle_info.number_of_tickets, nb_winners)?;
+
     let winners = winner_ids
         .into_iter()
         .map(|winner_id| RAFFLE_TICKETS.load(deps.storage, (raffle_id, winner_id)))
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(winners)
+}
+
+/// In this function, we are getting nb_winners different winners among n ticket.
+/// We assume that nb_winners <= n here
+/// There is inspiration from nois::ints_in_range
+/// Principle of the algorithm
+/// At step 0, you have an array [0, n-1] of n elements
+/// 1. You take a random number betwwen 0 and n-1
+/// 2. You select this number as the first winner
+/// 3. Then you exchange this number with the elements in nth place inside the vector
+/// 4. You start again with the same vector where you remove the last elements
+/// Because this has at least 0(n) complexity, here, we simulate this vector with the map:HashMap
+/// This structure allows us to store the maps without having to store the whole vector
+/// At step k, you have a vector of length n-k in which you want to take an element.
+/// The index of this element here is picked at random (selected_index)
+/// The element at this index is map[selected_index]
+/// Finally, you replace this element with the current element at index n-k
+/// Because element at index n-k will not be used anymore, we just need to change the value at the selected index by the value a index n-k
+pub fn pick_m_single_winners_among_n(
+    randomness: [u8; 32],
+    n: u32,
+    nb_winners: usize, // m
+) -> Result<Vec<u32>, ContractError> {
+    let mut map = HashMap::new();
+    let mut rng = make_prng(randomness);
+    let mut results = vec![];
+    for m in 0..nb_winners {
+        // We start by selecting a number between 0 and the current maximum
+        let current_maximum = n - 1 - m as u32;
+        let selected_index = rng.gen_range(0..=current_maximum);
+
+        // We consider the array to
+        let selected_element = *map.get(&selected_index).unwrap_or(&selected_index);
+        map.insert(
+            selected_index,
+            *map.get(&current_maximum).unwrap_or(&current_maximum),
+        );
+        results.push(selected_element);
+        println!("{:?}", results);
+        println!("{:?}", map);
+    }
+
+    Ok(results)
+}
+
+pub fn make_prng(randomness: [u8; 32]) -> Xoshiro256PlusPlus {
+    // A PRNG that is not cryptographically secure.
+    // See https://docs.rs/rand/0.8.5/rand/rngs/struct.SmallRng.html
+    // where this is used for 32 bit systems.
+    // We don't use the SmallRng in order to get the same implementation
+    // in unit tests (64 bit dev machines) and the real contract (32 bit Wasm)
+
+    // We chose the 256 bit variant as it allows using the full randomness value
+    // but this might be overkill in out context. Maybe the 32bit version is better suited
+    // for running in the wasm32 target.
+    Xoshiro256PlusPlus::from_seed(randomness)
 }
 
 /// Util to get the raffle creator messages to return when the Raffle is cancelled (returns the raffled asset)
@@ -241,3 +302,43 @@ pub fn get_raffle_winner_messages(
 }
 
 // RAFFLE WINNER
+
+#[cfg(test)]
+pub mod test {
+    use cosmwasm_std::HexBinary;
+
+    use crate::error::ContractError;
+
+    use super::pick_m_single_winners_among_n;
+
+    #[test]
+    fn large_random() -> Result<(), ContractError> {
+        let n = 50;
+        let m = 48;
+
+        // We execute the random function and verify we get different numbers between 0 and 49
+        let mut winners = pick_m_single_winners_among_n(
+            HexBinary::from_hex(
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
+            )?
+            .to_array()?,
+            n,
+            m,
+        )?;
+        // Verify all the results are between 0 and 49
+        assert!(winners.iter().all(|k| *k < n));
+
+        // Verify all are greater than the previous
+        winners.sort();
+
+        winners.iter().reduce(|prev, e| {
+            if prev >= e {
+                panic!("all elements should be different")
+            } else {
+                e
+            }
+        });
+
+        Ok(())
+    }
+}

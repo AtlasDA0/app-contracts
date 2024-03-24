@@ -1094,6 +1094,8 @@ dependencies = [
  "cw721 0.18.0",
  "cw721-base 0.18.0",
  "nois",
+ "rand",
+ "rand_xoshiro",
  "serde",
  "sg-std",
  "sg721",

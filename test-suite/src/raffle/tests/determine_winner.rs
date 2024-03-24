@@ -244,8 +244,8 @@ mod tests {
 
         // verify winner is always owner
         assert_eq!(
-            res.owner, res.winners[0],
-            "winner should always be the owner if no tickets were bought"
+            two, res.winners[0],
+            "Winner should be the 2nd one with this randomness"
         );
         // verify no tickets can be bought after raffle ends
         let params = PurchaseTicketsParams {
