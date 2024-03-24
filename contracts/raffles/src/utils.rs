@@ -251,7 +251,7 @@ pub fn buyer_can_buy_ticket(
                     .query_balance(buyer.clone(), needed_coins.denom.clone())?;
 
                 ensure!(
-                    user_balance.amount > needed_coins.amount,
+                    user_balance.amount >= needed_coins.amount,
                     ContractError::NotGatingCondition {
                         condition: options.clone(),
                         user: buyer.clone()
@@ -289,7 +289,7 @@ pub fn buyer_can_buy_ticket(
                     },
                 )?;
                 ensure!(
-                    voting_power.power > *min_voting_power,
+                    voting_power.power >= *min_voting_power,
                     ContractError::NotGatingCondition {
                         condition: options.clone(),
                         user: buyer.clone()
@@ -307,7 +307,7 @@ pub fn buyer_can_buy_ticket(
                 )?;
 
                 ensure!(
-                    user_balance.balance > needed_amount.amount,
+                    user_balance.balance >= needed_amount.amount,
                     ContractError::NotGatingCondition {
                         condition: options.clone(),
                         user: buyer.clone()
