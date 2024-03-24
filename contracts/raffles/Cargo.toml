@@ -13,28 +13,31 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 default = ["sg"]
-sg = ["sg-std", "sg721","sg721-base"]
+sg = ["sg-std", "sg721", "sg721-base"]
 vanilla = []
 backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
 library = []
 
 [dependencies]
-cosmwasm-std        = "1.4.0"
-cosmwasm-schema     = "1.4.0"
-cw-storage-plus     = "1.1.0"
-cw-utils            = "1.0.3"
-cw2                 = "1.1.1"
-cw721               = "0.18.0"
-cw721-base          = "0.18.0"
-nois                = "0.8.0"
-serde               = { version = "1.0.103", default-features = false, features = ["derive"] }
-thiserror           = { version = "1.0.23" }
-sha2                = { version = "0.10.6", default-features = false }
+cosmwasm-std = "1.4.0"
+cosmwasm-schema = "1.4.0"
+cw-storage-plus = "1.1.0"
+cw-utils = "1.0.3"
+cw2 = "1.1.1"
+cw721 = "0.18.0"
+cw721-base = "0.18.0"
+nois = "0.8.0"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.23" }
+sha2 = { version = "0.10.6", default-features = false }
 
 # Stargaze libs
-sg-std = {version= "^3.2", optional = true }
-sg721 = {version= "^3.3", optional = true }
-sg721-base = {version= "^3.3", optional = true }
+sg-std = { version = "^3.2", optional = true }
+sg721 = { version = "^3.3", optional = true }
+sg721-base = { version = "^3.3", optional = true }
 
-utils        = { path = "../../packages/utils", version = "0.1.0", feature = "vanilla" }
+utils = { path = "../../packages/utils", version = "0.1.0", feature = "vanilla" }
+dao-interface = "2.3.0"
+cw20 = "1.1.2"
+cw20-base = "1.1.2"

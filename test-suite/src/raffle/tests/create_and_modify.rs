@@ -44,6 +44,7 @@ mod tests {
                 token_id: token.token_id.to_string(),
             })],
             duration: None,
+            gating: vec![],
             min_ticket_number: None,
             max_tickets: None,
         };
@@ -84,6 +85,7 @@ mod tests {
                         max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
                         raffle_preview: 0,
+                        gating_raffle: vec![],
                         min_ticket_number: None,
                     }
                 })
@@ -124,6 +126,7 @@ mod tests {
                         max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
                         raffle_preview: 0,
+                        gating_raffle: vec![],
                         min_ticket_number: None,
                     }
                 })
@@ -149,6 +152,7 @@ mod tests {
                 token_id: token.token_id.clone(),
             })],
             duration: None,
+            gating: vec![],
             min_ticket_number: None,
             max_tickets: None,
         };
@@ -181,6 +185,7 @@ mod tests {
                 token_id: token.token_id,
             })],
             duration: None,
+            gating: vec![],
             min_ticket_number: None,
             max_tickets: None,
         };
@@ -253,6 +258,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: None,
+                        gating_raffle: vec![],
                         min_ticket_number: None,
                     },
                 },
@@ -278,6 +284,7 @@ mod tests {
                     max_ticket_number: None,
                     max_ticket_per_address: None,
                     raffle_preview: None,
+                    gating_raffle: vec![],
                     min_ticket_number: None,
                 },
             },
@@ -307,6 +314,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: None,
+                        gating_raffle: vec![],
                         min_ticket_number: None,
                     },
                 },
@@ -342,6 +350,7 @@ mod tests {
                         max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
                         raffle_preview: 0,
+                        gating_raffle: vec![],
                         min_ticket_number: None,
                     }
                 })
@@ -364,6 +373,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: None,
+                        gating_raffle: vec![],
                         min_ticket_number: None,
                     },
                 },
@@ -399,6 +409,7 @@ mod tests {
                         max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
                         raffle_preview: 0,
+                        gating_raffle: vec![],
                         min_ticket_number: None,
                     }
                 })

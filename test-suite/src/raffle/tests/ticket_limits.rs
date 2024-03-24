@@ -75,6 +75,7 @@ mod tests {
                         max_ticket_per_address: Some(80),
                         raffle_preview: None,
                         min_ticket_number: None,
+                        gating_raffle: vec![],
                     },
                     raffle_ticket_price: AssetInfo::Coin(Coin {
                         denom: "ustars".to_string(),
@@ -246,6 +247,7 @@ mod tests {
                         max_ticket_number: Some(3),
                         max_ticket_per_address: Some(1),
                         raffle_preview: None,
+                        gating_raffle: vec![],
                         min_ticket_number: None,
                     },
                     raffle_ticket_price: AssetInfo::Coin(Coin {
@@ -292,6 +294,7 @@ mod tests {
                     max_ticket_number: Some(3),
                     max_ticket_per_address: Some(1),
                     raffle_preview: 0,
+                    gating_raffle: vec![],
                     min_ticket_number: None,
                 }
             }

@@ -46,6 +46,7 @@ pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse,
                 max_ticket_number: None,
                 max_ticket_per_address: None,
                 raffle_preview: None,
+                gating_raffle: vec![],
                 min_ticket_number: None,
             },
             raffle_ticket_price: AssetInfo::Coin(Coin {
@@ -104,6 +105,7 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> anyhow::Result<()> {
                 max_ticket_number: params.max_tickets,
                 max_ticket_per_address: max_per_addr,
                 raffle_preview: None,
+                gating_raffle: params.gating,
                 min_ticket_number: params.min_ticket_number,
             },
             raffle_ticket_price: AssetInfo::Coin(Coin {
@@ -121,20 +123,3 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> anyhow::Result<()> {
     assert_eq!(res.clone().raffle_info.unwrap().owner, "owner");
     Ok(())
 }
-
-// pub fn determine_winner_template(params: DetermineWinnerParams) -> &mut StargazeApp {
-//     let router = params.app;
-//     let raffle_addr = params.raffle_contract_addr;
-//     let owner_addr = params.owner_addr;
-//     let raffle_id = params.raffle_id;
-
-//     let determine_winner = router.execute_contract(
-//         owner_addr.clone(),
-//         raffle_addr.clone(),
-//         &RaffleExecuteMsg::DetermineWinner {
-//             raffle_id: raffle_id,
-//         },
-//         &[],
-//     );
-//     router
-// }

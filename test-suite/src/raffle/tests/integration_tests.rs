@@ -50,6 +50,7 @@ mod tests {
                 token_id: token.token_id.clone(),
             })],
             duration: None,
+            gating: vec![],
             min_ticket_number: None,
             max_tickets: None,
         };

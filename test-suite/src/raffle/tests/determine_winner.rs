@@ -41,6 +41,7 @@ mod tests {
                 token_id: token.token_id.clone(),
             })],
             duration: None,
+            gating: vec![],
             min_ticket_number: None,
             max_tickets: None,
         };
@@ -161,6 +162,7 @@ mod tests {
             duration: None,
             min_ticket_number: None,
             max_tickets: None,
+            gating: vec![],
         };
         create_raffle_setup(params).unwrap();
 
@@ -296,6 +298,7 @@ mod tests {
             duration: None,
             min_ticket_number: None,
             max_tickets: None,
+            gating: vec![],
         };
         create_raffle_setup(params).unwrap();
 
@@ -415,6 +418,7 @@ mod tests {
             duration: None,
             min_ticket_number: Some(4),
             max_tickets: None,
+            gating: vec![],
         };
         create_raffle_setup(params).unwrap();
 
@@ -503,6 +507,7 @@ mod tests {
             duration: None,
             min_ticket_number: None,
             max_tickets: None,
+            gating: vec![],
         };
         create_raffle_setup(params).unwrap();
 

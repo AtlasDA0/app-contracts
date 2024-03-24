@@ -42,6 +42,7 @@ mod tests {
                 token_id: token.token_id.to_string(),
             })],
             duration: None,
+            gating: vec![],
             min_ticket_number: None,
             max_tickets,
         };
@@ -239,6 +240,7 @@ mod tests {
                     token_id: token.token_id,
                 })],
                 duration: None,
+                gating: vec![],
                 min_ticket_number: None,
                 max_tickets: None,
             };
