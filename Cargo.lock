@@ -3320,6 +3320,9 @@ dependencies = [
  "env_logger",
  "nft-loans-nc",
  "raffles",
+ "sg721",
+ "sg721-base",
+ "utils",
 ]
 
 [[package]]
