@@ -75,7 +75,7 @@ mod tests {
                     raffle_ticket_price: AssetInfo::Coin(coin(4, NATIVE_DENOM)),
                     number_of_tickets: 0,
                     randomness: None,
-                    winner: None,
+                    winners: vec![],
                     is_cancelled: false,
                     raffle_options: RaffleOptions {
                         raffle_start_timestamp: Timestamp::from_nanos(1647032400000000000),
@@ -85,6 +85,7 @@ mod tests {
                         max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
                         raffle_preview: 0,
+                        one_winner_per_asset: false,
                         gating_raffle: vec![],
                         min_ticket_number: None,
                     }
@@ -116,7 +117,7 @@ mod tests {
                     raffle_ticket_price: AssetInfo::Coin(coin(4, NATIVE_DENOM)),
                     number_of_tickets: 0,
                     randomness: None,
-                    winner: None,
+                    winners: vec![],
                     is_cancelled: false,
                     raffle_options: RaffleOptions {
                         raffle_start_timestamp: Timestamp::from_nanos(1647032400000000000),
@@ -126,6 +127,7 @@ mod tests {
                         max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
                         raffle_preview: 0,
+                        one_winner_per_asset: false,
                         gating_raffle: vec![],
                         min_ticket_number: None,
                     }
@@ -258,6 +260,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: None,
+                        one_winner_per_asset: false,
                         gating_raffle: vec![],
                         min_ticket_number: None,
                     },
@@ -284,6 +287,7 @@ mod tests {
                     max_ticket_number: None,
                     max_ticket_per_address: None,
                     raffle_preview: None,
+                    one_winner_per_asset: false,
                     gating_raffle: vec![],
                     min_ticket_number: None,
                 },
@@ -314,6 +318,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: None,
+                        one_winner_per_asset: false,
                         gating_raffle: vec![],
                         min_ticket_number: None,
                     },
@@ -341,7 +346,7 @@ mod tests {
                     }),
                     number_of_tickets: 0,
                     randomness: None,
-                    winner: None,
+                    winners: vec![],
                     is_cancelled: false,
                     raffle_options: RaffleOptions {
                         raffle_start_timestamp: Timestamp::from_nanos(1647032400000000000),
@@ -350,6 +355,7 @@ mod tests {
                         max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
                         raffle_preview: 0,
+                        one_winner_per_asset: false,
                         gating_raffle: vec![],
                         min_ticket_number: None,
                     }
@@ -373,6 +379,7 @@ mod tests {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
                         raffle_preview: None,
+                        one_winner_per_asset: false,
                         gating_raffle: vec![],
                         min_ticket_number: None,
                     },
@@ -400,7 +407,7 @@ mod tests {
                     }),
                     number_of_tickets: 0,
                     randomness: None,
-                    winner: None,
+                    winners: vec![],
                     is_cancelled: false,
                     raffle_options: RaffleOptions {
                         raffle_start_timestamp: Timestamp::from_nanos(1647032400000000000),
@@ -409,6 +416,7 @@ mod tests {
                         max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
                         raffle_preview: 0,
+                        one_winner_per_asset: false,
                         gating_raffle: vec![],
                         min_ticket_number: None,
                     }

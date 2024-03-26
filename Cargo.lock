@@ -1718,6 +1718,8 @@ dependencies = [
  "cw721-base 0.18.0",
  "dao-interface",
  "nois",
+ "rand",
+ "rand_xoshiro",
  "serde",
  "sg-std",
  "sg721",
