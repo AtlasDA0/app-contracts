@@ -1,5 +1,5 @@
 use cosmwasm_std::{Addr, Coin, Timestamp, Uint128};
-use raffles::state::GatingOptionsMsg;
+use raffles::msg::GatingOptionsMsg;
 use utils::state::AssetInfo;
 
 pub struct CreateRaffleParams<'a> {

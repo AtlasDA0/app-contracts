@@ -1,6 +1,9 @@
-use crate::state::{RaffleInfo, RaffleOptionsMsg, RaffleState};
+use crate::state::{GatingOptions, RaffleInfo, RaffleOptions, RaffleState, TicketOptions, CONFIG};
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Coin, Decimal, HexBinary, StdError, StdResult};
+use cosmwasm_std::{
+    Addr, Coin, Decimal, Deps, Env, HexBinary, StdError, StdResult, Timestamp, Uint128,
+};
+use cw20::{Cw20Coin, Cw20CoinVerified};
 use nois::NoisCallback;
 use utils::state::{is_valid_name, AssetInfo, Locks};
 
@@ -50,7 +53,7 @@ pub enum ExecuteMsg {
         owner: Option<String>,
         assets: Vec<AssetInfo>,
         raffle_options: RaffleOptionsMsg,
-        raffle_ticket_price: AssetInfo,
+        ticket_options: TicketOptionsMsg,
     },
     CancelRaffle {
         raffle_id: u64,
@@ -68,8 +71,8 @@ pub enum ExecuteMsg {
     },
     ModifyRaffle {
         raffle_id: u64,
-        raffle_ticket_price: Option<AssetInfo>,
-        raffle_options: RaffleOptionsMsg,
+        raffle_options: RaffleOptionsModifyMsg,
+        ticket_options: TicketOptionsModifyMsg,
     },
     BuyTicket {
         raffle_id: u64,
@@ -167,3 +170,138 @@ pub struct IsClaimedResponse {
 
 #[cw_serde]
 pub struct MigrateMsg {}
+
+#[cw_serde]
+pub struct RaffleOptionsMsg {
+    pub raffle_start_timestamp: Option<Timestamp>,
+    pub raffle_duration: Option<u64>,
+    pub comment: Option<String>,
+    pub raffle_preview: Option<u32>,
+}
+
+#[cw_serde]
+pub struct RaffleOptionsModifyMsg {
+    pub raffle_start_timestamp: Option<Timestamp>,
+    pub raffle_duration: Option<u64>,
+    pub comment: Option<String>,
+    pub raffle_preview: Option<u32>,
+}
+
+impl RaffleOptionsMsg {
+    pub fn check(self, deps: Deps, env: Env, assets_len: usize) -> Result<RaffleOptions, StdError> {
+        let config = CONFIG.load(deps.storage)?;
+        Ok(RaffleOptions {
+            raffle_start_timestamp: self
+                .raffle_start_timestamp
+                .unwrap_or(env.block.time)
+                .max(env.block.time),
+            raffle_duration: self
+                .raffle_duration
+                .unwrap_or(config.minimum_raffle_duration)
+                .max(config.minimum_raffle_duration),
+            comment: self.comment,
+            raffle_preview: self
+                .raffle_preview
+                .map(|preview| {
+                    if preview >= assets_len.try_into().unwrap() {
+                        0u32
+                    } else {
+                        preview
+                    }
+                })
+                .unwrap_or(0u32),
+        })
+    }
+}
+
+#[cw_serde]
+pub struct TicketOptionsMsg {
+    pub raffle_ticket_price: AssetInfo,
+    pub max_ticket_number: Option<u32>,
+    pub max_ticket_per_address: Option<u32>,
+    pub min_ticket_number: Option<u32>,
+    pub gating: Vec<GatingOptionsMsg>,
+    pub one_winner_per_asset: bool,
+}
+
+#[cw_serde]
+pub struct TicketOptionsModifyMsg {
+    pub raffle_ticket_price: Option<AssetInfo>,
+    pub max_ticket_number: Option<u32>,
+    pub max_ticket_per_address: Option<u32>,
+    pub min_ticket_number: Option<u32>,
+    pub gating: Option<Vec<GatingOptionsMsg>>,
+    pub one_winner_per_asset: Option<bool>,
+}
+
+impl TicketOptionsMsg {
+    pub fn check(self, deps: Deps, assets_len: usize) -> Result<TicketOptions, StdError> {
+        let config = CONFIG.load(deps.storage)?;
+        Ok(TicketOptions {
+            max_ticket_number: if let Some(global_max) = config.max_tickets_per_raffle {
+                if let Some(this_max) = self.max_ticket_number {
+                    Some(global_max.min(this_max))
+                } else {
+                    Some(global_max)
+                }
+            } else {
+                self.max_ticket_number
+            },
+            max_ticket_per_address: self.max_ticket_per_address,
+
+            one_winner_per_asset: self.one_winner_per_asset,
+            min_ticket_number: if self.one_winner_per_asset {
+                if let Some(min_ticket_number) = self.min_ticket_number {
+                    Some(min_ticket_number.min(assets_len as u32))
+                } else {
+                    Some(assets_len as u32)
+                }
+            } else {
+                self.min_ticket_number
+            },
+
+            gating: self
+                .gating
+                .into_iter()
+                .map(|options| options.check(deps))
+                .collect::<Result<Vec<_>, _>>()?,
+            raffle_ticket_price: self.raffle_ticket_price,
+        })
+    }
+}
+#[cw_serde]
+pub enum GatingOptionsMsg {
+    Cw721Coin(String),
+    Cw20(Cw20Coin),
+    Coin(Coin),
+    Sg721Token(String),
+    DaoVotingPower {
+        dao_address: String,
+        min_voting_power: Uint128,
+    },
+}
+
+impl GatingOptionsMsg {
+    pub fn check(self, deps: Deps) -> Result<GatingOptions, StdError> {
+        Ok(match self {
+            GatingOptionsMsg::Cw721Coin(address) => {
+                GatingOptions::Cw721Coin(deps.api.addr_validate(&address)?)
+            }
+            GatingOptionsMsg::Coin(coin) => GatingOptions::Coin(coin),
+            GatingOptionsMsg::Sg721Token(address) => {
+                GatingOptions::Sg721Token(deps.api.addr_validate(&address)?)
+            }
+            GatingOptionsMsg::DaoVotingPower {
+                dao_address,
+                min_voting_power,
+            } => GatingOptions::DaoVotingPower {
+                dao_address: deps.api.addr_validate(&dao_address)?,
+                min_voting_power,
+            },
+            GatingOptionsMsg::Cw20(c) => GatingOptions::Cw20(Cw20CoinVerified {
+                address: deps.api.addr_validate(&c.address)?,
+                amount: c.amount,
+            }),
+        })
+    }
+}

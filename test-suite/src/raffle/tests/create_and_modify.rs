@@ -2,7 +2,10 @@
 mod tests {
     use cosmwasm_std::{coin, Addr, Coin, Timestamp, Uint128};
     use cw_multi_test::Executor;
-    use raffles::state::{RaffleInfo, RaffleOptions, MAX_TICKET_NUMBER};
+    use raffles::{
+        msg::{RaffleOptionsModifyMsg, TicketOptionsModifyMsg},
+        state::{RaffleInfo, RaffleOptions, TicketOptions, MAX_TICKET_NUMBER},
+    };
     use sg_multi_test::StargazeApp;
     use std::vec;
     use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
@@ -11,7 +14,7 @@ mod tests {
     use raffles::{
         error::ContractError,
         msg::{ExecuteMsg, RaffleResponse},
-        state::{RaffleOptionsMsg, RaffleState},
+        state::RaffleState,
     };
 
     use crate::{
@@ -72,7 +75,6 @@ mod tests {
                         address: token.nft.to_string(),
                         token_id: token.token_id
                     })],
-                    raffle_ticket_price: AssetInfo::Coin(coin(4, NATIVE_DENOM)),
                     number_of_tickets: 0,
                     randomness: None,
                     winners: vec![],
@@ -82,12 +84,15 @@ mod tests {
                         raffle_duration: 1,
 
                         comment: None,
+                        raffle_preview: 0,
+                    },
+                    ticket_options: TicketOptions {
+                        raffle_ticket_price: AssetInfo::Coin(coin(4, NATIVE_DENOM)),
+                        one_winner_per_asset: false,
+                        gating: vec![],
+                        min_ticket_number: None,
                         max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
-                        raffle_preview: 0,
-                        one_winner_per_asset: false,
-                        gating_raffle: vec![],
-                        min_ticket_number: None,
                     }
                 })
             }
@@ -114,7 +119,6 @@ mod tests {
                         address: token.nft.to_string(),
                         token_id: token.token_id.clone()
                     })],
-                    raffle_ticket_price: AssetInfo::Coin(coin(4, NATIVE_DENOM)),
                     number_of_tickets: 0,
                     randomness: None,
                     winners: vec![],
@@ -124,11 +128,14 @@ mod tests {
                         raffle_duration: 1,
 
                         comment: None,
+                        raffle_preview: 0,
+                    },
+                    ticket_options: TicketOptions {
+                        raffle_ticket_price: AssetInfo::Coin(coin(4, NATIVE_DENOM)),
                         max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
-                        raffle_preview: 0,
                         one_winner_per_asset: false,
-                        gating_raffle: vec![],
+                        gating: vec![],
                         min_ticket_number: None,
                     }
                 })
@@ -251,18 +258,20 @@ mod tests {
                 contracts.raffle.clone(),
                 &ExecuteMsg::ModifyRaffle {
                     raffle_id: 0,
-                    raffle_ticket_price: None,
-                    raffle_options: RaffleOptionsMsg {
+                    raffle_options: RaffleOptionsModifyMsg {
                         raffle_start_timestamp: None,
                         raffle_duration: None,
 
                         comment: Some("rust is dooope".to_string()),
+                        raffle_preview: None,
+                    },
+                    ticket_options: TicketOptionsModifyMsg {
                         max_ticket_number: None,
                         max_ticket_per_address: None,
-                        raffle_preview: None,
-                        one_winner_per_asset: false,
-                        gating_raffle: vec![],
+                        one_winner_per_asset: None,
+                        gating: None,
                         min_ticket_number: None,
+                        raffle_ticket_price: None,
                     },
                 },
                 &[],
@@ -278,17 +287,19 @@ mod tests {
             contracts.raffle.clone(),
             &ExecuteMsg::ModifyRaffle {
                 raffle_id: 1,
-                raffle_ticket_price: None,
-                raffle_options: RaffleOptionsMsg {
+                raffle_options: RaffleOptionsModifyMsg {
                     raffle_start_timestamp: None,
                     raffle_duration: None,
 
                     comment: Some("rust is dooope".to_string()),
+                    raffle_preview: None,
+                },
+                ticket_options: TicketOptionsModifyMsg {
+                    raffle_ticket_price: None,
                     max_ticket_number: None,
                     max_ticket_per_address: None,
-                    raffle_preview: None,
-                    one_winner_per_asset: false,
-                    gating_raffle: vec![],
+                    one_winner_per_asset: None,
+                    gating: None,
                     min_ticket_number: None,
                 },
             },
@@ -309,17 +320,19 @@ mod tests {
                 contracts.raffle.clone(),
                 &ExecuteMsg::ModifyRaffle {
                     raffle_id: 0,
-                    raffle_ticket_price: None,
-                    raffle_options: RaffleOptionsMsg {
+                    raffle_options: RaffleOptionsModifyMsg {
                         raffle_start_timestamp: None,
                         raffle_duration: None,
 
                         comment: Some("rust is dooope".to_string()),
+                        raffle_preview: None,
+                    },
+                    ticket_options: TicketOptionsModifyMsg {
+                        raffle_ticket_price: None,
                         max_ticket_number: None,
                         max_ticket_per_address: None,
-                        raffle_preview: None,
-                        one_winner_per_asset: false,
-                        gating_raffle: vec![],
+                        one_winner_per_asset: None,
+                        gating: None,
                         min_ticket_number: None,
                     },
                 },
@@ -340,10 +353,6 @@ mod tests {
                         address: token.nft.to_string(),
                         token_id: token.token_id.clone()
                     })],
-                    raffle_ticket_price: AssetInfo::Coin(Coin {
-                        denom: NATIVE_DENOM.to_string(),
-                        amount: Uint128::new(4),
-                    }),
                     number_of_tickets: 0,
                     randomness: None,
                     winners: vec![],
@@ -352,11 +361,17 @@ mod tests {
                         raffle_start_timestamp: Timestamp::from_nanos(1647032400000000000),
                         raffle_duration: 1u64,
                         comment: Some("rust is dooope".to_string()),
+                        raffle_preview: 0,
+                    },
+                    ticket_options: TicketOptions {
+                        raffle_ticket_price: AssetInfo::Coin(Coin {
+                            denom: NATIVE_DENOM.to_string(),
+                            amount: Uint128::new(4),
+                        }),
                         max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
-                        raffle_preview: 0,
                         one_winner_per_asset: false,
-                        gating_raffle: vec![],
+                        gating: vec![],
                         min_ticket_number: None,
                     }
                 })
@@ -370,17 +385,19 @@ mod tests {
                 contracts.raffle.clone(),
                 &ExecuteMsg::ModifyRaffle {
                     raffle_id: 0,
-                    raffle_ticket_price: None,
-                    raffle_options: RaffleOptionsMsg {
+                    raffle_options: RaffleOptionsModifyMsg {
                         raffle_start_timestamp: Some(Timestamp::from_nanos(1647032399999999990)), // checks new raffle start time is < original
                         raffle_duration: Some(2),
 
                         comment: Some("rust is dooope".to_string()),
+                        raffle_preview: None,
+                    },
+                    ticket_options: TicketOptionsModifyMsg {
+                        raffle_ticket_price: None,
                         max_ticket_number: None,
                         max_ticket_per_address: None,
-                        raffle_preview: None,
-                        one_winner_per_asset: false,
-                        gating_raffle: vec![],
+                        one_winner_per_asset: None,
+                        gating: None,
                         min_ticket_number: None,
                     },
                 },
@@ -401,10 +418,6 @@ mod tests {
                         address: token.nft.to_string(),
                         token_id: token.token_id.clone()
                     })],
-                    raffle_ticket_price: AssetInfo::Coin(Coin {
-                        denom: NATIVE_DENOM.to_string(),
-                        amount: Uint128::new(4),
-                    }),
                     number_of_tickets: 0,
                     randomness: None,
                     winners: vec![],
@@ -413,11 +426,17 @@ mod tests {
                         raffle_start_timestamp: Timestamp::from_nanos(1647032400000000000),
                         raffle_duration: 2u64,
                         comment: Some("rust is dooope".to_string()),
+                        raffle_preview: 0,
+                    },
+                    ticket_options: TicketOptions {
+                        raffle_ticket_price: AssetInfo::Coin(Coin {
+                            denom: NATIVE_DENOM.to_string(),
+                            amount: Uint128::new(4),
+                        }),
                         max_ticket_number: Some(MAX_TICKET_NUMBER),
                         max_ticket_per_address: None,
-                        raffle_preview: 0,
                         one_winner_per_asset: false,
-                        gating_raffle: vec![],
+                        gating: vec![],
                         min_ticket_number: None,
                     }
                 })

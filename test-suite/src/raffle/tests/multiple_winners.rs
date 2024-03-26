@@ -3,7 +3,7 @@ mod tests {
     use cosmwasm_std::{coin, Addr, Coin, Uint128};
     use cw_multi_test::Executor;
     use cw_multi_test::{BankSudo, SudoMsg};
-    use raffles::{msg::ExecuteMsg, state::RaffleOptionsMsg};
+    use raffles::msg::{ExecuteMsg, RaffleOptionsMsg, TicketOptionsMsg};
 
     use utils::state::{AssetInfo, Sg721Token};
 
@@ -73,17 +73,19 @@ mod tests {
                         raffle_start_timestamp: Some(current_time),
                         raffle_duration: None,
                         comment: None,
-                        max_ticket_number: Some(3),
-                        max_ticket_per_address: Some(1),
                         raffle_preview: None,
+                    },
+                    ticket_options: TicketOptionsMsg {
+                        raffle_ticket_price: AssetInfo::Coin(Coin {
+                            denom: "ustars".to_string(),
+                            amount: Uint128::new(100u128),
+                        }),
                         one_winner_per_asset: true,
                         min_ticket_number: None,
-                        gating_raffle: vec![],
+                        gating: vec![],
+                        max_ticket_number: Some(3),
+                        max_ticket_per_address: Some(1),
                     },
-                    raffle_ticket_price: AssetInfo::Coin(Coin {
-                        denom: "ustars".to_string(),
-                        amount: Uint128::new(100u128),
-                    }),
                 },
                 &[coin(50, "ustars")],
             )
@@ -102,7 +104,7 @@ mod tests {
             res.clone()
                 .raffle_info
                 .unwrap()
-                .raffle_options
+                .ticket_options
                 .one_winner_per_asset
         );
 
