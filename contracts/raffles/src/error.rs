@@ -3,7 +3,7 @@ use thiserror::Error;
 use cosmwasm_std::{StdError, Timestamp};
 use utils::state::AssetInfo;
 
-use crate::state::RaffleState;
+use crate::state::{GatingOptions, RaffleState};
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {
@@ -18,7 +18,7 @@ pub enum ContractError {
 
     #[error("Proxy coin is not valid")]
     InvalidProxyCoin,
-    
+
     #[error("Invalid raffle ticket value set")]
     InvalidTicketCost,
 
@@ -182,4 +182,10 @@ pub enum ContractError {
 
     #[error("The raffle comment is ({size}) bytes, must be <=  ({max}) bytes")]
     CommentTooLarge { size: u64, max: u64 },
+
+    #[error("The token gated conditions {condition:?} is not met for user {user}")]
+    NotGatingCondition {
+        condition: GatingOptions,
+        user: String,
+    },
 }

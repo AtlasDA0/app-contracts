@@ -41,6 +41,7 @@ mod tests {
                 token_id: token.token_id.clone(),
             })],
             duration: None,
+            gating: vec![],
             min_ticket_number: None,
             max_tickets: None,
         };
@@ -118,8 +119,7 @@ mod tests {
 
         // verify winner is always owner
         assert_eq!(
-            res.owner,
-            res.winner.unwrap(),
+            res.owner, res.winners[0],
             "winner should always be the owner if no tickets were bought"
         );
         // verify no tickets can be bought after raffle ends
@@ -161,6 +161,7 @@ mod tests {
             duration: None,
             min_ticket_number: None,
             max_tickets: None,
+            gating: vec![],
         };
         create_raffle_setup(params).unwrap();
 
@@ -245,9 +246,8 @@ mod tests {
 
         // verify winner is always owner
         assert_eq!(
-            two,
-            res.winner.unwrap(),
-            "winner should always be the owner if no tickets were bought"
+            two, res.winners[0],
+            "Winner should be the 2nd one with this randomness"
         );
         // verify no tickets can be bought after raffle ends
         let params = PurchaseTicketsParams {
@@ -296,6 +296,7 @@ mod tests {
             duration: None,
             min_ticket_number: None,
             max_tickets: None,
+            gating: vec![],
         };
         create_raffle_setup(params).unwrap();
 
@@ -364,8 +365,7 @@ mod tests {
 
         // verify winner is always owner
         assert_eq!(
-            two,
-            res.winner.unwrap(),
+            two, res.winners[0],
             "winner should always be the owner if no tickets were bought"
         );
         // verify no tickets can be bought after raffle ends
@@ -415,6 +415,7 @@ mod tests {
             duration: None,
             min_ticket_number: Some(4),
             max_tickets: None,
+            gating: vec![],
         };
         create_raffle_setup(params).unwrap();
 
@@ -446,11 +447,7 @@ mod tests {
         );
 
         // verify winner is always owner
-        assert_eq!(
-            owner_addr,
-            res.winner.unwrap(),
-            "You have the wrong winner "
-        );
+        assert_eq!(owner_addr, res.winners[0], "You have the wrong winner ");
 
         // verify no tickets can be bought after raffle ends
         let params = PurchaseTicketsParams {
@@ -503,6 +500,7 @@ mod tests {
             duration: None,
             min_ticket_number: None,
             max_tickets: None,
+            gating: vec![],
         };
         create_raffle_setup(params).unwrap();
 

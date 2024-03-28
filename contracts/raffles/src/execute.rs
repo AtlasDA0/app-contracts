@@ -23,9 +23,10 @@ use crate::{
         MINIMUM_RAFFLE_DURATION, RAFFLE_INFO, RAFFLE_TICKETS, USER_TICKETS,
     },
     utils::{
-        can_buy_ticket, get_nois_randomness, get_raffle_owner_funds_finished_messages,
-        get_raffle_owner_messages, get_raffle_refund_funds_finished_messages, get_raffle_winner,
-        get_raffle_winner_messages, is_raffle_owner, ticket_cost,
+        buyer_can_buy_ticket, can_buy_ticket, get_nois_randomness,
+        get_raffle_owner_funds_finished_messages, get_raffle_owner_messages,
+        get_raffle_refund_funds_finished_messages, get_raffle_winner_messages, get_raffle_winners,
+        is_raffle_owner, ticket_cost,
     },
 };
 
@@ -211,9 +212,15 @@ pub fn _create_raffle(
             raffle_ticket_price: raffle_ticket_price.clone(), // No checks for the assetInfo type, the worst thing that can happen is an error when trying to buy a raffle ticket
             number_of_tickets: 0u32,
             randomness: None,
-            winner: None,
+            winners: vec![],
             is_cancelled: false,
-            raffle_options: RaffleOptions::new(env, all_assets.len(), raffle_options, config),
+            raffle_options: RaffleOptions::new(
+                deps.api,
+                env,
+                all_assets.len(),
+                raffle_options,
+                config,
+            )?,
         }),
     })?;
     Ok(raffle_id)
@@ -230,7 +237,7 @@ pub fn execute_cancel_raffle(
     let mut raffle_info = is_raffle_owner(deps.storage, raffle_id, info.sender)?;
 
     // The raffle can only be cancelled if it wasn't previously cancelled and it isn't finished
-    let raffle_state = get_raffle_state(env.clone(), raffle_info.clone());
+    let raffle_state = get_raffle_state(env.clone(), &raffle_info);
 
     if raffle_state != RaffleState::Created
         && raffle_state != RaffleState::Started
@@ -271,7 +278,7 @@ pub fn execute_modify_raffle(
     raffle_options: RaffleOptionsMsg,
 ) -> Result<Response, ContractError> {
     let mut raffle_info = is_raffle_owner(deps.storage, raffle_id, info.sender)?;
-    let raffle_state = get_raffle_state(env, raffle_info.clone());
+    let raffle_state = get_raffle_state(env, &raffle_info);
     let config = CONFIG.load(deps.storage)?;
     // We then verify there are not tickets bought
     if raffle_info.number_of_tickets != 0 {
@@ -298,11 +305,12 @@ pub fn execute_modify_raffle(
 
     // Then modify the raffle characteristics
     raffle_info.raffle_options = RaffleOptions::new_from(
+        deps.api,
         raffle_info.raffle_options,
         raffle_info.assets.len(),
         raffle_options,
         config,
-    );
+    )?;
     // Then modify the ticket price
     if let Some(raffle_ticket_price) = raffle_ticket_price {
         raffle_info.raffle_ticket_price = raffle_ticket_price;
@@ -411,6 +419,9 @@ pub fn _buy_tickets(
             });
         }
     }
+
+    // We start by checking that the buyer has the gating rights to buy this ticket
+    buyer_can_buy_ticket(deps.as_ref(), &raffle_info, owner.to_string())?;
 
     // We then check the raffle is in the right state
     can_buy_ticket(env.clone(), raffle_info.clone())?;
@@ -575,7 +586,7 @@ pub fn execute_receive_nois(
     let raffle_id: u64 = raffle_id.parse().unwrap();
 
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
-    let raffle_state = get_raffle_state(env.clone(), raffle_info.clone());
+    let raffle_state = get_raffle_state(env.clone(), &raffle_info);
 
     if raffle_state != RaffleState::Closed {
         return Err(ContractError::WrongStateForClaim {
@@ -596,13 +607,13 @@ pub fn execute_receive_nois(
     // If there was no participant, the winner is the raffle owner
     // If the minimum number of tickets is not reached, the winner is the raffle owner as well
     let msgs = if raffle_info.number_of_tickets == 0u32 {
-        raffle_info.winner = Some(raffle_info.owner.clone());
+        raffle_info.winners = vec![raffle_info.owner.clone()];
         // No funds re-imbursement
         get_raffle_winner_messages(deps.as_ref(), env.clone(), raffle_info.clone())?
     } else if raffle_info.number_of_tickets
         < raffle_info.raffle_options.min_ticket_number.unwrap_or(0)
     {
-        raffle_info.winner = Some(raffle_info.owner.clone());
+        raffle_info.winners = vec![raffle_info.owner.clone()];
         // No funds re-imbursement
         let nft_msg = get_raffle_winner_messages(deps.as_ref(), env.clone(), raffle_info.clone())?;
         let refund_msgs = get_raffle_refund_funds_finished_messages(
@@ -614,8 +625,8 @@ pub fn execute_receive_nois(
         [refund_msgs, nft_msg].concat()
     } else {
         // We calculate the winner of the raffle and save it to the contract. The raffle is now claimed !
-        let winner = get_raffle_winner(deps.as_ref(), env.clone(), raffle_id, raffle_info.clone())?;
-        raffle_info.winner = Some(winner);
+        raffle_info.winners =
+            get_raffle_winners(deps.as_ref(), env.clone(), raffle_id, raffle_info.clone())?;
         let owner_funds_msg = get_raffle_owner_funds_finished_messages(
             deps.storage,
             env.clone(),
@@ -633,7 +644,15 @@ pub fn execute_receive_nois(
         .add_messages(msgs)
         .add_attribute("action", "claim")
         .add_attribute("raffle_id", raffle_id.to_string())
-        .add_attribute("winner", raffle_info.winner.unwrap()))
+        .add_attribute(
+            "winners",
+            raffle_info
+                .winners
+                .into_iter()
+                .map(|a| a.to_string())
+                .collect::<Vec<_>>()
+                .join(", "),
+        ))
 }
 
 #[allow(clippy::too_many_arguments)]

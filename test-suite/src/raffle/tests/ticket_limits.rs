@@ -75,6 +75,8 @@ mod tests {
                         max_ticket_per_address: Some(80),
                         raffle_preview: None,
                         min_ticket_number: None,
+                        one_winner_per_asset: false,
+                        gating_raffle: vec![],
                     },
                     raffle_ticket_price: AssetInfo::Coin(Coin {
                         denom: "ustars".to_string(),
@@ -117,9 +119,9 @@ mod tests {
                 &raffles::msg::QueryMsg::RaffleInfo { raffle_id: 0 },
             )
             .unwrap();
-        println!("{:?}", res);
+
         assert_eq!(res.clone().raffle_state, RaffleState::Closed);
-        assert_eq!(res.raffle_info.unwrap().winner, None);
+        assert_eq!(res.raffle_info.unwrap().winners.len(), 0);
 
         // assert the tokens being raffled are sent back to owner if no tickets are purchased,
         // even if someone else calls the contract to determine winner tokens
@@ -246,6 +248,8 @@ mod tests {
                         max_ticket_number: Some(3),
                         max_ticket_per_address: Some(1),
                         raffle_preview: None,
+                        one_winner_per_asset: false,
+                        gating_raffle: vec![],
                         min_ticket_number: None,
                     },
                     raffle_ticket_price: AssetInfo::Coin(Coin {
@@ -283,7 +287,7 @@ mod tests {
                 raffle_ticket_price: AssetInfo::Coin(Coin::new(100, "ustars".to_string())),
                 number_of_tickets: 0,
                 randomness: None,
-                winner: None,
+                winners: vec![],
                 is_cancelled: false,
                 raffle_options: RaffleOptions {
                     raffle_start_timestamp: Timestamp::from_nanos(1647032600000000000),
@@ -292,6 +296,8 @@ mod tests {
                     max_ticket_number: Some(3),
                     max_ticket_per_address: Some(1),
                     raffle_preview: 0,
+                    one_winner_per_asset: false,
+                    gating_raffle: vec![],
                     min_ticket_number: None,
                 }
             }
@@ -339,7 +345,7 @@ mod tests {
             )
             .unwrap();
         assert_eq!(res.clone().raffle_state, RaffleState::Closed);
-        assert_eq!(res.raffle_info.unwrap().winner, None);
+        assert_eq!(res.raffle_info.unwrap().winners.len(), 0);
 
         // assert the tokens being raffled are sent back to owner if no tickets are purchased,
         // even if someone else calls the contract to determine winner tokens

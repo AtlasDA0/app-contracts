@@ -43,3 +43,15 @@ raffles = { path = "../contracts/raffles", features = [
 ] }
 nft-loans-nc = { path = "../contracts/nft-loan", features = ["vanilla", "sg"] }
 utils = { path = "../packages/utils" }
+
+#  For gating
+dao-proposal-single = "2.3.0"
+cw20 = "1.1.2"
+dao-interface = "2.3.0"
+dao-voting-cw20-staked = "2.3.0"
+cw20-base = "1.1.2"
+cw20-stake = "2.3.0"
+dao-dao-core = "2.3.0"
+cw-utils.workspace = true
+dao-voting = "2.3.0"
+dao-pre-propose-single = "2.3.0"
