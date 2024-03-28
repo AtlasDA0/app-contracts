@@ -17,7 +17,7 @@ pub fn main() -> anyhow::Result<()> {
 
     let raffles = Raffles::new(chain.clone());
 
-    let raffle_options = raffles.raffle_info(RAFFLE_ID)?;
+    let _raffle_options = raffles.raffle_info(RAFFLE_ID)?;
 
     // We assert the owner of the NFT is indeed the chain sender now
     let owner: cw721::OwnerOfResponse = chain.query(
