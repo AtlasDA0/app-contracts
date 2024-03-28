@@ -4,8 +4,8 @@ use raffles::msg::ExecuteMsgFns as _;
 use scripts::{raffles::Raffles, ELGAFAR_1};
 use utils::state::AssetInfo;
 
-pub const RAFFLE_ID: u64 = 0;
-
+pub const RAFFLE_ID: u64 = 2;
+pub const TICKET_NUMBER: u32 = 5;
 pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     env_logger::init();
@@ -16,9 +16,9 @@ pub fn main() -> anyhow::Result<()> {
     // We create one raffle with 1 NFT and see if nois agrees to send us the randomness
     raffles.buy_ticket(
         RAFFLE_ID,
-        AssetInfo::Coin(coin(123, "ustars")),
-        1, // Buy one ticket,
-        &coins(123, "ustars"),
+        AssetInfo::Coin(coin((TICKET_NUMBER as u128) * 123, "ustars")),
+        TICKET_NUMBER,
+        &coins((TICKET_NUMBER as u128) * 123, "ustars"),
     )?;
 
     Ok(())

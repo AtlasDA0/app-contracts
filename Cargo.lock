@@ -3314,8 +3314,10 @@ name = "scripts"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "cosmrs",
  "cosmwasm-std",
  "cw-orch",
+ "cw721 0.18.0",
  "dotenv",
  "env_logger",
  "nft-loans-nc",

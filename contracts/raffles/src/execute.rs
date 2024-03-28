@@ -31,7 +31,7 @@ use crate::{
 
 #[allow(clippy::too_many_arguments)]
 pub fn execute_create_raffle(
-    deps: DepsMut,
+    mut deps: DepsMut,
     env: Env,
     info: MessageInfo,
     owner: Option<String>,
@@ -132,17 +132,18 @@ pub fn execute_create_raffle(
     // defines the fee token to send to nois-proxy, by the smart contract
     let nois_fee: Coin = config.nois_proxy_coin;
     let raffle_id = _create_raffle(
-        deps,
+        deps.branch(),
         env.clone(),
         owner.clone().unwrap_or_else(|| info.sender.clone()),
         all_assets,
         raffle_ticket_price,
         raffle_options.clone(),
     )?;
+
+    let raffle_options = RAFFLE_INFO.load(deps.storage, raffle_id)?.raffle_options;
     let raffle_lifecycle = raffle_options
         .raffle_start_timestamp
-        .unwrap_or_default()
-        .plus_seconds(raffle_options.clone().raffle_duration.unwrap_or_default())
+        .plus_seconds(raffle_options.raffle_duration)
         .plus_seconds(6);
 
     let mut msgs = vec![];
