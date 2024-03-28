@@ -15,12 +15,6 @@ vanilla:
 	cp -p ./target/wasm32-unknown-unknown/release/raffles.wasm ./artifacts/raffles.wasm 
 	cp -p ./target/wasm32-unknown-unknown/release/nft_loans_nc.wasm ./artifacts/nft_loans_nc.wasm 
 
-artifacts
-	docker run --rm -v "$(pwd)":/code \
-	--mount type=volume,source="$(basename "$(pwd)")_cache",target=/target \
-	--mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
-	cosmwasm/optimizer:0.15.0
-
 clean:
 	cargo clean
 	-rm -f ./v1_contract.wasm
