@@ -7,7 +7,7 @@ use cw_storage_plus::Bound;
 #[cfg(feature = "sg")]
 use sg721_base::QueryMsg as Sg721QueryMsg;
 
-use utils::state::AssetInfo;
+mod filters;
 
 use crate::{
     msg::{AllRafflesResponse, ConfigResponse, QueryFilters, RaffleResponse},
@@ -16,6 +16,8 @@ use crate::{
         RAFFLE_TICKETS, USER_TICKETS,
     },
 };
+
+use self::filters::{contains_token_filter, has_gated_rights_filter, owner_filter, state_filter};
 
 // settings for pagination
 const MAX_LIMIT: u32 = 100;
@@ -30,7 +32,6 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         fee_addr: config.fee_addr.to_string(),
         last_raffle_id: config.last_raffle_id.unwrap_or(0),
         minimum_raffle_duration: config.minimum_raffle_duration,
-        minimum_raffle_timeout: config.minimum_raffle_timeout,
         raffle_fee: config.raffle_fee,
         locks: config.locks,
         nois_proxy_addr: config.nois_proxy_addr.to_string(),
@@ -83,8 +84,11 @@ pub fn query_all_raffles_by_depositor(
         .take(BASE_LIMIT)
         .filter_map(|response| response.ok())
         .map(|raffle_id| Ok((raffle_id, load_raffle(deps.storage, raffle_id).unwrap()))) // This unwrap is safe if the data structure was respected
+        .filter(|response| match response {
+            Ok((_id, raffle_info)) => raffle_filter(deps, env.clone(), raffle_info, &filters),
+            Err(_) => false,
+        })
         .map(|kv_item| parse_raffles(deps.api, env.clone(), kv_item))
-        .filter(|response| raffle_filter(deps.api, env.clone(), response, &filters))
         .take(limit)
         .collect::<StdResult<Vec<RaffleResponse>>>()?;
 
@@ -117,7 +121,7 @@ fn parse_raffles(
 ) -> StdResult<RaffleResponse> {
     item.map(|(raffle_id, raffle)| RaffleResponse {
         raffle_id,
-        raffle_state: get_raffle_state(env, raffle.clone()),
+        raffle_state: get_raffle_state(env, &raffle),
         raffle_info: Some(raffle),
     })
 }
@@ -155,8 +159,11 @@ pub fn query_all_raffles_raw(
     let mut raffles: Vec<RaffleResponse> = RAFFLE_INFO
         .range(deps.storage, None, start.clone(), Order::Descending)
         .take(BASE_LIMIT)
+        .filter(|response| match response {
+            Ok((_id, raffle_info)) => raffle_filter(deps, env.clone(), raffle_info, &filters),
+            Err(_) => false,
+        })
         .map(|kv_item| parse_raffles(deps.api, env.clone(), kv_item))
-        .filter(|response| raffle_filter(deps.api, env.clone(), response, &filters))
         .take(limit)
         .collect::<StdResult<Vec<RaffleResponse>>>()?;
 
@@ -180,37 +187,16 @@ pub fn query_all_raffles_raw(
 }
 
 pub fn raffle_filter(
-    _api: &dyn Api,
+    deps: Deps,
     env: Env,
-    raffle_info: &StdResult<RaffleResponse>,
+    raffle_info: &RaffleInfo,
     filters: &Option<QueryFilters>,
 ) -> bool {
     if let Some(filters) = filters {
-        let raffle = raffle_info.as_ref().unwrap();
-
-        (match &filters.states {
-            Some(state) => state
-                .contains(&get_raffle_state(env, raffle.raffle_info.clone().unwrap()).to_string()),
-            None => true,
-        } && match &filters.owner {
-            Some(owner) => raffle.raffle_info.as_ref().unwrap().owner == owner.clone(),
-            None => true,
-        } && match &filters.contains_token {
-            Some(token) => {
-                raffle
-                    .raffle_info
-                    .clone()
-                    .unwrap()
-                    .assets
-                    .iter()
-                    .any(|asset| match asset {
-                        AssetInfo::Coin(x) => x.denom == token.as_ref(),
-                        AssetInfo::Cw721Coin(x) => x.address == token.as_ref(),
-                        AssetInfo::Sg721Token(x) => x.address == token.as_ref(),
-                    })
-            }
-            None => true,
-        })
+        state_filter(&env, raffle_info, filters)
+            && owner_filter(raffle_info, filters)
+            && contains_token_filter(raffle_info, filters)
+            && has_gated_rights_filter(deps, raffle_info, filters)
     } else {
         true
     }

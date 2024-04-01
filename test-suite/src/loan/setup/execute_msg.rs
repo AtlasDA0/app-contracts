@@ -1,6 +1,8 @@
 use crate::common_setup::{
     contract_boxes::contract_nft_loans,
-    setup_minter::common::constants::{MIN_COLLATERAL_LISTING, OWNER_ADDR, SG721_CONTRACT},
+    setup_minter::common::constants::{
+        MIN_COLLATERAL_LISTING, OWNER_ADDR, SG721_CONTRACT, TREASURY_ADDR,
+    },
 };
 
 use super::test_msgs::{CreateLoanParams, InstantiateParams};
@@ -11,7 +13,6 @@ use nft_loans_nc::{
     msg::{ExecuteMsg as LoansExecuteMsg, InstantiateMsg},
     state::LoanTerms,
 };
-use raffles::state::ATLAS_DAO_STARGAZE_TREASURY;
 use sg_std::NATIVE_DENOM;
 use utils::state::{AssetInfo, Sg721Token};
 
@@ -38,7 +39,7 @@ pub fn instantate_loan_contract(
     let msg: InstantiateMsg = InstantiateMsg {
         name,
         owner: Some(OWNER_ADDR.into()),
-        treasury_addr: ATLAS_DAO_STARGAZE_TREASURY.into(),
+        treasury_addr: TREASURY_ADDR.into(),
         fee_rate,
         listing_fee_coins: vec![
             coin(MIN_COLLATERAL_LISTING, NATIVE_DENOM),

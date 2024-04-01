@@ -15,6 +15,15 @@ pub fn contract_raffles() -> Box<dyn Contract<StargazeMsgWrapper>> {
     .with_sudo(raffles::contract::sudo);
     Box::new(contract)
 }
+pub fn contract_fake_nois() -> Box<dyn Contract<StargazeMsgWrapper>> {
+    let contract = ContractWrapper::new(
+        super::nois_proxy::execute,
+        super::nois_proxy::instantiate,
+        super::nois_proxy::query,
+    )
+    .with_reply(super::nois_proxy::reply);
+    Box::new(contract)
+}
 
 pub fn contract_vending_factory() -> Box<dyn Contract<StargazeMsgWrapper>> {
     let contract = ContractWrapper::new(
@@ -52,5 +61,14 @@ pub fn contract_nft_loans() -> Box<dyn Contract<StargazeMsgWrapper>> {
         nft_loans_nc::contract::query,
     )
     .with_sudo(nft_loans_nc::contract::sudo);
+    Box::new(contract)
+}
+
+pub fn contract_cw20() -> Box<dyn Contract<StargazeMsgWrapper>> {
+    let contract = ContractWrapper::new_with_empty(
+        cw20_base::contract::execute,
+        cw20_base::contract::instantiate,
+        cw20_base::contract::query,
+    );
     Box::new(contract)
 }

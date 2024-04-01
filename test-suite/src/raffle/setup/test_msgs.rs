@@ -1,15 +1,6 @@
-use cosmwasm_std::{Addr, Coin, Decimal, Timestamp, Uint128};
+use cosmwasm_std::{Addr, Coin, Timestamp, Uint128};
+use raffles::state::GatingOptionsMsg;
 use utils::state::AssetInfo;
-
-pub struct InstantiateRaffleParams<'a> {
-    pub app: &'a mut crate::common_setup::app::StargazeApp,
-    pub admin_account: Addr,
-    pub funds_amount: u128,
-    pub fee_rate: Decimal,
-    pub name: String,
-    pub nois_proxy_coin: Coin,
-    pub nois_proxy_addr: String,
-}
 
 pub struct CreateRaffleParams<'a> {
     pub app: &'a mut crate::common_setup::app::StargazeApp,
@@ -18,9 +9,12 @@ pub struct CreateRaffleParams<'a> {
     pub creation_fee: Vec<Coin>,
     pub ticket_price: Uint128,
     pub max_ticket_per_addr: Option<u32>,
+    pub max_tickets: Option<u32>,
+    pub min_ticket_number: Option<u32>,
     pub raffle_nfts: Vec<AssetInfo>,
     pub duration: Option<u64>,
     pub raffle_start_timestamp: Option<Timestamp>,
+    pub gating: Vec<GatingOptionsMsg>,
 }
 
 pub struct PurchaseTicketsParams<'a> {

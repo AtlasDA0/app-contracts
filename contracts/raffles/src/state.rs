@@ -1,18 +1,16 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    ensure, Addr, Coin, Decimal, Env, HexBinary, StdError, StdResult, Storage, Timestamp, Uint128,
+    ensure, Addr, Api, Coin, Decimal, Env, HexBinary, StdError, StdResult, Storage, Timestamp,
+    Uint128,
 };
-
+use cw20::{Cw20Coin, Cw20CoinVerified};
 use cw_storage_plus::{Item, Map};
 use utils::state::{AssetInfo, Locks};
 
-pub const ATLAS_DAO_STARGAZE_TREASURY: &str =
-    "stars1jyg4j6t4kdptgsx6q55mu0f434zqcfppkx6ww9gs7p4x7clgfrjq29sgmc";
 pub const CONFIG_KEY: &str = "config";
 pub const CONFIG: Item<Config> = Item::new(CONFIG_KEY);
 pub const MAX_TICKET_NUMBER: u32 = 100000; // The maximum amount of tickets () that can be in a raffle
-pub const MINIMUM_RAFFLE_DURATION: u64 = 1; // default minimum raffle duration, in blocks
-pub const MINIMUM_RAFFLE_TIMEOUT: u64 = 120; // The raffle timeout is a least 2 minutes
+pub const MINIMUM_RAFFLE_DURATION: u64 = 1; // default minimum raffle duration, in seconds
 pub const RAFFLE_INFO: Map<u64, RaffleInfo> = Map::new("raffle_info");
 pub const RAFFLE_TICKETS: Map<(u64, u32), Addr> = Map::new("raffle_tickets");
 pub const STATIC_RAFFLE_CREATION_FEE: u128 = 100; // default static tokens required to create raffle
@@ -30,8 +28,6 @@ pub struct Config {
     pub last_raffle_id: Option<u64>,
     /// The minimum duration, in seconds, in which users can buy raffle tickets
     pub minimum_raffle_duration: u64,
-    /// The minimum interval, in seconds, during which users can provide entropy to the contract.
-    pub minimum_raffle_timeout: u64,
     // The maximum number of participants available to participate in any 1 raffle
     pub max_tickets_per_raffle: Option<u32>,
     /// A % cut of all raffle fee's generated to go to the fee_addr
@@ -89,7 +85,7 @@ pub struct RaffleInfo {
     pub raffle_ticket_price: AssetInfo, // cost per ticket
     pub number_of_tickets: u32,         // number of tickets purchased
     pub randomness: Option<HexBinary>,  // randomness seed provided by nois_proxy
-    pub winner: Option<Addr>,           // winner is determined here
+    pub winners: Vec<Addr>,             // winner is determined here
     pub is_cancelled: bool,
     pub raffle_options: RaffleOptions,
 }
@@ -99,7 +95,6 @@ pub enum RaffleState {
     Created,
     Started,
     Closed,
-    Finished,
     Claimed,
     Cancelled,
 }
@@ -110,7 +105,6 @@ impl std::fmt::Display for RaffleState {
             RaffleState::Created => write!(f, "created"),
             RaffleState::Started => write!(f, "started"),
             RaffleState::Closed => write!(f, "closed"),
-            RaffleState::Finished => write!(f, "finished"),
             RaffleState::Claimed => write!(f, "claimed"),
             RaffleState::Cancelled => write!(f, "cancelled"),
         }
@@ -121,7 +115,7 @@ impl std::fmt::Display for RaffleState {
 /// This function depends on the block time to return the RaffleState.
 /// As actions can only happen in certain time-periods, you have to be careful when testing off-chain
 /// If the chains stops or the block time is not accurate we might get some errors (let's hope it never happens)
-pub fn get_raffle_state(env: Env, raffle_info: RaffleInfo) -> RaffleState {
+pub fn get_raffle_state(env: Env, raffle_info: &RaffleInfo) -> RaffleState {
     if raffle_info.is_cancelled {
         RaffleState::Cancelled
     } else if env.block.time < raffle_info.raffle_options.raffle_start_timestamp {
@@ -133,17 +127,8 @@ pub fn get_raffle_state(env: Env, raffle_info: RaffleInfo) -> RaffleState {
             .plus_seconds(raffle_info.raffle_options.raffle_duration)
     {
         RaffleState::Started
-    } else if env.block.time
-        < raffle_info
-            .raffle_options
-            .raffle_start_timestamp
-            .plus_seconds(raffle_info.raffle_options.raffle_duration)
-            .plus_seconds(raffle_info.raffle_options.raffle_timeout)
-        || raffle_info.randomness.is_none()
-    {
+    } else if raffle_info.randomness.is_none() {
         RaffleState::Closed
-    } else if raffle_info.winner.is_none() {
-        RaffleState::Finished
     } else {
         RaffleState::Claimed
     }
@@ -153,32 +138,84 @@ pub fn get_raffle_state(env: Env, raffle_info: RaffleInfo) -> RaffleState {
 pub struct RaffleOptions {
     pub raffle_start_timestamp: Timestamp, // If not specified, starts immediately
     pub raffle_duration: u64,              // length, in seconds the duration of a raffle
-    pub raffle_timeout: u64, // the cooldown time between the end of ticket sales & winner being determined.
-    pub comment: Option<String>, // raffle description
-    pub max_ticket_number: Option<u32>, // max amount of tickets able to be purchased
+    pub comment: Option<String>,           // raffle description
+    pub max_ticket_number: Option<u32>,    // max amount of tickets able to be purchased
     pub max_ticket_per_address: Option<u32>, // max amount of tickets able to bought per address
-    pub raffle_preview: u32, // ?
+    pub raffle_preview: u32,               // ?
+    pub min_ticket_number: Option<u32>,    // Minimum ticket number for a raffle to close.
+    pub one_winner_per_asset: bool, // Allows to set multiple winners per raffle (one per asset)
+
+    pub gating_raffle: Vec<GatingOptions>, // Allows for token gating raffle tickets. Only owners of those tokens can buy raffle tickets
+}
+
+#[cw_serde]
+pub enum GatingOptions {
+    Cw721Coin(Addr),
+    Cw20(Cw20CoinVerified), // Corresponds to a minimum of coins that a raffle buyer should own
+    Coin(Coin),             // Corresponds to a minimum of coins that a raffle buyer should own
+    Sg721Token(Addr),
+    DaoVotingPower {
+        dao_address: Addr,
+        min_voting_power: Uint128,
+    },
 }
 
 #[cw_serde]
 pub struct RaffleOptionsMsg {
     pub raffle_start_timestamp: Option<Timestamp>,
     pub raffle_duration: Option<u64>,
-    pub raffle_timeout: Option<u64>,
     pub comment: Option<String>,
     pub max_ticket_number: Option<u32>,
     pub max_ticket_per_address: Option<u32>,
     pub raffle_preview: Option<u32>,
+    pub one_winner_per_asset: bool,
+    pub min_ticket_number: Option<u32>,
+
+    pub gating_raffle: Vec<GatingOptionsMsg>,
+}
+
+#[cw_serde]
+pub enum GatingOptionsMsg {
+    Cw721Coin(String),
+    Cw20(Cw20Coin),
+    Coin(Coin),
+    Sg721Token(String),
+    DaoVotingPower {
+        dao_address: String,
+        min_voting_power: Uint128,
+    },
+}
+
+impl From<GatingOptions> for GatingOptionsMsg {
+    fn from(options: GatingOptions) -> GatingOptionsMsg {
+        match options {
+            GatingOptions::Cw721Coin(address) => GatingOptionsMsg::Cw721Coin(address.to_string()),
+            GatingOptions::Coin(coin) => GatingOptionsMsg::Coin(coin),
+            GatingOptions::Sg721Token(address) => GatingOptionsMsg::Sg721Token(address.to_string()),
+            GatingOptions::DaoVotingPower {
+                dao_address,
+                min_voting_power,
+            } => GatingOptionsMsg::DaoVotingPower {
+                dao_address: dao_address.to_string(),
+                min_voting_power,
+            },
+            GatingOptions::Cw20(c) => GatingOptionsMsg::Cw20(Cw20Coin {
+                address: c.to_string(),
+                amount: c.amount,
+            }),
+        }
+    }
 }
 
 impl RaffleOptions {
     pub fn new(
+        api: &dyn Api,
         env: Env,
         assets_len: usize,
         raffle_options: RaffleOptionsMsg,
         config: Config,
-    ) -> Self {
-        Self {
+    ) -> StdResult<Self> {
+        Ok(Self {
             raffle_start_timestamp: raffle_options
                 .raffle_start_timestamp
                 .unwrap_or(env.block.time)
@@ -187,12 +224,16 @@ impl RaffleOptions {
                 .raffle_duration
                 .unwrap_or(config.minimum_raffle_duration)
                 .max(config.minimum_raffle_duration),
-            raffle_timeout: raffle_options
-                .raffle_timeout
-                .unwrap_or(config.minimum_raffle_timeout)
-                .max(config.minimum_raffle_timeout),
             comment: raffle_options.comment,
-            max_ticket_number: raffle_options.max_ticket_number,
+            max_ticket_number: if let Some(global_max) = config.max_tickets_per_raffle {
+                if let Some(this_max) = raffle_options.max_ticket_number {
+                    Some(global_max.min(this_max))
+                } else {
+                    Some(global_max)
+                }
+            } else {
+                raffle_options.max_ticket_number
+            },
             max_ticket_per_address: raffle_options.max_ticket_per_address,
             raffle_preview: raffle_options
                 .raffle_preview
@@ -204,16 +245,57 @@ impl RaffleOptions {
                     }
                 })
                 .unwrap_or(0u32),
-        }
+
+            one_winner_per_asset: raffle_options.one_winner_per_asset,
+            // We need to enforce a min ticket number in case we have one winner per asset
+            // Because one ticket can't win more than one NFT
+            min_ticket_number: if raffle_options.one_winner_per_asset {
+                if let Some(min_ticket_number) = raffle_options.min_ticket_number {
+                    Some(min_ticket_number.min(assets_len as u32))
+                } else {
+                    Some(assets_len as u32)
+                }
+            } else {
+                raffle_options.min_ticket_number
+            },
+
+            gating_raffle: raffle_options
+                .gating_raffle
+                .into_iter()
+                .map(|options| {
+                    Ok::<_, StdError>(match options {
+                        GatingOptionsMsg::Cw721Coin(address) => {
+                            GatingOptions::Cw721Coin(api.addr_validate(&address)?)
+                        }
+                        GatingOptionsMsg::Coin(coin) => GatingOptions::Coin(coin),
+                        GatingOptionsMsg::Sg721Token(address) => {
+                            GatingOptions::Sg721Token(api.addr_validate(&address)?)
+                        }
+                        GatingOptionsMsg::DaoVotingPower {
+                            dao_address,
+                            min_voting_power,
+                        } => GatingOptions::DaoVotingPower {
+                            dao_address: api.addr_validate(&dao_address)?,
+                            min_voting_power,
+                        },
+                        GatingOptionsMsg::Cw20(c) => GatingOptions::Cw20(Cw20CoinVerified {
+                            address: api.addr_validate(&c.address)?,
+                            amount: c.amount,
+                        }),
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        })
     }
 
     pub fn new_from(
+        api: &dyn Api,
         current_options: RaffleOptions,
         assets_len: usize,
         raffle_options: RaffleOptionsMsg,
         config: Config,
-    ) -> Self {
-        Self {
+    ) -> StdResult<Self> {
+        Ok(Self {
             raffle_start_timestamp: raffle_options
                 .raffle_start_timestamp
                 .unwrap_or(current_options.raffle_start_timestamp)
@@ -222,10 +304,6 @@ impl RaffleOptions {
                 .raffle_duration
                 .unwrap_or(current_options.raffle_duration)
                 .max(config.minimum_raffle_duration),
-            raffle_timeout: raffle_options
-                .raffle_timeout
-                .unwrap_or(current_options.raffle_timeout)
-                .max(config.minimum_raffle_timeout),
             comment: raffle_options.comment.or(current_options.comment),
             max_ticket_number: raffle_options
                 .max_ticket_number
@@ -243,6 +321,45 @@ impl RaffleOptions {
                     }
                 })
                 .unwrap_or(current_options.raffle_preview),
-        }
+            one_winner_per_asset: raffle_options.one_winner_per_asset,
+            // We need to enforce a min ticket number in case we have one winner per asset
+            // Because one ticket can't win more than one NFT
+            min_ticket_number: if raffle_options.one_winner_per_asset {
+                if let Some(min_ticket_number) = raffle_options.min_ticket_number {
+                    Some(min_ticket_number.min(assets_len as u32))
+                } else {
+                    Some(assets_len as u32)
+                }
+            } else {
+                raffle_options.min_ticket_number
+            },
+
+            gating_raffle: raffle_options
+                .gating_raffle
+                .into_iter()
+                .map(|options| {
+                    Ok::<_, StdError>(match options {
+                        GatingOptionsMsg::Cw721Coin(address) => {
+                            GatingOptions::Cw721Coin(api.addr_validate(&address)?)
+                        }
+                        GatingOptionsMsg::Coin(coin) => GatingOptions::Coin(coin),
+                        GatingOptionsMsg::Sg721Token(address) => {
+                            GatingOptions::Sg721Token(api.addr_validate(&address)?)
+                        }
+                        GatingOptionsMsg::DaoVotingPower {
+                            dao_address,
+                            min_voting_power,
+                        } => GatingOptions::DaoVotingPower {
+                            dao_address: api.addr_validate(&dao_address)?,
+                            min_voting_power,
+                        },
+                        GatingOptionsMsg::Cw20(c) => GatingOptions::Cw20(Cw20CoinVerified {
+                            address: api.addr_validate(&c.address)?,
+                            amount: c.amount,
+                        }),
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        })
     }
 }

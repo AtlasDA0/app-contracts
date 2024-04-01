@@ -15,7 +15,6 @@ vanilla:
 	cp -p ./target/wasm32-unknown-unknown/release/raffles.wasm ./artifacts/raffles.wasm 
 	cp -p ./target/wasm32-unknown-unknown/release/nft_loans_nc.wasm ./artifacts/nft_loans_nc.wasm 
 
-
 clean:
 	cargo clean
 	-rm -f ./v1_contract.wasm

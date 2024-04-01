@@ -27,3 +27,5 @@ tests/internal
 tarpaulin-report.*
 
 packages/*/schema
+
+.env

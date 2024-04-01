@@ -43,6 +43,9 @@ pub fn loan_template_code_ids(router: &mut StargazeApp) -> LoanCodeIds {
     }
 }
 
+pub const LOAN_FEE_RATE: u64 = 50;
+pub const NATIVE_LOAN_LISTING_AMT: u128 = 25;
+
 pub fn proper_loan_instantiate() -> (StargazeApp, Addr, Addr) {
     // setup mock blockchain environment
     let mut app = custom_mock_app();
@@ -101,9 +104,9 @@ pub fn proper_loan_instantiate() -> (StargazeApp, Addr, Addr) {
                 name: "loan-with-insights".to_string(),
                 owner: Some(Addr::unchecked(OWNER_ADDR).to_string()),
                 treasury_addr: Addr::unchecked(TREASURY_ADDR).to_string(),
-                fee_rate: Decimal::percent(50),
+                fee_rate: Decimal::percent(LOAN_FEE_RATE),
                 listing_fee_coins: vec![
-                    coin(25, NATIVE_DENOM.to_string()),
+                    coin(NATIVE_LOAN_LISTING_AMT, NATIVE_DENOM.to_string()),
                     coin(50, "uflix".to_string()),
                     coin(10, "ujuno".to_string()),
                 ]

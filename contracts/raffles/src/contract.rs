@@ -1,22 +1,22 @@
 use cosmwasm_std::{
-    coin, ensure, entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
-    QueryResponse, StdResult, Uint128,
+    coin, ensure, ensure_eq, entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env,
+    MessageInfo, QueryResponse, StdResult, Uint128,
 };
 
 use crate::{
     error::ContractError,
     execute::{
-        execute_buy_tickets, execute_cancel_raffle, execute_create_raffle,
-        execute_determine_winner, execute_modify_raffle, execute_receive, execute_receive_nois,
-        execute_sudo_toggle_lock, execute_toggle_lock, execute_update_config,
-        execute_update_randomness,
+        execute_buy_tickets, execute_cancel_raffle, execute_create_raffle, execute_modify_raffle,
+        execute_receive, execute_receive_nois, execute_sudo_toggle_lock, execute_toggle_lock,
+        execute_update_config,
     },
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse},
     query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count},
     state::{
         get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
-        MINIMUM_RAFFLE_TIMEOUT, STATIC_RAFFLE_CREATION_FEE,
+        STATIC_RAFFLE_CREATION_FEE,
     },
+    utils::get_nois_randomness,
 };
 use utils::{
     state::{is_valid_name, Locks, SudoMsg, NATIVE_DENOM},
@@ -70,10 +70,6 @@ pub fn instantiate(
             .minimum_raffle_duration
             .unwrap_or(MINIMUM_RAFFLE_DURATION)
             .max(MINIMUM_RAFFLE_DURATION),
-        minimum_raffle_timeout: msg
-            .minimum_raffle_timeout
-            .unwrap_or(MINIMUM_RAFFLE_TIMEOUT)
-            .max(MINIMUM_RAFFLE_TIMEOUT),
         raffle_fee: msg.raffle_fee,
         locks: Locks {
             lock: false,
@@ -122,7 +118,6 @@ pub fn execute(
             assets,
             raffle_options,
             raffle_ticket_price,
-            autocycle,
         } => execute_create_raffle(
             deps,
             env,
@@ -131,7 +126,6 @@ pub fn execute(
             assets,
             raffle_ticket_price,
             raffle_options,
-            autocycle,
         ),
         ExecuteMsg::CancelRaffle { raffle_id } => execute_cancel_raffle(deps, env, info, raffle_id),
         ExecuteMsg::ModifyRaffle {
@@ -152,21 +146,13 @@ pub fn execute(
             sent_assets,
         } => execute_buy_tickets(deps, env, info, raffle_id, ticket_count, sent_assets),
         ExecuteMsg::Receive(msg) => execute_receive(deps, env, info, msg),
-        ExecuteMsg::DetermineWinner { raffle_id } => {
-            execute_determine_winner(deps, env, info, raffle_id)
-        }
-        ExecuteMsg::UpdateRandomness { raffle_id } => {
-            execute_update_randomness(deps, env, info, raffle_id)
-        }
         ExecuteMsg::NoisReceive { callback } => execute_receive_nois(deps, env, info, callback),
-        // Admin messages
         ExecuteMsg::ToggleLock { lock } => execute_toggle_lock(deps, env, info, lock),
         ExecuteMsg::UpdateConfig {
             name,
             owner,
             fee_addr,
             minimum_raffle_duration,
-            minimum_raffle_timeout,
             max_tickets_per_raffle,
             raffle_fee,
             nois_proxy_addr,
@@ -182,7 +168,6 @@ pub fn execute(
             owner,
             fee_addr,
             minimum_raffle_duration,
-            minimum_raffle_timeout,
             max_tickets_per_raffle,
             raffle_fee,
             nois_proxy_addr,
@@ -191,6 +176,12 @@ pub fn execute(
             atlas_dao_nft_address,
             staker_fee_discount,
         ),
+        ExecuteMsg::UpdateRandomness { raffle_id } => {
+            let config = CONFIG.load(deps.storage)?;
+            ensure_eq!(info.sender, config.owner, ContractError::Unauthorized);
+            let msg = get_nois_randomness(deps.as_ref(), raffle_id)?;
+            Ok(Response::new().add_message(msg))
+        }
     }
 }
 
@@ -202,7 +193,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
             let raffle_info = load_raffle(deps.storage, raffle_id)?;
             to_json_binary(&RaffleResponse {
                 raffle_id,
-                raffle_state: get_raffle_state(env, raffle_info.clone()),
+                raffle_state: get_raffle_state(env, &raffle_info),
                 raffle_info: Some(raffle_info),
             })?
         }

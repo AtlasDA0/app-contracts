@@ -20,26 +20,28 @@ use crate::{
     query::is_nft_owner,
     state::{
         get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState,
-        StakerFeeDiscount, CONFIG, MINIMUM_RAFFLE_DURATION, MINIMUM_RAFFLE_TIMEOUT, RAFFLE_INFO,
-        RAFFLE_TICKETS, USER_TICKETS,
+        StakerFeeDiscount, CONFIG, MINIMUM_RAFFLE_DURATION, RAFFLE_INFO, RAFFLE_TICKETS,
+        USER_TICKETS,
     },
     utils::{
-        can_buy_ticket, get_nois_randomness, get_raffle_owner_finished_messages,
-        get_raffle_owner_messages, get_raffle_winner, get_raffle_winner_messages, is_raffle_owner,
-        ticket_cost,
+        buyer_can_buy_ticket, can_buy_ticket, get_nois_randomness,
+        get_raffle_owner_funds_finished_messages, get_raffle_owner_messages,
+        get_raffle_refund_funds_finished_messages, get_raffle_winner_messages, get_raffle_winners,
+        is_raffle_owner, ticket_cost,
     },
 };
 
+pub const NOIS_TIMEOUT: u64 = 6;
+
 #[allow(clippy::too_many_arguments)]
 pub fn execute_create_raffle(
-    deps: DepsMut,
+    mut deps: DepsMut,
     env: Env,
     info: MessageInfo,
     owner: Option<String>,
     all_assets: Vec<AssetInfo>,
     raffle_ticket_price: AssetInfo,
     raffle_options: RaffleOptionsMsg,
-    autocycle: Option<bool>,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
@@ -134,20 +136,21 @@ pub fn execute_create_raffle(
     // defines the fee token to send to nois-proxy, by the smart contract
     let nois_fee: Coin = config.nois_proxy_coin;
     let raffle_id = _create_raffle(
-        deps,
+        deps.branch(),
         env.clone(),
         owner.clone().unwrap_or_else(|| info.sender.clone()),
         all_assets,
         raffle_ticket_price,
         raffle_options.clone(),
     )?;
+
+    let raffle_options = RAFFLE_INFO.load(deps.storage, raffle_id)?.raffle_options;
     let raffle_lifecycle = raffle_options
         .raffle_start_timestamp
-        .unwrap_or_default()
-        .plus_seconds(raffle_options.clone().raffle_duration.unwrap_or_default())
-        .plus_seconds(6);
+        .plus_seconds(raffle_options.raffle_duration)
+        .plus_seconds(NOIS_TIMEOUT);
 
-    let res = Response::new();
+    let mut msgs = vec![];
 
     // bypass sending fee if static raffle creation cost is 0
     if !fee.amount.is_zero() {
@@ -158,24 +161,23 @@ pub fn execute_create_raffle(
         }
         .into();
         // add msg to response
-        res.clone().add_message(transfer_fee_msg);
+        msgs.push(transfer_fee_msg);
     };
 
     // GetNextRandomness requests the randomness from the proxy after the expected raffle duration
     // The job id is needed to know what randomness we are referring to upon reception in the callback.
-    if autocycle == Some(true) {
-        let nois_msg: WasmMsg = WasmMsg::Execute {
-            contract_addr: config.nois_proxy_addr.into_string(),
-            msg: to_json_binary(&ProxyExecuteMsg::GetRandomnessAfter {
-                after: raffle_lifecycle,
-                job_id: "raffle-".to_string() + raffle_id.to_string().as_str(),
-            })?,
-            funds: vec![nois_fee], // Pay from the contract
-        };
-        res.clone().add_message(nois_msg);
-    }
+    let nois_msg: WasmMsg = WasmMsg::Execute {
+        contract_addr: config.nois_proxy_addr.into_string(),
+        msg: to_json_binary(&ProxyExecuteMsg::GetRandomnessAfter {
+            after: raffle_lifecycle,
+            job_id: "raffle-".to_string() + raffle_id.to_string().as_str(),
+        })?,
+        funds: vec![nois_fee], // Pay from the contract
+    };
+    msgs.push(nois_msg.into());
 
-    Ok(res
+    Ok(Response::new()
+        .add_messages(msgs)
         .add_messages(transfer_messages)
         .add_attribute("action", "create_raffle")
         .add_attribute("raffle_id", raffle_id.to_string())
@@ -213,9 +215,15 @@ pub fn _create_raffle(
             raffle_ticket_price: raffle_ticket_price.clone(), // No checks for the assetInfo type, the worst thing that can happen is an error when trying to buy a raffle ticket
             number_of_tickets: 0u32,
             randomness: None,
-            winner: None,
+            winners: vec![],
             is_cancelled: false,
-            raffle_options: RaffleOptions::new(env, all_assets.len(), raffle_options, config),
+            raffle_options: RaffleOptions::new(
+                deps.api,
+                env,
+                all_assets.len(),
+                raffle_options,
+                config,
+            )?,
         }),
     })?;
     Ok(raffle_id)
@@ -232,12 +240,11 @@ pub fn execute_cancel_raffle(
     let mut raffle_info = is_raffle_owner(deps.storage, raffle_id, info.sender)?;
 
     // The raffle can only be cancelled if it wasn't previously cancelled and it isn't finished
-    let raffle_state = get_raffle_state(env.clone(), raffle_info.clone());
+    let raffle_state = get_raffle_state(env.clone(), &raffle_info);
 
     if raffle_state != RaffleState::Created
         && raffle_state != RaffleState::Started
         && raffle_state != RaffleState::Closed
-        && raffle_state != RaffleState::Finished
     {
         return Err(ContractError::WrongStateForCancel {
             status: raffle_state,
@@ -274,7 +281,7 @@ pub fn execute_modify_raffle(
     raffle_options: RaffleOptionsMsg,
 ) -> Result<Response, ContractError> {
     let mut raffle_info = is_raffle_owner(deps.storage, raffle_id, info.sender)?;
-    let raffle_state = get_raffle_state(env, raffle_info.clone());
+    let raffle_state = get_raffle_state(env, &raffle_info);
     let config = CONFIG.load(deps.storage)?;
     // We then verify there are not tickets bought
     if raffle_info.number_of_tickets != 0 {
@@ -301,11 +308,12 @@ pub fn execute_modify_raffle(
 
     // Then modify the raffle characteristics
     raffle_info.raffle_options = RaffleOptions::new_from(
+        deps.api,
         raffle_info.raffle_options,
         raffle_info.assets.len(),
         raffle_options,
         config,
-    );
+    )?;
     // Then modify the ticket price
     if let Some(raffle_ticket_price) = raffle_ticket_price {
         raffle_info.raffle_ticket_price = raffle_ticket_price;
@@ -370,7 +378,7 @@ pub fn execute_buy_tickets(
     };
 
     // Then we verify the funds sent match the raffle conditions and we save the ticket that was bought
-    _buy_tickets(
+    let messages = _buy_tickets(
         deps,
         env.clone(),
         info.sender.clone(),
@@ -380,6 +388,7 @@ pub fn execute_buy_tickets(
     )?;
 
     Ok(Response::new()
+        .add_messages(messages)
         .add_messages(transfer_messages)
         .add_attribute("action", "buy_ticket")
         .add_attribute("raffle_id", raffle_id.to_string())
@@ -398,7 +407,7 @@ pub fn _buy_tickets(
     raffle_id: u64,
     ticket_count: u32,
     assets: AssetInfo,
-) -> Result<(), ContractError> {
+) -> Result<Option<CosmosMsg>, ContractError> {
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
 
     // We first check the sent assets match the raffle assets
@@ -414,8 +423,11 @@ pub fn _buy_tickets(
         }
     }
 
+    // We start by checking that the buyer has the gating rights to buy this ticket
+    buyer_can_buy_ticket(deps.as_ref(), &raffle_info, owner.to_string())?;
+
     // We then check the raffle is in the right state
-    can_buy_ticket(env, raffle_info.clone())?;
+    can_buy_ticket(env.clone(), raffle_info.clone())?;
 
     // Then we check the user has the right to buy `ticket_count` more tickets
     if let Some(max_ticket_per_address) = raffle_info.raffle_options.max_ticket_per_address {
@@ -442,16 +454,6 @@ pub fn _buy_tickets(
         }
     };
 
-    if let Some(max_tickets_per_raffle) = raffle_info.raffle_options.max_ticket_number {
-        if raffle_info.number_of_tickets + ticket_count > max_tickets_per_raffle {
-            return Err(ContractError::TooMuchTickets {
-                max: max_tickets_per_raffle,
-                nb_before: raffle_info.number_of_tickets,
-                nb_after: raffle_info.number_of_tickets + ticket_count,
-            });
-        }
-    }
-
     // Then we save the sender to the bought tickets
     for n in 0..ticket_count {
         RAFFLE_TICKETS.save(
@@ -467,9 +469,26 @@ pub fn _buy_tickets(
     })?;
     raffle_info.number_of_tickets += ticket_count;
 
+    // If all tickets have been bought, we stop the raffle.
+    // The raffle duration is amended to reflect that
+    // We also send a nois request in that case
+    // If not enough were bought before and we passed the threshold, we can send the randomness trigger as well
+    let nois_message = if let Some(max_ticket_number) = raffle_info.raffle_options.max_ticket_number
+    {
+        if raffle_info.number_of_tickets >= max_ticket_number {
+            raffle_info.raffle_options.raffle_duration = env.block.time.seconds()
+                - raffle_info.raffle_options.raffle_start_timestamp.seconds();
+            Some(get_nois_randomness(deps.as_ref(), raffle_id)?)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 
-    Ok(())
+    Ok(nois_message)
 }
 
 pub fn execute_receive(
@@ -543,7 +562,7 @@ pub fn execute_receive(
 
 pub fn execute_receive_nois(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     callback: NoisCallback,
 ) -> Result<Response, ContractError> {
@@ -556,6 +575,7 @@ pub fn execute_receive_nois(
         config.nois_proxy_addr,
         ContractError::UnauthorizedReceive
     );
+
     let randomness: [u8; 32] = callback
         .randomness
         .to_array()
@@ -569,6 +589,13 @@ pub fn execute_receive_nois(
     let raffle_id: u64 = raffle_id.parse().unwrap();
 
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
+    let raffle_state = get_raffle_state(env.clone(), &raffle_info);
+
+    if raffle_state != RaffleState::Closed {
+        return Err(ContractError::WrongStateForClaim {
+            status: raffle_state,
+        });
+    }
 
     // We make sure the raffle has not updated the global randomness yet
     if raffle_info.randomness.is_some() {
@@ -576,72 +603,59 @@ pub fn execute_receive_nois(
     } else {
         raffle_info.randomness = Some(randomness.into());
     };
-    RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 
-    Ok(Response::default())
-}
-
-pub fn execute_determine_winner(
-    deps: DepsMut,
-    env: Env,
-    _info: MessageInfo,
-    raffle_id: u64,
-) -> Result<Response, ContractError> {
+    // We determine the winner
     // Loads the raffle id and makes sure the raffle has ended and randomness from nois has been provided.
-    let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
-    let raffle_state = get_raffle_state(env.clone(), raffle_info.clone());
 
-    if raffle_state != RaffleState::Finished {
-        return Err(ContractError::WrongStateForClaim {
-            status: raffle_state,
-        });
-    }
-
-    // If there was no participant, the winner is the raffle owner and we pay no fees whatsoever
-    if raffle_info.number_of_tickets == 0u32 {
-        raffle_info.winner = Some(raffle_info.owner.clone());
+    // If there was no participant, the winner is the raffle owner
+    // If the minimum number of tickets is not reached, the winner is the raffle owner as well
+    let msgs = if raffle_info.number_of_tickets == 0u32 {
+        raffle_info.winners = vec![raffle_info.owner.clone()];
+        // No funds re-imbursement
+        get_raffle_winner_messages(deps.as_ref(), env.clone(), raffle_info.clone())?
+    } else if raffle_info.number_of_tickets
+        < raffle_info.raffle_options.min_ticket_number.unwrap_or(0)
+    {
+        raffle_info.winners = vec![raffle_info.owner.clone()];
+        // No funds re-imbursement
+        let nft_msg = get_raffle_winner_messages(deps.as_ref(), env.clone(), raffle_info.clone())?;
+        let refund_msgs = get_raffle_refund_funds_finished_messages(
+            deps.storage,
+            env.clone(),
+            raffle_info.clone(),
+            raffle_id,
+        )?;
+        [refund_msgs, nft_msg].concat()
     } else {
         // We calculate the winner of the raffle and save it to the contract. The raffle is now claimed !
-        let winner = get_raffle_winner(deps.as_ref(), env.clone(), raffle_id, raffle_info.clone())?;
-        raffle_info.winner = Some(winner);
-    }
-    RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
+        raffle_info.winners =
+            get_raffle_winners(deps.as_ref(), env.clone(), raffle_id, raffle_info.clone())?;
+        let owner_funds_msg = get_raffle_owner_funds_finished_messages(
+            deps.as_ref(),
+            env.clone(),
+            raffle_info.clone(),
+        )?;
+        let nft_msg = get_raffle_winner_messages(deps.as_ref(), env.clone(), raffle_info.clone())?;
 
-    // We send the assets to the winner, and fees to the treasury
-    let winner_transfer_messages =
-        get_raffle_winner_messages(deps.as_ref(), env.clone(), raffle_info.clone(), raffle_id)?;
-    let funds_transfer_messages =
-        get_raffle_owner_finished_messages(deps.as_ref(), env, raffle_info.clone())?;
+        [owner_funds_msg, nft_msg].concat()
+    };
+
+    RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 
     // We distribute the ticket prices to the owner and in part to the treasury
     Ok(Response::new()
-        .add_messages(winner_transfer_messages)
-        .add_messages(funds_transfer_messages)
+        .add_messages(msgs)
         .add_attribute("action", "claim")
         .add_attribute("raffle_id", raffle_id.to_string())
-        .add_attribute("winner", raffle_info.winner.unwrap()))
-}
-
-/// Update the randomness assigned to a raffle
-/// This allows trustless and un-predictable randomness to the raffle contract.
-/// The randomness providers will get a small cut of the raffle tickets (to reimburse the tx fees and incentivize adding randomness)
-pub fn execute_update_randomness(
-    deps: DepsMut,
-    env: Env,
-    _info: MessageInfo,
-    raffle_id: u64,
-) -> Result<Response, ContractError> {
-    // We check the raffle can receive randomness (good state)
-    let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
-    let raffle_state = get_raffle_state(env, raffle_info);
-    if raffle_state != RaffleState::Closed {
-        return Err(ContractError::WrongStateForRandomness {
-            status: raffle_state,
-        });
-    }
-    // We assert the randomness is correct
-    // get randomness from nois.network
-    get_nois_randomness(deps.as_ref(), raffle_id)
+        .add_attribute(
+            "winners",
+            raffle_info
+                .winners
+                .into_iter()
+                .map(|a| a.to_string())
+                .collect::<Vec<_>>()
+                .join(", "),
+        ))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -653,7 +667,6 @@ pub fn execute_update_config(
     owner: Option<String>,
     fee_addr: Option<String>,
     minimum_raffle_duration: Option<u64>,
-    minimum_raffle_timeout: Option<u64>,
     max_tickets_per_raffle: Option<u32>,
     raffle_fee: Option<Decimal>,
     nois_proxy_addr: Option<String>,
@@ -686,10 +699,6 @@ pub fn execute_update_config(
     let minimum_raffle_duration = match minimum_raffle_duration {
         Some(mrd) => mrd.max(MINIMUM_RAFFLE_DURATION),
         None => config.minimum_raffle_duration,
-    };
-    let minimum_raffle_timeout = match minimum_raffle_timeout {
-        Some(mrt) => mrt.max(MINIMUM_RAFFLE_TIMEOUT),
-        None => config.minimum_raffle_timeout,
     };
     let raffle_fee = match raffle_fee {
         Some(rf) => {
@@ -750,7 +759,6 @@ pub fn execute_update_config(
         owner,
         fee_addr,
         minimum_raffle_duration,
-        minimum_raffle_timeout,
         raffle_fee,
         locks: config.locks,
         nois_proxy_addr,
