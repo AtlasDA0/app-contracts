@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BorrowerInfo",
+  "type": "object",
+  "required": [
+    "last_collateral_id"
+  ],
+  "properties": {
+    "last_collateral_id": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    }
+  },
+  "additionalProperties": false
+}
