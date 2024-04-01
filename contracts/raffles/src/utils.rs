@@ -66,19 +66,30 @@ pub fn get_raffle_owner_funds_finished_messages(
     // use raffle_fee % to calculate treasury distribution
     let mut treasury_amount = total_paid * config.raffle_fee;
     {
-        if let Some(nft_address) = config.atlas_dao_nft_address {
-            // If the owner is an Atlas DAO NFT holder, they don't get the treasury_fee
-            let token_hold: cw721::TokensResponse = deps.querier.query_wasm_smart(
-                nft_address,
-                &sg721_base::msg::QueryMsg::Tokens {
-                    owner: raffle_info.owner.to_string(),
-                    start_after: None,
-                    limit: Some(1),
-                },
-            )?;
-            if !token_hold.tokens.is_empty() {
-                treasury_amount = Uint128::zero();
-            }
+        if config
+            .atlas_dao_nft_addresses
+            .iter()
+            .map(|addr| {
+                // If the owner is an Atlas DAO NFT holder, they don't get the treasury_fee
+                let token_hold: cw721::TokensResponse = deps.querier.query_wasm_smart(
+                    addr,
+                    &sg721_base::msg::QueryMsg::Tokens {
+                        owner: raffle_info.owner.to_string(),
+                        start_after: None,
+                        limit: Some(1),
+                    },
+                )?;
+                if !token_hold.tokens.is_empty() {
+                    Ok::<_, ContractError>(true)
+                } else {
+                    Ok(false)
+                }
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .any(|t| t)
+        {
+            treasury_amount = Uint128::zero();
         }
     }
 

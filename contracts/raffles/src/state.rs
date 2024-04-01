@@ -41,7 +41,7 @@ pub struct Config {
     pub creation_coins: Vec<Coin>,
 
     /// Fee bypass for Atlas Dao NFT holders
-    pub atlas_dao_nft_address: Option<Addr>,
+    pub atlas_dao_nft_addresses: Vec<Addr>,
 
     /// Discount applied to stakers on fees (0.5 corresponds to paying only 50% treasury fees)
     /// This is not applied on royalty fees

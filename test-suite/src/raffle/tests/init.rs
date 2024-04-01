@@ -40,7 +40,7 @@ mod tests {
                         coin(20, "ustars".to_string()),
                     ]
                     .into(),
-                    atlas_dao_nft_address: None,
+                    atlas_dao_nft_addresses: vec![],
                     staker_fee_discount: StakerFeeDiscount {
                         discount: Decimal::zero(),
                         minimum_amount: Uint128::zero(),

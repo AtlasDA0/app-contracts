@@ -168,7 +168,7 @@ mod tests {
                     coin(CREATION_FEE_AMNT_NATIVE, NATIVE_DENOM.to_string()),
                     coin(CREATION_FEE_AMNT_STARS, "ustars".to_string())
                 ],
-                atlas_dao_nft_address: None,
+                atlas_dao_nft_addresses: vec![],
                 staker_fee_discount: StakerFeeDiscount {
                     discount: Decimal::zero(),
                     minimum_amount: Uint128::zero()

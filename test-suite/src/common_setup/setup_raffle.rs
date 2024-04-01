@@ -113,7 +113,7 @@ pub fn proper_raffle_instantiate_precise(
                     coin(CREATION_FEE_AMNT_STARS, "ustars".to_string()),
                 ]
                 .into(),
-                atlas_dao_nft_address: None,
+                atlas_dao_nft_addresses: vec![],
                 staker_fee_discount: StakerFeeDiscount {
                     discount: Decimal::zero(),
                     minimum_amount: Uint128::zero(),

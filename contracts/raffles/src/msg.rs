@@ -26,7 +26,7 @@ pub struct InstantiateMsg {
     pub creation_coins: Option<Vec<Coin>>,
 
     /// Fee bypass for Atlas Dao NFT holders
-    pub atlas_dao_nft_address: Option<String>,
+    pub atlas_dao_nft_addresses: Vec<String>,
 
     /// Discount applied to stakers on fees (0.5 corresponds to paying only 50% treasury fees)
     /// This is not applied on royalty fees
@@ -74,7 +74,7 @@ pub enum ExecuteMsg {
         nois_proxy_addr: Option<String>,
         nois_proxy_coin: Option<Coin>,
         creation_coins: Option<Vec<Coin>>,
-        atlas_dao_nft_address: Option<String>,
+        atlas_dao_nft_addresses: Option<Vec<String>>,
         staker_fee_discount: Option<StakerFeeDiscount>,
     },
     ModifyRaffle {
@@ -148,7 +148,7 @@ pub struct ConfigResponse {
     pub nois_proxy_addr: String,
     pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,
-    pub atlas_dao_nft_address: Option<String>,
+    pub atlas_dao_nft_addresses: Vec<String>,
     pub staker_fee_discount: StakerFeeDiscount,
 }
 

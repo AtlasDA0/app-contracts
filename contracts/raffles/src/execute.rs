@@ -672,7 +672,7 @@ pub fn execute_update_config(
     nois_proxy_addr: Option<String>,
     nois_proxy_coin: Option<Coin>,
     creation_coins: Option<Vec<Coin>>,
-    atlas_dao_nft_address: Option<String>,
+    atlas_dao_nft_addresses: Option<Vec<String>>,
     staker_fee_discount: Option<StakerFeeDiscount>,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
@@ -744,9 +744,12 @@ pub fn execute_update_config(
         None => config.max_tickets_per_raffle.unwrap(),
     };
 
-    let atlas_dao_nft_address = match atlas_dao_nft_address {
-        Some(address) => Some(deps.api.addr_validate(&address)?),
-        None => config.atlas_dao_nft_address,
+    let atlas_dao_nft_addresses = match atlas_dao_nft_addresses {
+        Some(addresses) => addresses
+            .into_iter()
+            .map(|a| deps.api.addr_validate(&a))
+            .collect::<Result<Vec<_>, _>>()?,
+        None => config.atlas_dao_nft_addresses,
     };
     let staker_fee_discount = match staker_fee_discount {
         Some(discount) => discount,
@@ -766,7 +769,7 @@ pub fn execute_update_config(
         creation_coins,
         max_tickets_per_raffle: max_tickets_per_raffle.into(),
         last_raffle_id: config.last_raffle_id,
-        atlas_dao_nft_address,
+        atlas_dao_nft_addresses,
         staker_fee_discount,
     };
 
