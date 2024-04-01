@@ -45,7 +45,9 @@ impl InstantiateMsg {
 }
 
 #[cw_serde]
+#[derive(cw_orch::ExecuteFns)]
 pub enum ExecuteMsg {
+    #[payable]
     CreateRaffle {
         owner: Option<String>,
         assets: Vec<AssetInfo>,
@@ -71,6 +73,7 @@ pub enum ExecuteMsg {
         raffle_ticket_price: Option<AssetInfo>,
         raffle_options: RaffleOptionsMsg,
     },
+    #[payable]
     BuyTicket {
         raffle_id: u64,
         ticket_count: u32,
@@ -92,7 +95,7 @@ pub enum ExecuteMsg {
 }
 
 #[cw_serde]
-#[derive(QueryResponses)]
+#[derive(QueryResponses, cw_orch::QueryFns)]
 pub enum QueryMsg {
     #[returns(ConfigResponse)]
     Config {},
