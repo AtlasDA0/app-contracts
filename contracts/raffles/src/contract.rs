@@ -6,9 +6,9 @@ use cosmwasm_std::{
 use crate::{
     error::ContractError,
     execute::{
-        execute_buy_tickets, execute_cancel_raffle, execute_create_raffle, execute_modify_raffle,
-        execute_receive, execute_receive_nois, execute_sudo_toggle_lock, execute_toggle_lock,
-        execute_update_config,
+        execute_buy_tickets, execute_cancel_raffle, execute_claim, execute_create_raffle,
+        execute_modify_raffle, execute_receive, execute_receive_nois, execute_sudo_toggle_lock,
+        execute_toggle_lock, execute_update_config,
     },
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse},
     query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count},
@@ -142,6 +142,7 @@ pub fn execute(
         } => execute_buy_tickets(deps, env, info, raffle_id, ticket_count, sent_assets),
         ExecuteMsg::Receive(msg) => execute_receive(deps, env, info, msg),
         ExecuteMsg::NoisReceive { callback } => execute_receive_nois(deps, env, info, callback),
+        ExecuteMsg::ClaimRaffle { raffle_id } => execute_claim(deps, env, raffle_id),
         ExecuteMsg::ToggleLock { lock } => execute_toggle_lock(deps, env, info, lock),
         ExecuteMsg::UpdateConfig {
             name,

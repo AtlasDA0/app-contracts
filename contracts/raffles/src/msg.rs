@@ -57,6 +57,9 @@ pub enum ExecuteMsg {
     CancelRaffle {
         raffle_id: u64,
     },
+    ClaimRaffle {
+        raffle_id: u64,
+    },
     UpdateConfig {
         name: Option<String>,
         owner: Option<String>,

@@ -83,6 +83,7 @@ pub enum RaffleState {
     Started,
     Closed,
     Claimed,
+    Finished,
     Cancelled,
 }
 
@@ -93,6 +94,7 @@ impl std::fmt::Display for RaffleState {
             RaffleState::Started => write!(f, "started"),
             RaffleState::Closed => write!(f, "closed"),
             RaffleState::Claimed => write!(f, "claimed"),
+            RaffleState::Finished => write!(f, "finished"),
             RaffleState::Cancelled => write!(f, "cancelled"),
         }
     }
@@ -116,6 +118,8 @@ pub fn get_raffle_state(env: Env, raffle_info: &RaffleInfo) -> RaffleState {
         RaffleState::Started
     } else if raffle_info.randomness.is_none() {
         RaffleState::Closed
+    } else if raffle_info.winners.is_empty() {
+        RaffleState::Finished
     } else {
         RaffleState::Claimed
     }

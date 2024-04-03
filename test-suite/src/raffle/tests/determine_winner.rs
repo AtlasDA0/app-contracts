@@ -534,4 +534,97 @@ mod tests {
 
         finish_raffle_timeout(&mut app, &contracts, 0, 130).unwrap();
     }
+
+    #[test]
+    fn claim_no_randomness() {
+        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10));
+        let (owner_addr, _, _) = setup_accounts(&mut app);
+        let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
+        let token = mint_one_token(&mut app, &contracts);
+        // create raffle
+        let params = CreateRaffleParams {
+            app: &mut app,
+            raffle_contract_addr: contracts.raffle.clone(),
+            owner_addr: owner_addr.clone(),
+            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            ticket_price: Uint128::new(4),
+            max_ticket_per_addr: None,
+            raffle_start_timestamp: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+                address: token.nft.to_string(),
+                token_id: token.token_id.to_string(),
+            })],
+            duration: None,
+            min_ticket_number: Some(4),
+            max_tickets: None,
+            gating: vec![],
+        };
+        create_raffle_setup(params).unwrap();
+
+        // Purchasing tickets for 3 people
+        // ensure error if max tickets per address set is reached
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: contracts.raffle.clone(),
+            msg_senders: vec![one.clone()],
+            raffle_id: 0,
+            num_tickets: 3,
+            funds_send: vec![coin(12, "ustars")],
+        };
+        let _purchase_tickets = buy_tickets_template(params).unwrap();
+
+        let one_balance_before = app.wrap().query_balance(&one, "ustars").unwrap().amount;
+        let owner_balance_before = app.wrap().query_balance(&owner_addr, "ustars").unwrap();
+
+        app.execute_contract(
+            contracts.raffle.clone(),
+            contracts.raffle.clone(),
+            &raffles::msg::ExecuteMsg::ClaimRaffle { raffle_id: 0 },
+            &[],
+        )
+        .unwrap_err();
+
+        finish_raffle_timeout(&mut app, &contracts, 0, 130).unwrap();
+
+        let one_balance_after = app.wrap().query_balance(&one, "ustars").unwrap().amount;
+
+        // queries the raffle
+        let res = raffle_info(&app, &contracts, 0).raffle_info.unwrap();
+        // verify randomness state has been updated
+        assert!(
+            res.randomness.is_some(),
+            "randomness should have been updated into the raffle state"
+        );
+
+        // verify winner is always owner
+        assert_eq!(owner_addr, res.winners[0], "You have the wrong winner ");
+
+        // verify no tickets can be bought after raffle ends
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: contracts.raffle.clone(),
+            msg_senders: vec![one.clone()],
+            raffle_id: 0,
+            num_tickets: 1,
+            funds_send: vec![coin(4, "ustars")],
+        };
+        // simulate the puchase of tickets
+        let purchase_tickets = buy_tickets_template(params);
+        assert!(
+            purchase_tickets.is_err(),
+            "There should be an issue with purchasing a ticket once the winner is determined"
+        );
+
+        // We make sure the owner has more balance
+        let owner_balance_after = app.wrap().query_balance(&owner_addr, "ustars").unwrap();
+
+        assert_eq!(
+            owner_balance_before.amount, // Nothing happens, because the minimum was not reached
+            owner_balance_after.amount
+        );
+        assert_eq!(
+            one_balance_before + Uint128::from(4 * 3u128), // 100% fee of 3 tickets
+            one_balance_after
+        );
+    }
 }

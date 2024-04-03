@@ -601,6 +601,20 @@ pub fn execute_receive_nois(
         raffle_info.randomness = Some(randomness.into());
     };
 
+    RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
+
+    Ok(Response::new().add_attribute("action", "update_randomness"))
+}
+
+pub fn execute_claim(deps: DepsMut, env: Env, raffle_id: u64) -> Result<Response, ContractError> {
+    let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
+    let raffle_state = get_raffle_state(env.clone(), &raffle_info);
+
+    if raffle_state != RaffleState::Finished {
+        return Err(ContractError::WrongStateForClaim {
+            status: raffle_state,
+        });
+    }
     // We determine the winner
     // Loads the raffle id and makes sure the raffle has ended and randomness from nois has been provided.
 
