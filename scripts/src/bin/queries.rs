@@ -6,7 +6,7 @@ use raffles::msg::QueryMsgFns;
 use scripts::STARGAZE_1;
 use scripts::{raffles::Raffles, ELGAFAR_1};
 
-pub const RAFFLE_ID: u64 = 2;
+pub const RAFFLE_ID: u64 = 0;
 pub const TEST_NFT_ADDRESS: &str =
     "stars1vvl9sevue9kqvvtnu90drtwkhflxg5lzmujmjywz7h0mz474px0swhxgz2";
 pub const TOKEN_ID: &str = "239";
@@ -14,7 +14,7 @@ pub const TOKEN_ID: &str = "239";
 pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     env_logger::init();
-    let chain = Daemon::builder().chain(STARGAZE_1).build()?;
+    let chain = Daemon::builder().chain(ELGAFAR_1).build()?;
 
     let raffles = Raffles::new(chain.clone());
 

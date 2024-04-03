@@ -4,7 +4,7 @@ use raffles::msg::ExecuteMsgFns as _;
 use scripts::{raffles::Raffles, ELGAFAR_1};
 use utils::state::AssetInfo;
 
-pub const RAFFLE_ID: u64 = 2;
+pub const RAFFLE_ID: u64 = 0;
 pub const TICKET_NUMBER: u32 = 5;
 pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
