@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{coin, testing::mock_env, Addr, Decimal, HexBinary, Uint128};
+    use cosmwasm_std::{coin, testing::mock_env, Addr, BlockInfo, Decimal, HexBinary, Uint128};
     use cw_multi_test::Executor;
     use nois::NoisCallback;
     use raffles::{error::ContractError, msg::ExecuteMsg as RaffleExecuteMsg, state::RaffleState};
@@ -16,7 +16,7 @@ mod tests {
         },
         raffle::setup::{
             execute_msg::{buy_tickets_template, create_raffle_setup},
-            helpers::{finish_raffle_timeout, mint_one_token, raffle_info},
+            helpers::{finish_raffle_timeout, mint_one_token, raffle_info, send_nois_ibc_message},
             test_msgs::{CreateRaffleParams, PurchaseTicketsParams},
         },
     };
@@ -625,6 +625,75 @@ mod tests {
         assert_eq!(
             one_balance_before + Uint128::from(4 * 3u128), // 100% fee of 3 tickets
             one_balance_after
+        );
+    }
+
+    #[test]
+    fn randomness_no_claim_query() {
+        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10));
+        let (owner_addr, _, _) = setup_accounts(&mut app);
+        let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
+        let token = mint_one_token(&mut app, &contracts);
+        // create raffle
+        let params = CreateRaffleParams {
+            app: &mut app,
+            raffle_contract_addr: contracts.raffle.clone(),
+            owner_addr: owner_addr.clone(),
+            creation_fee: vec![coin(4, NATIVE_DENOM)],
+            ticket_price: Uint128::new(4),
+            max_ticket_per_addr: None,
+            raffle_start_timestamp: None,
+            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
+                address: token.nft.to_string(),
+                token_id: token.token_id.to_string(),
+            })],
+            duration: None,
+            min_ticket_number: Some(2),
+            max_tickets: None,
+            gating: vec![],
+        };
+        create_raffle_setup(params).unwrap();
+
+        // Purchasing tickets for 3 people
+        // ensure error if max tickets per address set is reached
+        let params = PurchaseTicketsParams {
+            app: &mut app,
+            raffle_contract_addr: contracts.raffle.clone(),
+            msg_senders: vec![one.clone()],
+            raffle_id: 0,
+            num_tickets: 3,
+            funds_send: vec![coin(12, "ustars")],
+        };
+        let _purchase_tickets = buy_tickets_template(params).unwrap();
+
+        // We advance time to be able to send the nois message
+        let block = app.block_info();
+        app.set_block(BlockInfo {
+            height: block.height,
+            time: block.time.plus_seconds(130),
+            chain_id: block.chain_id,
+        });
+
+        // We send a nois message (that is automatic in the real world)
+        send_nois_ibc_message(&mut app, &contracts, 0).unwrap();
+
+        // queries the raffle
+        let res = raffle_info(&app, &contracts, 0);
+        let raffle_info = res.raffle_info.unwrap();
+        // verify randomness state has been updated
+        assert!(
+            raffle_info.randomness.is_some(),
+            "randomness should have been updated into the raffle state"
+        );
+
+        // verify winner is already decided even if it's not claimed
+        assert_eq!(one, raffle_info.winners[0], "You have the wrong winner ");
+
+        // verify state is not claimed
+        assert_eq!(
+            RaffleState::Finished,
+            res.raffle_state,
+            "Status should be finished and not claimed yet "
         );
     }
 }
