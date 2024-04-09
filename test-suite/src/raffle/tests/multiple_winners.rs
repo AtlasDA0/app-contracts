@@ -2,7 +2,6 @@
 mod tests {
     use cosmwasm_std::{coin, Addr, Coin, Uint128};
     use cw_multi_test::Executor;
-    use cw_multi_test::{BankSudo, SudoMsg};
     use raffles::{msg::ExecuteMsg, state::RaffleOptionsMsg};
 
     use utils::state::{AssetInfo, Sg721Token};
@@ -19,7 +18,7 @@ mod tests {
     fn multiple_winners() {
         // create testing app
         let (mut app, contracts) = proper_raffle_instantiate();
-        let (owner_addr, one, two) = setup_accounts(&mut app);
+        let (_owner_addr, one, two) = setup_accounts(&mut app);
 
         let current_time = app.block_info().time;
 
