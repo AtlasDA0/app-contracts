@@ -104,7 +104,7 @@ impl std::fmt::Display for RaffleState {
 /// This function depends on the block time to return the RaffleState.
 /// As actions can only happen in certain time-periods, you have to be careful when testing off-chain
 /// If the chains stops or the block time is not accurate we might get some errors (let's hope it never happens)
-pub fn get_raffle_state(env: Env, raffle_info: &RaffleInfo) -> RaffleState {
+pub fn get_raffle_state(env: &Env, raffle_info: &RaffleInfo) -> RaffleState {
     if raffle_info.is_cancelled {
         RaffleState::Cancelled
     } else if env.block.time < raffle_info.raffle_options.raffle_start_timestamp {

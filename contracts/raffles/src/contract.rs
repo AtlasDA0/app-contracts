@@ -11,7 +11,9 @@ use crate::{
         execute_toggle_lock, execute_update_config,
     },
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse},
-    query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count},
+    query::{
+        add_raffle_winners, query_all_raffles, query_all_tickets, query_config, query_ticket_count,
+    },
     state::{
         get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
         STATIC_RAFFLE_CREATION_FEE,
@@ -178,14 +180,18 @@ pub fn execute(
 }
 
 #[entry_point]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<QueryResponse, ContractError> {
     let response = match msg {
         QueryMsg::Config {} => to_json_binary(&query_config(deps)?)?,
         QueryMsg::RaffleInfo { raffle_id } => {
-            let raffle_info = load_raffle(deps.storage, raffle_id)?;
+            let mut raffle_info = load_raffle(deps.storage, raffle_id)?;
+            let raffle_state = get_raffle_state(&env, &raffle_info);
+
+            add_raffle_winners(deps, &env, raffle_id, &mut raffle_info)?;
+
             to_json_binary(&RaffleResponse {
                 raffle_id,
-                raffle_state: get_raffle_state(env, &raffle_info),
+                raffle_state,
                 raffle_info: Some(raffle_info),
             })?
         }

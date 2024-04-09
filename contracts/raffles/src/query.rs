@@ -1,5 +1,5 @@
 use cosmwasm_std::{
-    to_json_binary, Addr, Api, Deps, Env, Order, QueryRequest, StdError, StdResult, WasmQuery,
+    to_json_binary, Addr, Deps, Env, Order, QueryRequest, StdError, StdResult, WasmQuery,
 };
 use cw721::{Cw721QueryMsg, OwnerOfResponse};
 use cw_storage_plus::Bound;
@@ -10,11 +10,13 @@ use sg721_base::QueryMsg as Sg721QueryMsg;
 mod filters;
 
 use crate::{
+    error::ContractError,
     msg::{AllRafflesResponse, ConfigResponse, QueryFilters, RaffleResponse},
     state::{
         get_raffle_state, load_raffle, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO,
         RAFFLE_TICKETS, USER_TICKETS,
     },
+    utils::get_raffle_winners,
 };
 
 use self::filters::{contains_token_filter, has_gated_rights_filter, owner_filter, state_filter};
@@ -46,7 +48,7 @@ pub fn query_all_raffles(
     start_after: Option<u64>,
     limit: Option<u32>,
     filters: Option<QueryFilters>,
-) -> StdResult<AllRafflesResponse> {
+) -> Result<AllRafflesResponse, ContractError> {
     if filters.is_some() && filters.clone().unwrap().ticket_depositor.is_some() {
         query_all_raffles_by_depositor(deps, env, start_after, limit, filters)
     } else {
@@ -62,7 +64,7 @@ pub fn query_all_raffles_by_depositor(
     start_after: Option<u64>,
     limit: Option<u32>,
     filters: Option<QueryFilters>,
-) -> StdResult<AllRafflesResponse> {
+) -> Result<AllRafflesResponse, ContractError> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
 
     let start = start_after.map(Bound::exclusive);
@@ -85,9 +87,9 @@ pub fn query_all_raffles_by_depositor(
             Ok((_id, raffle_info)) => raffle_filter(deps, env.clone(), raffle_info, &filters),
             Err(_) => false,
         })
-        .map(|kv_item| parse_raffles(deps.api, env.clone(), kv_item))
+        .map(|kv_item| parse_raffles(deps, &env, kv_item))
         .take(limit)
-        .collect::<StdResult<Vec<RaffleResponse>>>()?;
+        .collect::<Result<Vec<RaffleResponse>, ContractError>>()?;
 
     if raffles.is_empty() {
         let last_raffle_id = USER_TICKETS
@@ -112,15 +114,20 @@ pub fn query_all_raffles_by_depositor(
 
 // parse raffles to human readable format
 fn parse_raffles(
-    _: &dyn Api,
-    env: Env,
+    deps: Deps,
+    env: &Env,
     item: StdResult<(u64, RaffleInfo)>,
-) -> StdResult<RaffleResponse> {
-    item.map(|(raffle_id, raffle)| RaffleResponse {
-        raffle_id,
-        raffle_state: get_raffle_state(env, &raffle),
-        raffle_info: Some(raffle),
-    })
+) -> Result<RaffleResponse, ContractError> {
+    item.map_err(Into::into)
+        .and_then(|(raffle_id, mut raffle)| {
+            let raffle_state = get_raffle_state(env, &raffle);
+            add_raffle_winners(deps, env, raffle_id, &mut raffle)?;
+            Ok(RaffleResponse {
+                raffle_id,
+                raffle_state,
+                raffle_info: Some(raffle),
+            })
+        })
 }
 
 /// Query all ticket onwers within a raffle
@@ -149,7 +156,7 @@ pub fn query_all_raffles_raw(
     start_after: Option<u64>,
     limit: Option<u32>,
     filters: Option<QueryFilters>,
-) -> StdResult<AllRafflesResponse> {
+) -> Result<AllRafflesResponse, ContractError> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let start = start_after.map(Bound::exclusive);
 
@@ -160,9 +167,9 @@ pub fn query_all_raffles_raw(
             Ok((_id, raffle_info)) => raffle_filter(deps, env.clone(), raffle_info, &filters),
             Err(_) => false,
         })
-        .map(|kv_item| parse_raffles(deps.api, env.clone(), kv_item))
+        .map(|kv_item| parse_raffles(deps, &env, kv_item))
         .take(limit)
-        .collect::<StdResult<Vec<RaffleResponse>>>()?;
+        .collect::<Result<Vec<RaffleResponse>, ContractError>>()?;
 
     if raffles.is_empty() {
         let raffle_id = RAFFLE_INFO
@@ -257,4 +264,25 @@ pub fn query_ticket_count(
         deps.storage,
         (&deps.api.addr_validate(&ticket_depositor)?, raffle_id),
     )
+}
+
+pub fn add_raffle_winners(
+    deps: Deps,
+    env: &Env,
+    raffle_id: u64,
+    raffle_info: &mut RaffleInfo,
+) -> Result<(), ContractError> {
+    if raffle_info.randomness.is_some() {
+        if raffle_info.number_of_tickets == 0u32
+            || raffle_info.number_of_tickets
+                < raffle_info.raffle_options.min_ticket_number.unwrap_or(0)
+        {
+            raffle_info.winners = vec![raffle_info.owner.clone()];
+        } else {
+            // We calculate the winner of the raffle
+            raffle_info.winners = get_raffle_winners(deps, env, raffle_id, raffle_info.clone())?;
+        };
+    }
+
+    Ok(())
 }

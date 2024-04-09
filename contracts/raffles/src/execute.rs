@@ -237,7 +237,7 @@ pub fn execute_cancel_raffle(
     let mut raffle_info = is_raffle_owner(deps.storage, raffle_id, info.sender)?;
 
     // The raffle can only be cancelled if it wasn't previously cancelled and it isn't finished
-    let raffle_state = get_raffle_state(env.clone(), &raffle_info);
+    let raffle_state = get_raffle_state(&env, &raffle_info);
 
     if raffle_state != RaffleState::Created
         && raffle_state != RaffleState::Started
@@ -278,7 +278,7 @@ pub fn execute_modify_raffle(
     raffle_options: RaffleOptionsMsg,
 ) -> Result<Response, ContractError> {
     let mut raffle_info = is_raffle_owner(deps.storage, raffle_id, info.sender)?;
-    let raffle_state = get_raffle_state(env, &raffle_info);
+    let raffle_state = get_raffle_state(&env, &raffle_info);
     let config = CONFIG.load(deps.storage)?;
     // We then verify there are not tickets bought
     if raffle_info.number_of_tickets != 0 {
@@ -586,7 +586,7 @@ pub fn execute_receive_nois(
     let raffle_id: u64 = raffle_id.parse().unwrap();
 
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
-    let raffle_state = get_raffle_state(env.clone(), &raffle_info);
+    let raffle_state = get_raffle_state(&env, &raffle_info);
 
     if raffle_state != RaffleState::Closed {
         return Err(ContractError::WrongStateForClaim {
@@ -608,7 +608,7 @@ pub fn execute_receive_nois(
 
 pub fn execute_claim(deps: DepsMut, env: Env, raffle_id: u64) -> Result<Response, ContractError> {
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
-    let raffle_state = get_raffle_state(env.clone(), &raffle_info);
+    let raffle_state = get_raffle_state(&env, &raffle_info);
 
     if raffle_state != RaffleState::Finished {
         return Err(ContractError::WrongStateForClaim {
@@ -640,7 +640,7 @@ pub fn execute_claim(deps: DepsMut, env: Env, raffle_id: u64) -> Result<Response
     } else {
         // We calculate the winner of the raffle and save it to the contract. The raffle is now claimed !
         raffle_info.winners =
-            get_raffle_winners(deps.as_ref(), env.clone(), raffle_id, raffle_info.clone())?;
+            get_raffle_winners(deps.as_ref(), &env, raffle_id, raffle_info.clone())?;
         let owner_funds_msg = get_raffle_owner_funds_finished_messages(
             deps.storage,
             env.clone(),

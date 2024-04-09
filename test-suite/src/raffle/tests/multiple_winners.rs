@@ -128,7 +128,7 @@ mod tests {
     fn not_enough_participants() {
         // create testing app
         let (mut app, contracts) = proper_raffle_instantiate();
-        let (owner_addr, one, two) = setup_accounts(&mut app);
+        let (owner_addr, one, _) = setup_accounts(&mut app);
 
         let current_time = app.block_info().time;
 
