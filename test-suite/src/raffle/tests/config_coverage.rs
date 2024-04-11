@@ -176,7 +176,6 @@ mod tests {
             .wrap()
             .query_wasm_smart(contracts.raffle.clone(), &RaffleQueryMsg::Config {})
             .unwrap();
-        println!("{:#?}", res);
         assert_eq!(
             res,
             Config {

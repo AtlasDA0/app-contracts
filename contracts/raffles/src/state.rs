@@ -242,7 +242,7 @@ impl RaffleOptions {
             // Because one ticket can't win more than one NFT
             min_ticket_number: if raffle_options.one_winner_per_asset {
                 if let Some(min_ticket_number) = raffle_options.min_ticket_number {
-                    Some(min_ticket_number.min(assets_len as u32))
+                    Some(min_ticket_number.max(assets_len as u32))
                 } else {
                     Some(assets_len as u32)
                 }

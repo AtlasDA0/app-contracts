@@ -238,6 +238,6 @@ pub fn send_nois_ibc_message(
     if error_value.is_empty() {
         Ok(())
     } else {
-        bail!("Error on executing on nois randomnesss : {:?}", error_value)
+        bail!("Error on executing on nois randomness : {:?}", error_value)
     }
 }

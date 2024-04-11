@@ -4,7 +4,7 @@ use super::{
     contract_boxes::contract_fake_nois,
     helpers::setup_block_time,
     msg::{RaffleCodeIds, RaffleContracts},
-    nois_proxy::{self, NOIS_AMOUNT, NOIS_DENOM},
+    nois_proxy::{self, DEFAULT_RANDOMNESS_SEED, NOIS_AMOUNT, NOIS_DENOM},
     setup_accounts_and_block::setup_accounts,
     setup_minter::common::constants::{
         CREATION_FEE_AMNT_NATIVE, CREATION_FEE_AMNT_STARS, TREASURY_ADDR,
@@ -25,11 +25,12 @@ use sg_std::NATIVE_DENOM;
 use vending_factory::state::{ParamsExtension, VendingMinterParams};
 
 pub fn proper_raffle_instantiate() -> (StargazeApp, RaffleContracts) {
-    proper_raffle_instantiate_precise(None)
+    proper_raffle_instantiate_precise(None, None)
 }
 
 pub fn proper_raffle_instantiate_precise(
     max_ticket_number: Option<u32>,
+    randomness: Option<&str>,
 ) -> (StargazeApp, RaffleContracts) {
     let mut app = custom_mock_app();
     let chainid = app.block_info().chain_id.clone();
@@ -86,6 +87,7 @@ pub fn proper_raffle_instantiate_precise(
             Addr::unchecked(OWNER_ADDR),
             &nois_proxy::InstantiateMsg {
                 nois: NOIS_DENOM.to_string(),
+                randomness: randomness.unwrap_or(DEFAULT_RANDOMNESS_SEED).to_string(),
             },
             &[],
             "nois-contract",

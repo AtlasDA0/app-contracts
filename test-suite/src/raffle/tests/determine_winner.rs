@@ -10,7 +10,7 @@ mod tests {
     use crate::{
         common_setup::{
             helpers::{assert_error, setup_block_time},
-            nois_proxy::RANDOMNESS_SEED,
+            nois_proxy::DEFAULT_RANDOMNESS_SEED,
             setup_accounts_and_block::{setup_accounts, setup_raffle_participants},
             setup_raffle::{proper_raffle_instantiate, proper_raffle_instantiate_precise},
         },
@@ -58,7 +58,7 @@ mod tests {
                     callback: NoisCallback {
                         job_id: "raffle-0".to_string(),
                         published: mock_env().block.time,
-                        randomness: HexBinary::from_hex(RANDOMNESS_SEED).unwrap(),
+                        randomness: HexBinary::from_hex(DEFAULT_RANDOMNESS_SEED).unwrap(),
                     },
                 },
                 &[],
@@ -207,7 +207,7 @@ mod tests {
                     callback: NoisCallback {
                         job_id: "raffle-0".to_string(),
                         published: mock_env().block.time,
-                        randomness: HexBinary::from_hex(RANDOMNESS_SEED).unwrap(),
+                        randomness: HexBinary::from_hex(DEFAULT_RANDOMNESS_SEED).unwrap(),
                     },
                 },
                 &[],
@@ -276,7 +276,7 @@ mod tests {
 
     #[test]
     fn close_after_all_tickets_sold() {
-        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10));
+        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10), None);
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, two, three, _, _, _) = setup_raffle_participants(&mut app);
         let token = mint_one_token(&mut app, &contracts);
@@ -395,7 +395,7 @@ mod tests {
 
     #[test]
     fn close_after_minimum_tickets_sold() {
-        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10));
+        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10), None);
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
         let token = mint_one_token(&mut app, &contracts);
@@ -537,7 +537,7 @@ mod tests {
 
     #[test]
     fn claim_no_randomness() {
-        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10));
+        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10), None);
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
         let token = mint_one_token(&mut app, &contracts);
@@ -630,7 +630,7 @@ mod tests {
 
     #[test]
     fn randomness_no_claim_query() {
-        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10));
+        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10), None);
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
         let token = mint_one_token(&mut app, &contracts);

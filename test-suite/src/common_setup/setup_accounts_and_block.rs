@@ -51,6 +51,26 @@ pub fn setup_accounts(
     (owner, depositor, lender)
 }
 
+pub fn setup_n_accounts(router: &mut StargazeApp, n: u64) -> Vec<Addr> {
+    let mut addresses = vec![];
+    for i in 0..n {
+        // define account
+        let addr = Addr::unchecked(&format!("participant-{}", i));
+        // fund account
+        router
+            .sudo(SudoMsg::Bank({
+                BankSudo::Mint {
+                    to_address: addr.to_string(),
+                    amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
+                }
+            }))
+            .unwrap();
+        addresses.push(addr);
+    }
+
+    addresses
+}
+
 pub fn setup_raffle_participants(router: &mut StargazeApp) -> (Addr, Addr, Addr, Addr, Addr, Addr) {
     // define accounts
     let one = Addr::unchecked("addr-one");
