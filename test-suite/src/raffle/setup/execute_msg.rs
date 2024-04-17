@@ -76,6 +76,7 @@ pub fn buy_tickets_template(params: PurchaseTicketsParams) -> Result<AppResponse
             raffle_id: id,
             ticket_count: num_tickets,
             sent_assets: AssetInfo::Coin(funds_sent[0].clone()),
+            on_behalf_of: None,
         },
         &funds_sent,
     )

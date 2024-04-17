@@ -338,6 +338,7 @@ pub fn execute_buy_tickets(
     raffle_id: u64,
     ticket_count: u32,
     assets: AssetInfo,
+    on_behalf_of: Option<String>,
 ) -> Result<Response, ContractError> {
     // First we physcially transfer the AssetInfo
     let transfer_messages: Vec<cosmwasm_std::CosmosMsg<sg_std::StargazeMsgWrapper>> = match &assets
@@ -375,14 +376,11 @@ pub fn execute_buy_tickets(
     };
 
     // Then we verify the funds sent match the raffle conditions and we save the ticket that was bought
-    let messages = _buy_tickets(
-        deps,
-        env.clone(),
-        info.sender.clone(),
-        raffle_id,
-        ticket_count,
-        assets,
-    )?;
+    let owner = on_behalf_of
+        .map(|a| deps.as_ref().api.addr_validate(&a))
+        .transpose()?
+        .unwrap_or(info.sender.clone());
+    let messages = _buy_tickets(deps, env.clone(), owner, raffle_id, ticket_count, assets)?;
 
     Ok(Response::new()
         .add_messages(messages)
@@ -500,6 +498,7 @@ pub fn execute_receive(
             raffle_id: _,
             ticket_count: _,
             sent_assets,
+            on_behalf_of: _,
         } => {
             // First we make sure the received Asset is the one specified in the message
             match sent_assets.clone() {

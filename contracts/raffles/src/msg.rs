@@ -81,6 +81,7 @@ pub enum ExecuteMsg {
         raffle_id: u64,
         ticket_count: u32,
         sent_assets: AssetInfo,
+        on_behalf_of: Option<String>,
     },
     Receive(cw721::Cw721ReceiveMsg),
     NoisReceive {

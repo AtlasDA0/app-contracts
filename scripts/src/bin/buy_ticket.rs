@@ -18,6 +18,7 @@ pub fn main() -> anyhow::Result<()> {
         RAFFLE_ID,
         AssetInfo::Coin(coin((TICKET_NUMBER as u128) * 123, "ustars")),
         TICKET_NUMBER,
+        None,
         &coins((TICKET_NUMBER as u128) * 123, "ustars"),
     )?;
 

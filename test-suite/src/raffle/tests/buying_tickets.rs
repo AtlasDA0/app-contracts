@@ -14,7 +14,7 @@ mod tests {
         },
         raffle::setup::{execute_msg::buy_tickets_template, test_msgs::PurchaseTicketsParams},
     };
-    use cosmwasm_std::{coin, Addr, Coin, Uint128};
+    use cosmwasm_std::{coin, coins, Addr, Coin, Uint128};
     use cw_multi_test::Executor;
     use raffles::error::ContractError;
     use raffles::msg::{ExecuteMsg as RaffleExecuteMsg, QueryMsg as RaffleQueryMsg};
@@ -86,6 +86,42 @@ mod tests {
         // println!("{:#?}", purchase_tickets.unwrap());
     }
 
+    #[test]
+    fn purchase_on_behalf_of() {
+        let (mut app, contracts) = proper_raffle_instantiate();
+        let (owner_addr, _, _) = setup_accounts(&mut app);
+        let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
+        let token = mint_one_token(&mut app, &contracts);
+        create_simple_raffle(&mut app, &contracts, &token, owner_addr, None, None);
+
+        // simulate the puchase of tickets
+
+        app.execute_contract(
+            one.clone(),
+            contracts.raffle.clone(),
+            &RaffleExecuteMsg::BuyTicket {
+                raffle_id: 0,
+                ticket_count: 67,
+                sent_assets: AssetInfo::Coin(coin(4 * 67, "ustars")),
+                on_behalf_of: Some("any-user-really".to_string()),
+            },
+            &coins(4 * 67, "ustars"),
+        )
+        .unwrap();
+
+        let res: u32 = app
+            .wrap()
+            .query_wasm_smart(
+                contracts.raffle.clone(),
+                &RaffleQueryMsg::TicketCount {
+                    owner: "any-user-really".to_string(),
+                    raffle_id: 0,
+                },
+            )
+            .unwrap();
+        assert_eq!(res, 67);
+    }
+
     // bad scenarios, expect errors
     mod bad {
 
@@ -110,6 +146,7 @@ mod tests {
                         raffle_id: 0,
                         ticket_count: 2,
                         sent_assets: AssetInfo::Coin(Coin::new(8, "ustars".to_string())),
+                        on_behalf_of: None,
                     },
                     &[Coin::new(8, "ustars".to_string())],
                 )
@@ -142,6 +179,7 @@ mod tests {
                         raffle_id: 0,
                         ticket_count: 9,
                         sent_assets: AssetInfo::Coin(Coin::new(36, "ustars".to_string())),
+                        on_behalf_of: None,
                     },
                     &[Coin::new(36, "ustars".to_string())],
                 )
@@ -155,6 +193,7 @@ mod tests {
                         raffle_id: 0,
                         ticket_count: 2,
                         sent_assets: AssetInfo::Coin(Coin::new(8, "ustars".to_string())),
+                        on_behalf_of: None,
                     },
                     &[Coin::new(8, "ustars".to_string())],
                 )
@@ -211,6 +250,7 @@ mod tests {
                             denom: "ustars".to_string(),
                             amount: Uint128::new(69u128),
                         }),
+                        on_behalf_of: None,
                     },
                     &[],
                 )
@@ -253,6 +293,7 @@ mod tests {
                     raffle_id: 1,
                     ticket_count: 2,
                     sent_assets: AssetInfo::Coin(Coin::new(8, "ustars".to_string())),
+                    on_behalf_of: None,
                 },
                 &[Coin::new(8, "ustars".to_string())],
             );
@@ -283,6 +324,7 @@ mod tests {
                         raffle_id: 0,
                         ticket_count,
                         sent_assets,
+                        on_behalf_of: None,
                     },
                     &[sent_coin.clone()],
                 )
@@ -308,6 +350,7 @@ mod tests {
                         raffle_id: 0,
                         ticket_count,
                         sent_assets: sent_assets.clone(),
+                        on_behalf_of: None,
                     },
                     &[sent_coin.clone()],
                 )
@@ -334,6 +377,7 @@ mod tests {
                         raffle_id: 0,
                         ticket_count,
                         sent_assets: sent_assets.clone(),
+                        on_behalf_of: None,
                     },
                     &[sent_coin.clone()],
                 )

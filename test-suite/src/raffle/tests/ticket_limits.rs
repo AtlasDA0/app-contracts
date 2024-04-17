@@ -98,6 +98,7 @@ mod tests {
                     raffle_id: 0,
                     ticket_count: 80,
                     sent_assets: AssetInfo::Coin(Coin::new(8000, "ustars".to_string())),
+                    on_behalf_of: None,
                 },
                 &[Coin::new(8000, "ustars".to_string())],
             )
@@ -327,6 +328,7 @@ mod tests {
                     raffle_id: 0,
                     ticket_count: 1,
                     sent_assets: AssetInfo::Coin(Coin::new(100, "ustars".to_string())),
+                    on_behalf_of: None,
                 },
                 &[Coin::new(100, "ustars".to_string())],
             )
