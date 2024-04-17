@@ -66,6 +66,29 @@
     {
       "type": "object",
       "required": [
+        "claim_raffle"
+      ],
+      "properties": {
+        "claim_raffle": {
+          "type": "object",
+          "required": [
+            "raffle_id"
+          ],
+          "properties": {
+            "raffle_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
         "update_config"
       ],
       "properties": {
@@ -198,6 +221,12 @@
             "ticket_count"
           ],
           "properties": {
+            "on_behalf_of": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "raffle_id": {
               "type": "integer",
               "format": "uint64",

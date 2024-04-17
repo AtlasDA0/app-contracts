@@ -341,6 +341,7 @@
         "started",
         "closed",
         "claimed",
+        "finished",
         "cancelled"
       ]
     },
