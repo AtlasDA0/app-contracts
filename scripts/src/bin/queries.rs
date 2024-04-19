@@ -5,7 +5,7 @@ use cw_orch::prelude::QueryHandler;
 use cw_orch::prelude::TxHandler;
 use raffles::msg::QueryMsgFns;
 use scripts::STARGAZE_1;
-use scripts::{raffles::Raffles, ELGAFAR_1};
+use scripts::{raffles::Raffles};
 use cw_orch::prelude::IndexResponse;
 
 pub const RAFFLE_ID: u64 = 0;
@@ -40,8 +40,6 @@ pub fn main() -> anyhow::Result<()> {
 
     let counts = counts.into_iter().map(|c| c.parse()).collect::<Result<Vec<u64>, _>>()?;
     
-
-    panic!("{}, {:?}, {}", counts.len(),counts, counts.iter().sum::<u64>());
 
     let raffles = Raffles::new(chain.clone());
 

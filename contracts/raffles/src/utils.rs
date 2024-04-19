@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use dao_interface::voting::VotingPowerAtHeightResponse;
 use rand_xoshiro::{rand_core::SeedableRng, Xoshiro256PlusPlus};
 #[cfg(feature = "sg")]
 use sg721::ExecuteMsg as Sg721ExecuteMsg;
@@ -10,7 +9,7 @@ use crate::{
     state::{get_raffle_state, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO, RAFFLE_TICKETS},
 };
 use cosmwasm_std::{
-    coins, ensure, to_json_binary, Addr, BankMsg, Coin, Deps, Empty, Env, HexBinary, Order,
+    coins, to_json_binary, Addr, BankMsg, Coin, Decimal, Deps, Empty, Env, HexBinary, Order,
     StdError, StdResult, Storage, Uint128, WasmMsg,
 };
 use cw721::Cw721ExecuteMsg;
@@ -64,50 +63,24 @@ pub fn get_raffle_owner_funds_finished_messages(
     } * Uint128::from(raffle_info.number_of_tickets);
 
     // use raffle_fee % to calculate treasury distribution
-    let mut treasury_amount = total_paid * config.raffle_fee;
-    {
-        if config
-            .atlas_dao_nft_addresses
-            .iter()
-            .map(|addr| {
-                // If the owner is an Atlas DAO NFT holder, they don't get the treasury_fee
-                let token_hold: cw721::TokensResponse = deps.querier.query_wasm_smart(
-                    addr,
-                    &sg721_base::msg::QueryMsg::Tokens {
-                        owner: raffle_info.owner.to_string(),
-                        start_after: None,
-                        limit: Some(1),
-                    },
-                )?;
-                if !token_hold.tokens.is_empty() {
-                    Ok::<_, ContractError>(true)
+    let discount_rate: Decimal = config
+        .fee_discounts
+        .iter()
+        .flat_map(|discount| {
+            Ok::<_, ContractError>(
+                if discount
+                    .condition
+                    .has_advantage(deps, raffle_info.owner.to_string())
+                    .is_ok()
+                {
+                    Decimal::one() - discount.discount(deps, raffle_info.owner.to_string())?
                 } else {
-                    Ok(false)
-                }
-            })
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .any(|t| t)
-        {
-            treasury_amount = Uint128::zero();
-        }
-    }
-
-    {
-        // If the owner is a Stargaze staker, they get a discount on the treasury fee
-        let stake_response: Uint128 = deps
-            .querier
-            .query_all_delegations(&raffle_info.owner)?
-            .into_iter()
-            .map(|delegation| delegation.amount.amount)
-            .sum();
-
-        println!("{:?} - {:?}", stake_response, config.staker_fee_discount);
-
-        if stake_response > config.staker_fee_discount.minimum_amount {
-            treasury_amount -= treasury_amount * config.staker_fee_discount.discount;
-        }
-    }
+                    Decimal::one()
+                },
+            )
+        })
+        .fold(Decimal::one(), |acc, el| acc * el);
+    let treasury_amount = total_paid * config.raffle_fee * discount_rate;
 
     let owner_amount = total_paid - treasury_amount;
 
@@ -344,97 +317,7 @@ pub fn buyer_can_buy_ticket(
         .raffle_options
         .gating_raffle
         .iter()
-        .try_for_each(|options| match options {
-            crate::state::GatingOptions::Cw721Coin(address) => {
-                let owner_query: cw721::TokensResponse = deps.querier.query_wasm_smart(
-                    address,
-                    &cw721_base::QueryMsg::<Empty>::Tokens {
-                        owner: buyer.clone(),
-                        start_after: None,
-                        limit: None,
-                    },
-                )?;
-                ensure!(
-                    !owner_query.tokens.is_empty(),
-                    ContractError::NotGatingCondition {
-                        condition: options.clone(),
-                        user: buyer.clone()
-                    }
-                );
-                Ok::<_, ContractError>(())
-            }
-            crate::state::GatingOptions::Coin(needed_coins) => {
-                // We verify the sender has enough coins in their wallet
-                let user_balance = deps
-                    .querier
-                    .query_balance(buyer.clone(), needed_coins.denom.clone())?;
-
-                ensure!(
-                    user_balance.amount >= needed_coins.amount,
-                    ContractError::NotGatingCondition {
-                        condition: options.clone(),
-                        user: buyer.clone()
-                    }
-                );
-                Ok(())
-            }
-            crate::state::GatingOptions::Sg721Token(address) => {
-                let owner_query: cw721::TokensResponse = deps.querier.query_wasm_smart(
-                    address,
-                    &sg721_base::QueryMsg::Tokens {
-                        owner: buyer.clone(),
-                        start_after: None,
-                        limit: None,
-                    },
-                )?;
-                ensure!(
-                    !owner_query.tokens.is_empty(),
-                    ContractError::NotGatingCondition {
-                        condition: options.clone(),
-                        user: buyer.to_string()
-                    }
-                );
-                Ok::<_, ContractError>(())
-            }
-            crate::state::GatingOptions::DaoVotingPower {
-                dao_address,
-                min_voting_power,
-            } => {
-                let voting_power: VotingPowerAtHeightResponse = deps.querier.query_wasm_smart(
-                    dao_address,
-                    &dao_interface::msg::QueryMsg::VotingPowerAtHeight {
-                        address: buyer.clone(),
-                        height: None,
-                    },
-                )?;
-                ensure!(
-                    voting_power.power >= *min_voting_power,
-                    ContractError::NotGatingCondition {
-                        condition: options.clone(),
-                        user: buyer.clone()
-                    }
-                );
-                Ok::<_, ContractError>(())
-            }
-            crate::state::GatingOptions::Cw20(needed_amount) => {
-                // We verify the sender has enough coins in their wallet
-                let user_balance: cw20::BalanceResponse = deps.querier.query_wasm_smart(
-                    &needed_amount.address,
-                    &cw20_base::msg::QueryMsg::Balance {
-                        address: buyer.clone(),
-                    },
-                )?;
-
-                ensure!(
-                    user_balance.balance >= needed_amount.amount,
-                    ContractError::NotGatingCondition {
-                        condition: options.clone(),
-                        user: buyer.clone()
-                    }
-                );
-                Ok(())
-            }
-        })
+        .try_for_each(|options| options.has_advantage(deps, buyer.clone()))
 }
 
 pub fn get_raffle_winner_messages(

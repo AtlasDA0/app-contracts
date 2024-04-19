@@ -1,11 +1,14 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    ensure, Addr, Api, Coin, Decimal, Env, HexBinary, StdError, StdResult, Storage, Timestamp,
-    Uint128,
+    ensure, ensure_eq, Addr, Api, Coin, Decimal, Deps, Empty, Env, HexBinary, StdError, StdResult,
+    Storage, Timestamp, Uint128,
 };
 use cw20::{Cw20Coin, Cw20CoinVerified};
 use cw_storage_plus::{Item, Map};
+use dao_interface::voting::VotingPowerAtHeightResponse;
 use utils::state::{AssetInfo, Locks};
+
+use crate::error::ContractError;
 
 pub const CONFIG_KEY: &str = "config";
 pub const CONFIG: Item<Config> = Item::new(CONFIG_KEY);
@@ -15,6 +18,8 @@ pub const RAFFLE_INFO: Map<u64, RaffleInfo> = Map::new("raffle_info");
 pub const RAFFLE_TICKETS: Map<(u64, u32), Addr> = Map::new("raffle_tickets");
 pub const STATIC_RAFFLE_CREATION_FEE: u128 = 100; // default static tokens required to create raffle
 pub const USER_TICKETS: Map<(&Addr, u64), u32> = Map::new("user_tickets");
+
+pub const NFT_TOKEN_LIMIT: u32 = 20;
 
 #[cw_serde]
 pub struct Config {
@@ -40,18 +45,115 @@ pub struct Config {
     pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,
 
-    /// Fee bypass for Atlas Dao NFT holders
-    pub atlas_dao_nft_addresses: Vec<Addr>,
-
-    /// Discount applied to stakers on fees (0.5 corresponds to paying only 50% treasury fees)
-    /// This is not applied on royalty fees
-    pub staker_fee_discount: StakerFeeDiscount,
+    /// Fee discounts applied
+    pub fee_discounts: Vec<FeeDiscount>,
 }
 
 #[cw_serde]
-pub struct StakerFeeDiscount {
+pub struct FeeDiscount {
     pub discount: Decimal,
-    pub minimum_amount: Uint128,
+    pub condition: AdvantageOptions,
+}
+
+impl From<FeeDiscount> for FeeDiscountMsg {
+    fn from(options: FeeDiscount) -> FeeDiscountMsg {
+        FeeDiscountMsg {
+            discount: options.discount,
+            condition: options.condition.into(),
+        }
+    }
+}
+
+impl FeeDiscountMsg {
+    pub fn check(self, api: &dyn Api) -> StdResult<FeeDiscount> {
+        ensure!(
+            self.discount <= Decimal::one(),
+            StdError::generic_err("Discount should be lower than 100%")
+        );
+        match &self.condition {
+            AdvantageOptionsMsg::Cw721Coin {
+                nft_count,
+                nft_address: _,
+            } => {
+                // discount is per token
+                ensure!(
+                    (self.discount * Decimal::from_ratio(*nft_count, 1u128)) <= Decimal::one(),
+                    StdError::generic_err("Discount should be lower than 100%")
+                );
+            }
+            AdvantageOptionsMsg::Cw20(_) => {}
+            AdvantageOptionsMsg::Coin(_) => {}
+            AdvantageOptionsMsg::Sg721Token {
+                nft_count,
+                nft_address: _,
+            } => {
+                // discount is per token
+                ensure!(
+                    (self.discount * Decimal::from_ratio(*nft_count, 1u128)) <= Decimal::one(),
+                    StdError::generic_err("Discount should be lower than 100%")
+                );
+            }
+            AdvantageOptionsMsg::DaoVotingPower { .. } => {}
+            AdvantageOptionsMsg::Staking { .. } => {}
+        }
+        Ok(FeeDiscount {
+            discount: self.discount,
+            condition: self.condition.check(api)?,
+        })
+    }
+}
+
+impl FeeDiscount {
+    pub fn discount(&self, deps: Deps, user: String) -> Result<Decimal, ContractError> {
+        let discount = match &self.condition {
+            AdvantageOptions::Cw721Coin {
+                nft_count,
+                nft_address,
+            } => {
+                let owner_query: cw721::TokensResponse = deps.querier.query_wasm_smart(
+                    nft_address,
+                    &sg721_base::QueryMsg::Tokens {
+                        owner: user.clone(),
+                        start_after: None,
+                        limit: Some(NFT_TOKEN_LIMIT),
+                    },
+                )?;
+                self.discount
+                    * Decimal::from_ratio(owner_query.tokens.len() as u32 / nft_count, 1u128)
+            }
+            AdvantageOptions::Cw20(_) => self.discount,
+            AdvantageOptions::Coin(_) => self.discount,
+            AdvantageOptions::Sg721Token {
+                nft_count,
+                nft_address,
+            } => {
+                let owner_query: cw721::TokensResponse = deps.querier.query_wasm_smart(
+                    nft_address,
+                    &sg721_base::QueryMsg::Tokens {
+                        owner: user.clone(),
+                        start_after: None,
+                        limit: Some(NFT_TOKEN_LIMIT),
+                    },
+                )?;
+                self.discount
+                    * Decimal::from_ratio(owner_query.tokens.len() as u32 / nft_count, 1u128)
+            }
+            AdvantageOptions::DaoVotingPower {
+                dao_address: _,
+                min_voting_power: _,
+            } => self.discount,
+            AdvantageOptions::Staking {
+                min_voting_power: _,
+            } => self.discount,
+        };
+        Ok(discount.min(Decimal::one()))
+    }
+}
+
+#[cw_serde]
+pub struct FeeDiscountMsg {
+    pub discount: Decimal,
+    pub condition: AdvantageOptionsMsg,
 }
 
 impl Config {
@@ -149,19 +251,149 @@ pub struct RaffleOptions {
     pub min_ticket_number: Option<u32>,    // Minimum ticket number for a raffle to close.
     pub one_winner_per_asset: bool, // Allows to set multiple winners per raffle (one per asset)
 
-    pub gating_raffle: Vec<GatingOptions>, // Allows for token gating raffle tickets. Only owners of those tokens can buy raffle tickets
+    pub gating_raffle: Vec<AdvantageOptions>, // Allows for token gating raffle tickets. Only owners of those tokens can buy raffle tickets
 }
 
 #[cw_serde]
-pub enum GatingOptions {
-    Cw721Coin(Addr),
+pub enum AdvantageOptions {
+    Cw721Coin {
+        nft_count: u32,
+        nft_address: Addr,
+    },
     Cw20(Cw20CoinVerified), // Corresponds to a minimum of coins that a raffle buyer should own
     Coin(Coin),             // Corresponds to a minimum of coins that a raffle buyer should own
-    Sg721Token(Addr),
+    Sg721Token {
+        nft_count: u32,
+        nft_address: Addr,
+    },
     DaoVotingPower {
         dao_address: Addr,
         min_voting_power: Uint128,
     },
+    Staking {
+        min_voting_power: Uint128,
+    },
+}
+
+impl AdvantageOptions {
+    pub fn has_advantage(&self, deps: Deps, user: String) -> Result<(), ContractError> {
+        match self {
+            crate::state::AdvantageOptions::Cw721Coin {
+                nft_count,
+                nft_address,
+            } => {
+                let owner_query: cw721::TokensResponse = deps.querier.query_wasm_smart(
+                    nft_address,
+                    &cw721_base::QueryMsg::<Empty>::Tokens {
+                        owner: user.clone(),
+                        start_after: None,
+                        limit: Some(NFT_TOKEN_LIMIT),
+                    },
+                )?;
+                ensure_eq!(
+                    owner_query.tokens.len(),
+                    *nft_count as usize,
+                    ContractError::NotGatingCondition {
+                        condition: self.clone(),
+                        user
+                    }
+                );
+                Ok::<_, ContractError>(())
+            }
+            crate::state::AdvantageOptions::Coin(needed_coins) => {
+                // We verify the sender has enough coins in their wallet
+                let user_balance = deps
+                    .querier
+                    .query_balance(user.clone(), needed_coins.denom.clone())?;
+
+                ensure!(
+                    user_balance.amount >= needed_coins.amount,
+                    ContractError::NotGatingCondition {
+                        condition: self.clone(),
+                        user
+                    }
+                );
+                Ok(())
+            }
+            crate::state::AdvantageOptions::Sg721Token {
+                nft_count,
+                nft_address,
+            } => {
+                let owner_query: cw721::TokensResponse = deps.querier.query_wasm_smart(
+                    nft_address,
+                    &sg721_base::QueryMsg::Tokens {
+                        owner: user.clone(),
+                        start_after: None,
+                        limit: Some(NFT_TOKEN_LIMIT),
+                    },
+                )?;
+                ensure_eq!(
+                    owner_query.tokens.len(),
+                    *nft_count as usize,
+                    ContractError::NotGatingCondition {
+                        condition: self.clone(),
+                        user
+                    }
+                );
+                Ok::<_, ContractError>(())
+            }
+            crate::state::AdvantageOptions::DaoVotingPower {
+                dao_address,
+                min_voting_power,
+            } => {
+                let voting_power: VotingPowerAtHeightResponse = deps.querier.query_wasm_smart(
+                    dao_address,
+                    &dao_interface::msg::QueryMsg::VotingPowerAtHeight {
+                        address: user.clone(),
+                        height: None,
+                    },
+                )?;
+                ensure!(
+                    voting_power.power >= *min_voting_power,
+                    ContractError::NotGatingCondition {
+                        condition: self.clone(),
+                        user
+                    }
+                );
+                Ok::<_, ContractError>(())
+            }
+            crate::state::AdvantageOptions::Cw20(needed_amount) => {
+                // We verify the sender has enough coins in their wallet
+                let user_balance: cw20::BalanceResponse = deps.querier.query_wasm_smart(
+                    &needed_amount.address,
+                    &cw20_base::msg::QueryMsg::Balance {
+                        address: user.clone(),
+                    },
+                )?;
+
+                ensure!(
+                    user_balance.balance >= needed_amount.amount,
+                    ContractError::NotGatingCondition {
+                        condition: self.clone(),
+                        user
+                    }
+                );
+                Ok(())
+            }
+            crate::state::AdvantageOptions::Staking { min_voting_power } => {
+                let stake_response: Uint128 = deps
+                    .querier
+                    .query_all_delegations(&user)?
+                    .into_iter()
+                    .map(|delegation| delegation.amount.amount)
+                    .sum();
+
+                ensure!(
+                    stake_response >= *min_voting_power,
+                    ContractError::NotGatingCondition {
+                        condition: self.clone(),
+                        user
+                    }
+                );
+                Ok(())
+            }
+        }
+    }
 }
 
 #[cw_serde]
@@ -175,38 +407,110 @@ pub struct RaffleOptionsMsg {
     pub one_winner_per_asset: bool,
     pub min_ticket_number: Option<u32>,
 
-    pub gating_raffle: Vec<GatingOptionsMsg>,
+    pub gating_raffle: Vec<AdvantageOptionsMsg>,
 }
 
 #[cw_serde]
-pub enum GatingOptionsMsg {
-    Cw721Coin(String),
+pub enum AdvantageOptionsMsg {
+    Cw721Coin {
+        nft_count: u32,
+        nft_address: String,
+    },
     Cw20(Cw20Coin),
     Coin(Coin),
-    Sg721Token(String),
+    Sg721Token {
+        nft_count: u32,
+        nft_address: String,
+    },
     DaoVotingPower {
         dao_address: String,
         min_voting_power: Uint128,
     },
+    Staking {
+        min_voting_power: Uint128,
+    },
 }
 
-impl From<GatingOptions> for GatingOptionsMsg {
-    fn from(options: GatingOptions) -> GatingOptionsMsg {
-        match options {
-            GatingOptions::Cw721Coin(address) => GatingOptionsMsg::Cw721Coin(address.to_string()),
-            GatingOptions::Coin(coin) => GatingOptionsMsg::Coin(coin),
-            GatingOptions::Sg721Token(address) => GatingOptionsMsg::Sg721Token(address.to_string()),
-            GatingOptions::DaoVotingPower {
+impl AdvantageOptionsMsg {
+    pub fn check(self, api: &dyn Api) -> StdResult<AdvantageOptions> {
+        Ok(match self {
+            AdvantageOptionsMsg::Cw721Coin {
+                nft_count,
+                nft_address,
+            } => {
+                ensure!(
+                    nft_count <= NFT_TOKEN_LIMIT,
+                    StdError::generic_err("Too many nft count in nft advantage")
+                );
+                AdvantageOptions::Cw721Coin {
+                    nft_count,
+                    nft_address: api.addr_validate(&nft_address)?,
+                }
+            }
+            AdvantageOptionsMsg::Coin(coin) => AdvantageOptions::Coin(coin),
+            AdvantageOptionsMsg::Sg721Token {
+                nft_count,
+                nft_address,
+            } => {
+                ensure!(
+                    nft_count <= NFT_TOKEN_LIMIT,
+                    StdError::generic_err("Too many nft count in nft advantage")
+                );
+                AdvantageOptions::Sg721Token {
+                    nft_address: api.addr_validate(&nft_address)?,
+                    nft_count,
+                }
+            }
+            AdvantageOptionsMsg::DaoVotingPower {
                 dao_address,
                 min_voting_power,
-            } => GatingOptionsMsg::DaoVotingPower {
+            } => AdvantageOptions::DaoVotingPower {
+                dao_address: api.addr_validate(&dao_address)?,
+                min_voting_power,
+            },
+            AdvantageOptionsMsg::Cw20(c) => AdvantageOptions::Cw20(Cw20CoinVerified {
+                address: api.addr_validate(&c.address)?,
+                amount: c.amount,
+            }),
+            AdvantageOptionsMsg::Staking { min_voting_power } => {
+                AdvantageOptions::Staking { min_voting_power }
+            }
+        })
+    }
+}
+
+impl From<AdvantageOptions> for AdvantageOptionsMsg {
+    fn from(options: AdvantageOptions) -> AdvantageOptionsMsg {
+        match options {
+            AdvantageOptions::Cw721Coin {
+                nft_count,
+                nft_address,
+            } => AdvantageOptionsMsg::Cw721Coin {
+                nft_count,
+                nft_address: nft_address.to_string(),
+            },
+            AdvantageOptions::Coin(coin) => AdvantageOptionsMsg::Coin(coin),
+            AdvantageOptions::Sg721Token {
+                nft_count,
+                nft_address,
+            } => AdvantageOptionsMsg::Sg721Token {
+                nft_count,
+                nft_address: nft_address.to_string(),
+            },
+            AdvantageOptions::DaoVotingPower {
+                dao_address,
+                min_voting_power,
+            } => AdvantageOptionsMsg::DaoVotingPower {
                 dao_address: dao_address.to_string(),
                 min_voting_power,
             },
-            GatingOptions::Cw20(c) => GatingOptionsMsg::Cw20(Cw20Coin {
+            AdvantageOptions::Cw20(c) => AdvantageOptionsMsg::Cw20(Cw20Coin {
                 address: c.to_string(),
                 amount: c.amount,
             }),
+            AdvantageOptions::Staking { min_voting_power } => {
+                AdvantageOptionsMsg::Staking { min_voting_power }
+            }
         }
     }
 }
@@ -266,28 +570,7 @@ impl RaffleOptions {
             gating_raffle: raffle_options
                 .gating_raffle
                 .into_iter()
-                .map(|options| {
-                    Ok::<_, StdError>(match options {
-                        GatingOptionsMsg::Cw721Coin(address) => {
-                            GatingOptions::Cw721Coin(api.addr_validate(&address)?)
-                        }
-                        GatingOptionsMsg::Coin(coin) => GatingOptions::Coin(coin),
-                        GatingOptionsMsg::Sg721Token(address) => {
-                            GatingOptions::Sg721Token(api.addr_validate(&address)?)
-                        }
-                        GatingOptionsMsg::DaoVotingPower {
-                            dao_address,
-                            min_voting_power,
-                        } => GatingOptions::DaoVotingPower {
-                            dao_address: api.addr_validate(&dao_address)?,
-                            min_voting_power,
-                        },
-                        GatingOptionsMsg::Cw20(c) => GatingOptions::Cw20(Cw20CoinVerified {
-                            address: api.addr_validate(&c.address)?,
-                            amount: c.amount,
-                        }),
-                    })
-                })
+                .map(|options| options.check(api))
                 .collect::<Result<Vec<_>, _>>()?,
         })
     }
@@ -341,28 +624,7 @@ impl RaffleOptions {
             gating_raffle: raffle_options
                 .gating_raffle
                 .into_iter()
-                .map(|options| {
-                    Ok::<_, StdError>(match options {
-                        GatingOptionsMsg::Cw721Coin(address) => {
-                            GatingOptions::Cw721Coin(api.addr_validate(&address)?)
-                        }
-                        GatingOptionsMsg::Coin(coin) => GatingOptions::Coin(coin),
-                        GatingOptionsMsg::Sg721Token(address) => {
-                            GatingOptions::Sg721Token(api.addr_validate(&address)?)
-                        }
-                        GatingOptionsMsg::DaoVotingPower {
-                            dao_address,
-                            min_voting_power,
-                        } => GatingOptions::DaoVotingPower {
-                            dao_address: api.addr_validate(&dao_address)?,
-                            min_voting_power,
-                        },
-                        GatingOptionsMsg::Cw20(c) => GatingOptions::Cw20(Cw20CoinVerified {
-                            address: api.addr_validate(&c.address)?,
-                            amount: c.amount,
-                        }),
-                    })
-                })
+                .map(|options| options.check(api))
                 .collect::<Result<Vec<_>, _>>()?,
         })
     }

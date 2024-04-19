@@ -39,13 +39,8 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         nois_proxy_addr: config.nois_proxy_addr.to_string(),
         creation_coins: config.creation_coins,
         nois_proxy_coin: config.nois_proxy_coin,
-        atlas_dao_nft_addresses: config
-            .atlas_dao_nft_addresses
-            .into_iter()
-            .map(|a| a.to_string())
-            .collect(),
-        staker_fee_discount: config.staker_fee_discount,
         max_tickets_per_raffle: config.max_tickets_per_raffle,
+        fee_discounts: config.fee_discounts,
     })
 }
 

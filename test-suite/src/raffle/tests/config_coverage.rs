@@ -6,7 +6,6 @@ mod tests {
     use raffles::{
         error::ContractError,
         msg::{ConfigResponse, ExecuteMsg, QueryMsg as RaffleQueryMsg},
-        state::StakerFeeDiscount,
     };
     use utils::state::{AssetInfo, Locks, Sg721Token, SudoMsg as RaffleSudoMsg, NATIVE_DENOM};
 
@@ -85,11 +84,7 @@ mod tests {
                     lock: false,
                     sudo_lock: false,
                 },
-                atlas_dao_nft_addresses: vec![],
-                staker_fee_discount: StakerFeeDiscount {
-                    discount: Decimal::zero(),
-                    minimum_amount: Uint128::zero()
-                }
+                fee_discounts: vec![],
             }
         )
     }
@@ -114,8 +109,7 @@ mod tests {
                     nois_proxy_coin: None,
                     creation_coins: None,
                     max_tickets_per_raffle: None,
-                    atlas_dao_nft_addresses: None,
-                    staker_fee_discount: None,
+                    fee_discounts: None,
                 },
                 &[],
             )
@@ -174,8 +168,7 @@ mod tests {
                     nois_proxy_coin: Some(coin(NOIS_AMOUNT, NOIS_DENOM)),
                     creation_coins: Some(vec![coin(420, "new-new")]),
                     max_tickets_per_raffle: None,
-                    atlas_dao_nft_addresses: None,
-                    staker_fee_discount: None,
+                    fee_discounts: None,
                 },
                 &[],
             )
@@ -202,11 +195,7 @@ mod tests {
                     lock: false,
                     sudo_lock: false,
                 },
-                atlas_dao_nft_addresses: vec![],
-                staker_fee_discount: StakerFeeDiscount {
-                    discount: Decimal::zero(),
-                    minimum_amount: Uint128::zero()
-                }
+                fee_discounts: vec![],
             }
         )
     }

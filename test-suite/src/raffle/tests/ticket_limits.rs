@@ -4,7 +4,7 @@ mod tests {
     use cw_multi_test::Executor;
     use cw_multi_test::{BankSudo, SudoMsg};
 
-    use raffles::state::{StakerFeeDiscount, MINIMUM_RAFFLE_DURATION};
+    use raffles::state::MINIMUM_RAFFLE_DURATION;
     use raffles::{
         error::ContractError,
         msg::{ConfigResponse, ExecuteMsg},
@@ -169,11 +169,7 @@ mod tests {
                     coin(CREATION_FEE_AMNT_NATIVE, NATIVE_DENOM.to_string()),
                     coin(CREATION_FEE_AMNT_STARS, "ustars".to_string())
                 ],
-                atlas_dao_nft_addresses: vec![],
-                staker_fee_discount: StakerFeeDiscount {
-                    discount: Decimal::zero(),
-                    minimum_amount: Uint128::zero()
-                },
+                fee_discounts: vec![],
                 max_tickets_per_raffle: Some(80),
             }
         );

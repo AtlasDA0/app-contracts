@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{coin, Addr, Decimal, Uint128};
+    use cosmwasm_std::{coin, Addr, Decimal};
     use utils::state::NATIVE_DENOM;
 
     use crate::common_setup::{
@@ -10,7 +10,7 @@ mod tests {
         setup_raffle::{proper_raffle_instantiate, raffle_template_code_ids},
     };
     use cw_multi_test::Executor;
-    use raffles::{msg::InstantiateMsg, state::StakerFeeDiscount};
+    use raffles::msg::InstantiateMsg;
 
     #[test]
     fn test_i() {
@@ -40,11 +40,7 @@ mod tests {
                         coin(20, "ustars".to_string()),
                     ]
                     .into(),
-                    atlas_dao_nft_addresses: vec![],
-                    staker_fee_discount: StakerFeeDiscount {
-                        discount: Decimal::zero(),
-                        minimum_amount: Uint128::zero(),
-                    },
+                    fee_discounts: vec![],
                 },
                 &[],
                 "raffle",

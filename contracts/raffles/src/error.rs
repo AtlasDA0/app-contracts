@@ -3,7 +3,7 @@ use thiserror::Error;
 use cosmwasm_std::{StdError, Timestamp};
 use utils::state::AssetInfo;
 
-use crate::state::{GatingOptions, RaffleState};
+use crate::state::{AdvantageOptions, RaffleState};
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {
@@ -185,7 +185,7 @@ pub enum ContractError {
 
     #[error("The token gated conditions {condition:?} is not met for user {user}")]
     NotGatingCondition {
-        condition: GatingOptions,
+        condition: AdvantageOptions,
         user: String,
     },
 }

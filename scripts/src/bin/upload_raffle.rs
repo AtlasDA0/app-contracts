@@ -5,7 +5,6 @@ use cw_orch::{
     daemon::Daemon,
 };
 use raffles::msg::InstantiateMsg;
-use raffles::state::StakerFeeDiscount;
 use scripts::{raffles::Raffles, ELGAFAR_1};
 pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
@@ -30,11 +29,7 @@ pub fn main() -> anyhow::Result<()> {
             max_ticket_number: None,
             raffle_fee: Decimal::percent(10),
             creation_coins: Some(coins(45, "ustars")),
-            atlas_dao_nft_addresses: vec![],
-            staker_fee_discount: StakerFeeDiscount {
-                discount: Decimal::zero(),
-                minimum_amount: Uint128::zero(),
-            },
+            fee_discounts: vec![],
         },
         None,
         None,

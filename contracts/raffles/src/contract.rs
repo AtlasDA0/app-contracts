@@ -81,12 +81,11 @@ pub fn instantiate(
         nois_proxy_coin: msg.nois_proxy_coin,
         creation_coins,
         max_tickets_per_raffle: Some(msg.max_ticket_number.unwrap_or(MAX_TICKET_NUMBER)),
-        atlas_dao_nft_addresses: msg
-            .atlas_dao_nft_addresses
+        fee_discounts: msg
+            .fee_discounts
             .into_iter()
-            .map(|a| deps.api.addr_validate(&a))
-            .collect::<Result<Vec<_>, _>>()?,
-        staker_fee_discount: msg.staker_fee_discount,
+            .map(|d| d.check(deps.api))
+            .collect::<Result<_, _>>()?,
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -171,8 +170,7 @@ pub fn execute(
             nois_proxy_addr,
             nois_proxy_coin,
             creation_coins,
-            atlas_dao_nft_addresses,
-            staker_fee_discount,
+            fee_discounts,
         } => execute_update_config(
             deps,
             env,
@@ -186,8 +184,7 @@ pub fn execute(
             nois_proxy_addr,
             nois_proxy_coin,
             creation_coins,
-            atlas_dao_nft_addresses,
-            staker_fee_discount,
+            fee_discounts,
         ),
         ExecuteMsg::UpdateRandomness { raffle_id } => {
             let config = CONFIG.load(deps.storage)?;

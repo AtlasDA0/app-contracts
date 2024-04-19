@@ -21,7 +21,6 @@ use crate::common_setup::{
 use cosmwasm_std::{coin, Addr, Coin, Decimal, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
 use raffles::msg::InstantiateMsg;
-use raffles::state::StakerFeeDiscount;
 use sg_std::NATIVE_DENOM;
 use vending_factory::state::{ParamsExtension, VendingMinterParams};
 
@@ -115,11 +114,7 @@ pub fn proper_raffle_instantiate_precise(
                     coin(CREATION_FEE_AMNT_STARS, "ustars".to_string()),
                 ]
                 .into(),
-                atlas_dao_nft_addresses: vec![],
-                staker_fee_discount: StakerFeeDiscount {
-                    discount: Decimal::zero(),
-                    minimum_amount: Uint128::zero(),
-                },
+                fee_discounts: vec![],
             },
             &[],
             "raffle",

@@ -1,5 +1,5 @@
 use cosmwasm_std::{Addr, Coin, Timestamp, Uint128};
-use raffles::state::GatingOptionsMsg;
+use raffles::state::AdvantageOptionsMsg;
 use utils::state::AssetInfo;
 
 pub struct CreateRaffleParams<'a> {
@@ -14,7 +14,7 @@ pub struct CreateRaffleParams<'a> {
     pub raffle_nfts: Vec<AssetInfo>,
     pub duration: Option<u64>,
     pub raffle_start_timestamp: Option<Timestamp>,
-    pub gating: Vec<GatingOptionsMsg>,
+    pub gating: Vec<AdvantageOptionsMsg>,
 }
 
 pub struct PurchaseTicketsParams<'a> {

@@ -1,29 +1,21 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, Uint128};
-    use cw_multi_test::{BankSudo, Executor, SudoMsg};
+    use cosmwasm_std::{coin, Addr, Decimal, Empty, Uint128};
+    use cw_multi_test::Executor;
     use raffles::{
         execute::NOIS_TIMEOUT,
-        msg::InstantiateMsg,
-        state::{StakerFeeDiscount, MINIMUM_RAFFLE_DURATION},
+        state::{FeeDiscountMsg, MINIMUM_RAFFLE_DURATION},
     };
     use std::vec;
     use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
-    use vending_factory::state::{ParamsExtension, VendingMinterParams};
 
     use crate::{
         common_setup::{
             app::StargazeApp,
-            contract_boxes::custom_mock_app,
-            helpers::setup_block_time,
             msg::RaffleContracts,
-            nois_proxy::{self, NOIS_AMOUNT, NOIS_DENOM},
             setup_accounts_and_block::{setup_accounts, setup_raffle_participants},
-            setup_minter::common::constants::{
-                CREATION_FEE_AMNT_NATIVE, CREATION_FEE_AMNT_STARS, OWNER_ADDR, RAFFLE_NAME,
-                TREASURY_ADDR,
-            },
-            setup_raffle::raffle_template_code_ids,
+            setup_minter::common::constants::OWNER_ADDR,
+            setup_raffle::proper_raffle_instantiate_precise,
         },
         raffle::setup::{
             execute_msg::{buy_tickets_template, create_raffle_setup},
@@ -36,76 +28,8 @@ mod tests {
         max_ticket_number: Option<u32>,
         nft_owner: String,
     ) -> (StargazeApp, RaffleContracts) {
-        let mut app = custom_mock_app();
-        let chainid = app.block_info().chain_id.clone();
-        setup_block_time(&mut app, 1647032400000000000, Some(10000), &chainid);
-        setup_accounts(&mut app);
-
-        let code_ids = raffle_template_code_ids(&mut app);
-
-        // TODO: setup_factory_template
-        let factory_addr = app
-            .instantiate_contract(
-                code_ids.factory_code_id,
-                Addr::unchecked(OWNER_ADDR),
-                &vending_factory::msg::InstantiateMsg {
-                    params: VendingMinterParams {
-                        code_id: code_ids.minter_code_id,
-                        allowed_sg721_code_ids: vec![code_ids.sg721_code_id],
-                        frozen: false,
-                        creation_fee: Coin {
-                            denom: NATIVE_DENOM.to_string(),
-                            amount: Uint128::new(100000u128),
-                        },
-                        min_mint_price: Coin {
-                            denom: NATIVE_DENOM.to_string(),
-                            amount: Uint128::new(100000u128),
-                        },
-                        mint_fee_bps: 10,
-                        max_trading_offset_secs: 0,
-                        extension: ParamsExtension {
-                            max_token_limit: 1000,
-                            max_per_address_limit: 20,
-                            airdrop_mint_price: Coin {
-                                denom: NATIVE_DENOM.to_string(),
-                                amount: Uint128::new(100000u128),
-                            },
-                            airdrop_mint_fee_bps: 10,
-                            shuffle_fee: Coin {
-                                denom: NATIVE_DENOM.to_string(),
-                                amount: Uint128::new(100000u128),
-                            },
-                        },
-                    },
-                },
-                &[],
-                "factory",
-                Some(OWNER_ADDR.to_string()),
-            )
-            .unwrap();
-
-        // Create the nois contract
-        let nois_addr = app
-            .instantiate_contract(
-                code_ids.nois_code_id,
-                Addr::unchecked(OWNER_ADDR),
-                &nois_proxy::InstantiateMsg {
-                    nois: NOIS_DENOM.to_string(),
-                },
-                &[],
-                "nois-contract",
-                None,
-            )
-            .unwrap();
-
-        let nft = mint_one_token(
-            &mut app,
-            &RaffleContracts {
-                factory: factory_addr.clone(),
-                raffle: factory_addr.clone(),
-                nois: nois_addr.clone(),
-            },
-        );
+        let (mut app, contracts) = proper_raffle_instantiate_precise(max_ticket_number, None);
+        let nft = mint_one_token(&mut app, &contracts);
 
         app.execute_contract(
             Addr::unchecked(OWNER_ADDR),
@@ -118,54 +42,40 @@ mod tests {
         )
         .unwrap();
 
-        // create raffle contract
-        let raffle_contract_addr = app
-            .instantiate_contract(
-                code_ids.raffle_code_id,
-                Addr::unchecked(OWNER_ADDR),
-                &InstantiateMsg {
-                    name: RAFFLE_NAME.to_string(),
-                    nois_proxy_addr: nois_addr.to_string(),
-                    nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM.to_string()),
-                    owner: Some(OWNER_ADDR.to_string()),
-                    fee_addr: Some(TREASURY_ADDR.to_owned()),
-                    minimum_raffle_duration: None,
-                    max_ticket_number,
-                    raffle_fee: Decimal::percent(50),
-                    creation_coins: vec![
-                        coin(CREATION_FEE_AMNT_NATIVE, NATIVE_DENOM.to_string()),
-                        coin(CREATION_FEE_AMNT_STARS, "ustars".to_string()),
-                    ]
-                    .into(),
-                    atlas_dao_nft_addresses: vec![nft.nft.to_string()],
-                    staker_fee_discount: StakerFeeDiscount {
-                        discount: Decimal::percent(50),
-                        minimum_amount: Uint128::from(100u128),
+        app.execute_contract(
+            Addr::unchecked(OWNER_ADDR),
+            contracts.raffle.clone(),
+            &raffles::msg::ExecuteMsg::UpdateConfig {
+                name: None,
+                owner: None,
+                fee_addr: None,
+                minimum_raffle_duration: None,
+                max_tickets_per_raffle: None,
+                raffle_fee: None,
+                nois_proxy_addr: None,
+                nois_proxy_coin: None,
+                creation_coins: None,
+                fee_discounts: Some(vec![
+                    FeeDiscountMsg {
+                        discount: Decimal::one(),
+                        condition: raffles::state::AdvantageOptionsMsg::Sg721Token {
+                            nft_count: 1,
+                            nft_address: nft.nft.to_string(),
+                        },
                     },
-                },
-                &[],
-                "raffle",
-                Some(Addr::unchecked(OWNER_ADDR).to_string()),
-            )
-            .unwrap();
-
-        // fund raffle contract for nois_proxy fee
-        app.sudo(SudoMsg::Bank({
-            BankSudo::Mint {
-                to_address: raffle_contract_addr.clone().to_string(),
-                amount: vec![coin(100000000000u128, NOIS_DENOM.to_string())],
-            }
-        }))
+                    FeeDiscountMsg {
+                        discount: Decimal::percent(50),
+                        condition: raffles::state::AdvantageOptionsMsg::Staking {
+                            min_voting_power: Uint128::from(100u128),
+                        },
+                    },
+                ]),
+            },
+            &[],
+        )
         .unwrap();
 
-        (
-            app,
-            RaffleContracts {
-                factory: factory_addr,
-                raffle: raffle_contract_addr,
-                nois: nois_addr,
-            },
-        )
+        (app, contracts)
     }
 
     #[test]
