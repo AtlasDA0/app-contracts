@@ -87,6 +87,22 @@
         }
       }
     },
+    "Cw20CoinVerified": {
+      "type": "object",
+      "required": [
+        "address",
+        "amount"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/Addr"
+        },
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        }
+      },
+      "additionalProperties": false
+    },
     "Cw721Coin": {
       "type": "object",
       "required": [
@@ -103,6 +119,83 @@
       },
       "additionalProperties": false
     },
+    "GatingOptions": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "cw721_coin"
+          ],
+          "properties": {
+            "cw721_coin": {
+              "$ref": "#/definitions/Addr"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "cw20"
+          ],
+          "properties": {
+            "cw20": {
+              "$ref": "#/definitions/Cw20CoinVerified"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "coin"
+          ],
+          "properties": {
+            "coin": {
+              "$ref": "#/definitions/Coin"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "sg721_token"
+          ],
+          "properties": {
+            "sg721_token": {
+              "$ref": "#/definitions/Addr"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "dao_voting_power"
+          ],
+          "properties": {
+            "dao_voting_power": {
+              "type": "object",
+              "required": [
+                "dao_address",
+                "min_voting_power"
+              ],
+              "properties": {
+                "dao_address": {
+                  "$ref": "#/definitions/Addr"
+                },
+                "min_voting_power": {
+                  "$ref": "#/definitions/Uint128"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "HexBinary": {
       "description": "This is a wrapper around Vec<u8> to add hex de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is similar to `cosmwasm_std::Binary` but uses hex. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
       "type": "string"
@@ -115,7 +208,8 @@
         "number_of_tickets",
         "owner",
         "raffle_options",
-        "raffle_ticket_price"
+        "raffle_ticket_price",
+        "winners"
       ],
       "properties": {
         "assets": {
@@ -151,15 +245,11 @@
             }
           ]
         },
-        "winner": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Addr"
-            },
-            {
-              "type": "null"
-            }
-          ]
+        "winners": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Addr"
+          }
         }
       },
       "additionalProperties": false
@@ -167,10 +257,11 @@
     "RaffleOptions": {
       "type": "object",
       "required": [
+        "gating_raffle",
+        "one_winner_per_asset",
         "raffle_duration",
         "raffle_preview",
-        "raffle_start_timestamp",
-        "raffle_timeout"
+        "raffle_start_timestamp"
       ],
       "properties": {
         "comment": {
@@ -178,6 +269,12 @@
             "string",
             "null"
           ]
+        },
+        "gating_raffle": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GatingOptions"
+          }
         },
         "max_ticket_number": {
           "type": [
@@ -195,6 +292,17 @@
           "format": "uint32",
           "minimum": 0.0
         },
+        "min_ticket_number": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "one_winner_per_asset": {
+          "type": "boolean"
+        },
         "raffle_duration": {
           "type": "integer",
           "format": "uint64",
@@ -207,11 +315,6 @@
         },
         "raffle_start_timestamp": {
           "$ref": "#/definitions/Timestamp"
-        },
-        "raffle_timeout": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0.0
         }
       },
       "additionalProperties": false
@@ -222,8 +325,8 @@
         "created",
         "started",
         "closed",
-        "finished",
         "claimed",
+        "finished",
         "cancelled"
       ]
     },

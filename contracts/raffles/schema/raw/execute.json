@@ -22,12 +22,6 @@
                 "$ref": "#/definitions/AssetInfo"
               }
             },
-            "autocycle": {
-              "type": [
-                "boolean",
-                "null"
-              ]
-            },
             "owner": {
               "type": [
                 "string",
@@ -53,6 +47,29 @@
       ],
       "properties": {
         "cancel_raffle": {
+          "type": "object",
+          "required": [
+            "raffle_id"
+          ],
+          "properties": {
+            "raffle_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "claim_raffle"
+      ],
+      "properties": {
+        "claim_raffle": {
           "type": "object",
           "required": [
             "raffle_id"
@@ -102,14 +119,6 @@
               "minimum": 0.0
             },
             "minimum_raffle_duration": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint64",
-              "minimum": 0.0
-            },
-            "minimum_raffle_timeout": {
               "type": [
                 "integer",
                 "null"
@@ -212,6 +221,12 @@
             "ticket_count"
           ],
           "properties": {
+            "on_behalf_of": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "raffle_id": {
               "type": "integer",
               "format": "uint64",
@@ -246,29 +261,6 @@
     {
       "type": "object",
       "required": [
-        "determine_winner"
-      ],
-      "properties": {
-        "determine_winner": {
-          "type": "object",
-          "required": [
-            "raffle_id"
-          ],
-          "properties": {
-            "raffle_id": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
         "nois_receive"
       ],
       "properties": {
@@ -280,6 +272,30 @@
           "properties": {
             "callback": {
               "$ref": "#/definitions/NoisCallback"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Provide job_id for randomness contract",
+      "type": "object",
+      "required": [
+        "update_randomness"
+      ],
+      "properties": {
+        "update_randomness": {
+          "type": "object",
+          "required": [
+            "raffle_id"
+          ],
+          "properties": {
+            "raffle_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
             }
           },
           "additionalProperties": false
@@ -301,29 +317,6 @@
           "properties": {
             "lock": {
               "type": "boolean"
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "update_randomness"
-      ],
-      "properties": {
-        "update_randomness": {
-          "type": "object",
-          "required": [
-            "raffle_id"
-          ],
-          "properties": {
-            "raffle_id": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
             }
           },
           "additionalProperties": false
@@ -392,6 +385,22 @@
         }
       }
     },
+    "Cw20Coin": {
+      "type": "object",
+      "required": [
+        "address",
+        "amount"
+      ],
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        }
+      },
+      "additionalProperties": false
+    },
     "Cw721Coin": {
       "type": "object",
       "required": [
@@ -433,6 +442,83 @@
       "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
       "type": "string"
     },
+    "GatingOptionsMsg": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "cw721_coin"
+          ],
+          "properties": {
+            "cw721_coin": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "cw20"
+          ],
+          "properties": {
+            "cw20": {
+              "$ref": "#/definitions/Cw20Coin"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "coin"
+          ],
+          "properties": {
+            "coin": {
+              "$ref": "#/definitions/Coin"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "sg721_token"
+          ],
+          "properties": {
+            "sg721_token": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "dao_voting_power"
+          ],
+          "properties": {
+            "dao_voting_power": {
+              "type": "object",
+              "required": [
+                "dao_address",
+                "min_voting_power"
+              ],
+              "properties": {
+                "dao_address": {
+                  "type": "string"
+                },
+                "min_voting_power": {
+                  "$ref": "#/definitions/Uint128"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "HexBinary": {
       "description": "This is a wrapper around Vec<u8> to add hex de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is similar to `cosmwasm_std::Binary` but uses hex. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
       "type": "string"
@@ -471,12 +557,22 @@
     },
     "RaffleOptionsMsg": {
       "type": "object",
+      "required": [
+        "gating_raffle",
+        "one_winner_per_asset"
+      ],
       "properties": {
         "comment": {
           "type": [
             "string",
             "null"
           ]
+        },
+        "gating_raffle": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/GatingOptionsMsg"
+          }
         },
         "max_ticket_number": {
           "type": [
@@ -493,6 +589,17 @@
           ],
           "format": "uint32",
           "minimum": 0.0
+        },
+        "min_ticket_number": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "one_winner_per_asset": {
+          "type": "boolean"
         },
         "raffle_duration": {
           "type": [
@@ -519,14 +626,6 @@
               "type": "null"
             }
           ]
-        },
-        "raffle_timeout": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint64",
-          "minimum": 0.0
         }
       },
       "additionalProperties": false

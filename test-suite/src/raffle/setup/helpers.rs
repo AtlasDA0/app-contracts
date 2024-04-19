@@ -5,7 +5,7 @@ use anyhow::bail;
 use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Empty, Uint128};
 use cw_multi_test::Executor;
 use nois::ProxyExecuteMsg;
-use raffles::msg::{QueryMsg, RaffleResponse};
+use raffles::msg::{ExecuteMsg, QueryMsg, RaffleResponse};
 use sg721::CollectionInfo;
 use utils::state::NATIVE_DENOM;
 use vending_factory::msg::VendingMinterCreateMsg;
@@ -197,6 +197,13 @@ pub fn finish_raffle_timeout(
 
     // We send a nois message (that is automatic in the real world)
     send_nois_ibc_message(app, contracts, raffle_id)?;
+    app.execute_contract(
+        contracts.raffle.clone(),
+        contracts.raffle.clone(),
+        &ExecuteMsg::ClaimRaffle { raffle_id },
+        &[],
+    )?;
+
     Ok(())
 }
 
@@ -231,6 +238,6 @@ pub fn send_nois_ibc_message(
     if error_value.is_empty() {
         Ok(())
     } else {
-        bail!("Error on executing on nois randomnesss : {:?}", error_value)
+        bail!("Error on executing on nois randomness : {:?}", error_value)
     }
 }

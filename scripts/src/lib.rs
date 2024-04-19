@@ -19,3 +19,15 @@ pub const ELGAFAR_1: ChainInfo = ChainInfo {
     lcd_url: None,
     fcd_url: None,
 };
+
+/// https://github.com/cosmos/chain-registry/blob/master/testnets/stargazetestnet/chain.json
+pub const STARGAZE_1: ChainInfo = ChainInfo {
+    kind: ChainKind::Mainnet,
+    chain_id: "stargaze-1",
+    gas_denom: "ustars",
+    gas_price: 1.1,
+    grpc_urls: &["http://stargaze-grpc.polkachu.com:13790"],
+    network_info: STARGAZE_NETWORK,
+    lcd_url: None,
+    fcd_url: None,
+};

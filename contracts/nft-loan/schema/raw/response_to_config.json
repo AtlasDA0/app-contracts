@@ -1,56 +1,64 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ConfigResponse",
+  "title": "Config",
   "type": "object",
   "required": [
-    "creation_coins",
-    "fee_addr",
-    "last_raffle_id",
+    "fee_rate",
+    "global_offer_index",
+    "listing_fee_coins",
     "locks",
-    "minimum_raffle_duration",
     "name",
-    "nois_proxy_addr",
-    "nois_proxy_coin",
     "owner",
-    "raffle_fee"
+    "treasury_addr"
   ],
   "properties": {
-    "creation_coins": {
+    "fee_rate": {
+      "description": "A % used to calculate how much of a loan interest is sent to the fee_distributor",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Decimal"
+        }
+      ]
+    },
+    "global_offer_index": {
+      "description": "Tracks the number of offers made across all loans",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "listing_fee_coins": {
       "type": "array",
       "items": {
         "$ref": "#/definitions/Coin"
       }
     },
-    "fee_addr": {
-      "$ref": "#/definitions/Addr"
-    },
-    "last_raffle_id": {
-      "type": "integer",
-      "format": "uint64",
-      "minimum": 0.0
-    },
     "locks": {
-      "$ref": "#/definitions/Locks"
-    },
-    "minimum_raffle_duration": {
-      "type": "integer",
-      "format": "uint64",
-      "minimum": 0.0
+      "description": "lock state prevents new collateral listings to be made",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Locks"
+        }
+      ]
     },
     "name": {
+      "description": "The name of the smart contract",
       "type": "string"
     },
-    "nois_proxy_addr": {
-      "$ref": "#/definitions/Addr"
-    },
-    "nois_proxy_coin": {
-      "$ref": "#/definitions/Coin"
-    },
     "owner": {
-      "$ref": "#/definitions/Addr"
+      "description": "The admin of the smart contract",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Addr"
+        }
+      ]
     },
-    "raffle_fee": {
-      "$ref": "#/definitions/Decimal"
+    "treasury_addr": {
+      "description": "The address which all generated fees are sent to",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Addr"
+        }
+      ]
     }
   },
   "additionalProperties": false,

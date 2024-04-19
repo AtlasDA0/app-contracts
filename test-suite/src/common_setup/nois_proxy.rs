@@ -10,12 +10,13 @@ use utils::types::Response;
 pub const NOIS_DENOM: &str = "unois";
 pub const NOIS_AMOUNT: u128 = 500000; // 0.5 tokens
 pub const TEST_NOIS_PREFIX: &str = "test-trigger-";
-pub const RANDOMNESS_SEED: &str =
+pub const DEFAULT_RANDOMNESS_SEED: &str =
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115";
 pub const ERROR_ON_NOIS_EXEC: &str = "error_on_nois_exec";
 #[cw_serde]
 pub struct Config {
     nois: String,
+    randomness: HexBinary,
 }
 
 #[cw_serde]
@@ -29,6 +30,7 @@ const RANDOMNESS: Map<(Addr, String), RandomnessForLater> = Map::new("randomness
 #[cw_serde]
 pub struct InstantiateMsg {
     pub nois: String,
+    pub randomness: String,
 }
 #[cw_serde]
 pub struct QueryMsg {}
@@ -39,7 +41,13 @@ pub fn instantiate(
     _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, StdError> {
-    CONFIG.save(deps.storage, &Config { nois: msg.nois })?;
+    CONFIG.save(
+        deps.storage,
+        &Config {
+            nois: msg.nois,
+            randomness: HexBinary::from_hex(&msg.randomness)?,
+        },
+    )?;
 
     Ok(Response::new())
 }
@@ -102,7 +110,7 @@ pub fn register_randmoness_for_later(
                 callback: NoisCallback {
                     job_id: job_id.to_string(),
                     published: env.block.time,
-                    randomness: HexBinary::from_hex(RANDOMNESS_SEED)?,
+                    randomness: CONFIG.load(deps.storage)?.randomness,
                 },
             })?,
             funds: vec![],

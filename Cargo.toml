@@ -1,42 +1,38 @@
 [workspace]
-members = [ 
-    "packages/*",
-    "contracts/*",
-    "test-suite/", "scripts",
-]
+members = ["packages/*", "contracts/*", "test-suite/", "scripts"]
 resolver = "2"
 
 [workspace.features]
 default = ["sg"]
-sg = ["sg-std", "sg721","sg721-base"]
+sg = ["sg-std", "sg721", "sg721-base"]
 vanilla = []
 
 [workspace.dependencies]
-raffles             = { path = "../contracts/raffles", default = true}
-cosmwasm-std        = "1.4.0"
-cosmwasm-schema     = "1.4.0"
-cw-storage-plus     = "1.1.0"
-cw-utils            = "1.0.3"
-cw2                 = "1.1.1"
-cw721               = "0.18.0"
-cw721-base          = "0.18.0"
-cw-multi-test       = "0.16.0"
-nois                = "0.8.0"
-serde               = { version = "1.0.103", default-features = false, features = ["derive"] }
-sha2                = { version = "0.10.6", default-features = false }
-schemars            = "0.8.8"
-thiserror           = { version = "1.0.23" }
-utils               = { path = "./packages/utils", version = "0.1.0" }
-anyhow              = "1.0.79"
+raffles = { path = "../contracts/raffles", default = true }
+cosmwasm-std = "1.4.0"
+cosmwasm-schema = "1.4.0"
+cw-storage-plus = "1.1.0"
+cw-utils = "1.0.3"
+cw2 = "1.1.1"
+cw721 = "0.18.0"
+cw721-base = "0.18.0"
+cw-multi-test = "0.16.0"
+nois = "0.8.0"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+sha2 = { version = "0.10.6", default-features = false }
+schemars = "0.8.8"
+thiserror = { version = "1.0.23" }
+utils = { path = "./packages/utils", version = "0.1.0" }
+anyhow = "1.0.79"
 sg2 = "3.3.0"
 
 
-sg-std =  "^3.2" 
+sg-std = "^3.2"
 sg721 = "^3.3"
 sg721-base = "^3.3"
 sg-multi-test = "3.1.0"
 vending-minter = "3.3"
-vending-factory     = "3.3.0"
+vending-factory = "3.3.0"
 
 [profile.release]
 rpath = false

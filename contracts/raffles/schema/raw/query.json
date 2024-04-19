@@ -156,6 +156,12 @@
             "null"
           ]
         },
+        "gated_rights_ticket_buyer": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "owner": {
           "type": [
             "string",

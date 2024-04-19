@@ -30,7 +30,7 @@ mod tests {
     #[test]
     fn finished_when_all_tickets_sold() {
         // create testing app
-        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(80));
+        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(80), None);
         let token = mint_one_token(&mut app, &contracts);
 
         let _current_time = app.block_info().time;
@@ -98,6 +98,7 @@ mod tests {
                     raffle_id: 0,
                     ticket_count: 80,
                     sent_assets: AssetInfo::Coin(Coin::new(8000, "ustars".to_string())),
+                    on_behalf_of: None,
                 },
                 &[Coin::new(8000, "ustars".to_string())],
             )
@@ -142,7 +143,7 @@ mod tests {
     #[test]
     fn can_init() {
         // create testing app
-        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(80));
+        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(80), None);
 
         let query_config: raffles::msg::ConfigResponse = app
             .wrap()
@@ -333,6 +334,7 @@ mod tests {
                     raffle_id: 0,
                     ticket_count: 1,
                     sent_assets: AssetInfo::Coin(Coin::new(100, "ustars".to_string())),
+                    on_behalf_of: None,
                 },
                 &[Coin::new(100, "ustars".to_string())],
             )

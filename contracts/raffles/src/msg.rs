@@ -64,6 +64,9 @@ pub enum ExecuteMsg {
     CancelRaffle {
         raffle_id: u64,
     },
+    ClaimRaffle {
+        raffle_id: u64,
+    },
     UpdateConfig {
         name: Option<String>,
         owner: Option<String>,
@@ -87,6 +90,7 @@ pub enum ExecuteMsg {
         raffle_id: u64,
         ticket_count: u32,
         sent_assets: AssetInfo,
+        on_behalf_of: Option<String>,
     },
     Receive(cw721::Cw721ReceiveMsg),
     NoisReceive {

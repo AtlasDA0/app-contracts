@@ -171,7 +171,7 @@ pub fn get_raffle_refund_funds_finished_messages(
 /// Picking the winner of the raffle
 pub fn get_raffle_winners(
     deps: Deps,
-    env: Env,
+    env: &Env,
     raffle_id: u64,
     raffle_info: RaffleInfo,
 ) -> Result<Vec<Addr>, ContractError> {
@@ -327,7 +327,7 @@ pub fn ticket_cost(raffle_info: RaffleInfo, ticket_count: u32) -> Result<AssetIn
 
 /// Can only buy a ticket when the raffle has started and is not closed
 pub fn can_buy_ticket(env: Env, raffle_info: RaffleInfo) -> Result<(), ContractError> {
-    if get_raffle_state(env, &raffle_info) == RaffleState::Started {
+    if get_raffle_state(&env, &raffle_info) == RaffleState::Started {
         Ok(())
     } else {
         Err(ContractError::CantBuyTickets {})

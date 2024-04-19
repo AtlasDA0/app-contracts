@@ -240,7 +240,7 @@ pub fn execute_cancel_raffle(
     let mut raffle_info = is_raffle_owner(deps.storage, raffle_id, info.sender)?;
 
     // The raffle can only be cancelled if it wasn't previously cancelled and it isn't finished
-    let raffle_state = get_raffle_state(env.clone(), &raffle_info);
+    let raffle_state = get_raffle_state(&env, &raffle_info);
 
     if raffle_state != RaffleState::Created
         && raffle_state != RaffleState::Started
@@ -281,7 +281,7 @@ pub fn execute_modify_raffle(
     raffle_options: RaffleOptionsMsg,
 ) -> Result<Response, ContractError> {
     let mut raffle_info = is_raffle_owner(deps.storage, raffle_id, info.sender)?;
-    let raffle_state = get_raffle_state(env, &raffle_info);
+    let raffle_state = get_raffle_state(&env, &raffle_info);
     let config = CONFIG.load(deps.storage)?;
     // We then verify there are not tickets bought
     if raffle_info.number_of_tickets != 0 {
@@ -341,6 +341,7 @@ pub fn execute_buy_tickets(
     raffle_id: u64,
     ticket_count: u32,
     assets: AssetInfo,
+    on_behalf_of: Option<String>,
 ) -> Result<Response, ContractError> {
     // First we physcially transfer the AssetInfo
     let transfer_messages: Vec<cosmwasm_std::CosmosMsg<sg_std::StargazeMsgWrapper>> = match &assets
@@ -378,14 +379,11 @@ pub fn execute_buy_tickets(
     };
 
     // Then we verify the funds sent match the raffle conditions and we save the ticket that was bought
-    let messages = _buy_tickets(
-        deps,
-        env.clone(),
-        info.sender.clone(),
-        raffle_id,
-        ticket_count,
-        assets,
-    )?;
+    let owner = on_behalf_of
+        .map(|a| deps.as_ref().api.addr_validate(&a))
+        .transpose()?
+        .unwrap_or(info.sender.clone());
+    let messages = _buy_tickets(deps, env.clone(), owner, raffle_id, ticket_count, assets)?;
 
     Ok(Response::new()
         .add_messages(messages)
@@ -503,6 +501,7 @@ pub fn execute_receive(
             raffle_id: _,
             ticket_count: _,
             sent_assets,
+            on_behalf_of: _,
         } => {
             // First we make sure the received Asset is the one specified in the message
             match sent_assets.clone() {
@@ -589,7 +588,7 @@ pub fn execute_receive_nois(
     let raffle_id: u64 = raffle_id.parse().unwrap();
 
     let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
-    let raffle_state = get_raffle_state(env.clone(), &raffle_info);
+    let raffle_state = get_raffle_state(&env, &raffle_info);
 
     if raffle_state != RaffleState::Closed {
         return Err(ContractError::WrongStateForClaim {
@@ -604,6 +603,20 @@ pub fn execute_receive_nois(
         raffle_info.randomness = Some(randomness.into());
     };
 
+    RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
+
+    Ok(Response::new().add_attribute("action", "update_randomness"))
+}
+
+pub fn execute_claim(deps: DepsMut, env: Env, raffle_id: u64) -> Result<Response, ContractError> {
+    let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
+    let raffle_state = get_raffle_state(&env, &raffle_info);
+
+    if raffle_state != RaffleState::Finished {
+        return Err(ContractError::WrongStateForClaim {
+            status: raffle_state,
+        });
+    }
     // We determine the winner
     // Loads the raffle id and makes sure the raffle has ended and randomness from nois has been provided.
 
@@ -629,7 +642,7 @@ pub fn execute_receive_nois(
     } else {
         // We calculate the winner of the raffle and save it to the contract. The raffle is now claimed !
         raffle_info.winners =
-            get_raffle_winners(deps.as_ref(), env.clone(), raffle_id, raffle_info.clone())?;
+            get_raffle_winners(deps.as_ref(), &env, raffle_id, raffle_info.clone())?;
         let owner_funds_msg = get_raffle_owner_funds_finished_messages(
             deps.as_ref(),
             env.clone(),

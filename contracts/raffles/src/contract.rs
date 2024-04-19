@@ -6,12 +6,14 @@ use cosmwasm_std::{
 use crate::{
     error::ContractError,
     execute::{
-        execute_buy_tickets, execute_cancel_raffle, execute_create_raffle, execute_modify_raffle,
-        execute_receive, execute_receive_nois, execute_sudo_toggle_lock, execute_toggle_lock,
-        execute_update_config,
+        execute_buy_tickets, execute_cancel_raffle, execute_claim, execute_create_raffle,
+        execute_modify_raffle, execute_receive, execute_receive_nois, execute_sudo_toggle_lock,
+        execute_toggle_lock, execute_update_config,
     },
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse},
-    query::{query_all_raffles, query_all_tickets, query_config, query_ticket_count},
+    query::{
+        add_raffle_winners, query_all_raffles, query_all_tickets, query_config, query_ticket_count,
+    },
     state::{
         get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
         STATIC_RAFFLE_CREATION_FEE,
@@ -145,9 +147,19 @@ pub fn execute(
             raffle_id,
             ticket_count,
             sent_assets,
-        } => execute_buy_tickets(deps, env, info, raffle_id, ticket_count, sent_assets),
+            on_behalf_of,
+        } => execute_buy_tickets(
+            deps,
+            env,
+            info,
+            raffle_id,
+            ticket_count,
+            sent_assets,
+            on_behalf_of,
+        ),
         ExecuteMsg::Receive(msg) => execute_receive(deps, env, info, msg),
         ExecuteMsg::NoisReceive { callback } => execute_receive_nois(deps, env, info, callback),
+        ExecuteMsg::ClaimRaffle { raffle_id } => execute_claim(deps, env, raffle_id),
         ExecuteMsg::ToggleLock { lock } => execute_toggle_lock(deps, env, info, lock),
         ExecuteMsg::UpdateConfig {
             name,
@@ -187,14 +199,18 @@ pub fn execute(
 }
 
 #[entry_point]
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<QueryResponse> {
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<QueryResponse, ContractError> {
     let response = match msg {
         QueryMsg::Config {} => to_json_binary(&query_config(deps)?)?,
         QueryMsg::RaffleInfo { raffle_id } => {
-            let raffle_info = load_raffle(deps.storage, raffle_id)?;
+            let mut raffle_info = load_raffle(deps.storage, raffle_id)?;
+            let raffle_state = get_raffle_state(&env, &raffle_info);
+
+            add_raffle_winners(deps, &env, raffle_id, &mut raffle_info)?;
+
             to_json_binary(&RaffleResponse {
                 raffle_id,
-                raffle_state: get_raffle_state(env, &raffle_info),
+                raffle_state,
                 raffle_info: Some(raffle_info),
             })?
         }

@@ -40,14 +40,6 @@
       "format": "uint64",
       "minimum": 0.0
     },
-    "minimum_raffle_timeout": {
-      "type": [
-        "integer",
-        "null"
-      ],
-      "format": "uint64",
-      "minimum": 0.0
-    },
     "name": {
       "type": "string"
     },

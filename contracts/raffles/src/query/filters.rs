@@ -9,7 +9,7 @@ use crate::{
 
 pub fn state_filter(env: &Env, raffle_info: &RaffleInfo, filters: &QueryFilters) -> bool {
     match &filters.states {
-        Some(state) => state.contains(&get_raffle_state(env.clone(), raffle_info).to_string()),
+        Some(state) => state.contains(&get_raffle_state(env, raffle_info).to_string()),
         None => true,
     }
 }

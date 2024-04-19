@@ -96,6 +96,7 @@ pub enum RaffleState {
     Started,
     Closed,
     Claimed,
+    Finished,
     Cancelled,
 }
 
@@ -106,6 +107,7 @@ impl std::fmt::Display for RaffleState {
             RaffleState::Started => write!(f, "started"),
             RaffleState::Closed => write!(f, "closed"),
             RaffleState::Claimed => write!(f, "claimed"),
+            RaffleState::Finished => write!(f, "finished"),
             RaffleState::Cancelled => write!(f, "cancelled"),
         }
     }
@@ -115,7 +117,7 @@ impl std::fmt::Display for RaffleState {
 /// This function depends on the block time to return the RaffleState.
 /// As actions can only happen in certain time-periods, you have to be careful when testing off-chain
 /// If the chains stops or the block time is not accurate we might get some errors (let's hope it never happens)
-pub fn get_raffle_state(env: Env, raffle_info: &RaffleInfo) -> RaffleState {
+pub fn get_raffle_state(env: &Env, raffle_info: &RaffleInfo) -> RaffleState {
     if raffle_info.is_cancelled {
         RaffleState::Cancelled
     } else if env.block.time < raffle_info.raffle_options.raffle_start_timestamp {
@@ -129,6 +131,8 @@ pub fn get_raffle_state(env: Env, raffle_info: &RaffleInfo) -> RaffleState {
         RaffleState::Started
     } else if raffle_info.randomness.is_none() {
         RaffleState::Closed
+    } else if raffle_info.winners.is_empty() {
+        RaffleState::Finished
     } else {
         RaffleState::Claimed
     }
@@ -251,7 +255,7 @@ impl RaffleOptions {
             // Because one ticket can't win more than one NFT
             min_ticket_number: if raffle_options.one_winner_per_asset {
                 if let Some(min_ticket_number) = raffle_options.min_ticket_number {
-                    Some(min_ticket_number.min(assets_len as u32))
+                    Some(min_ticket_number.max(assets_len as u32))
                 } else {
                     Some(assets_len as u32)
                 }
