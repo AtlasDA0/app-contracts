@@ -106,6 +106,8 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     #[returns(ConfigResponse)]
     Config {},
+    #[returns(FeeDiscountResponse)]
+    FeeDiscount { user: String },
     #[returns(RaffleResponse)]
     RaffleInfo { raffle_id: u64 },
     #[returns(AllRafflesResponse)]
@@ -147,6 +149,12 @@ pub struct ConfigResponse {
     pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,
     pub fee_discounts: Vec<FeeDiscount>,
+}
+
+#[cw_serde]
+pub struct FeeDiscountResponse {
+    pub discounts: Vec<(FeeDiscount, bool)>,
+    pub total_discount: Decimal,
 }
 
 #[cw_serde]

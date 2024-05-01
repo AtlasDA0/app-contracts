@@ -12,7 +12,8 @@ use crate::{
     },
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse},
     query::{
-        add_raffle_winners, query_all_raffles, query_all_tickets, query_config, query_ticket_count,
+        add_raffle_winners, query_all_raffles, query_all_tickets, query_config, query_discount,
+        query_ticket_count,
     },
     state::{
         get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
@@ -202,9 +203,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<QueryResponse, Contr
         QueryMsg::RaffleInfo { raffle_id } => {
             let mut raffle_info = load_raffle(deps.storage, raffle_id)?;
             let raffle_state = get_raffle_state(&env, &raffle_info);
-
             add_raffle_winners(deps, &env, raffle_id, &mut raffle_info)?;
-
             to_json_binary(&RaffleResponse {
                 raffle_id,
                 raffle_state,
@@ -230,6 +229,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<QueryResponse, Contr
         QueryMsg::TicketCount { owner, raffle_id } => {
             to_json_binary(&query_ticket_count(deps, env, raffle_id, owner)?)?
         }
+        QueryMsg::FeeDiscount { user } => to_json_binary(&query_discount(deps, user)?)?,
     };
     Ok(response)
 }
