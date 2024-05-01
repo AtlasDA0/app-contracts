@@ -449,4 +449,106 @@ mod tests {
             owner_balance_after.amount
         );
     }
+
+    mod query {
+        use cw_multi_test::{BankSudo, SudoMsg};
+        use raffles::msg::FeeDiscountResponse;
+
+        use super::*;
+
+        #[test]
+        pub fn owner_has_nft() {
+            let (mut app, contracts) = proper_raffle_instantiate(None, OWNER_ADDR.to_string());
+            let (owner_addr, _, _) = setup_accounts(&mut app);
+            let (one, two, three, _, _, _) = setup_raffle_participants(&mut app);
+            let nft = mint_one_token(&mut app, &contracts);
+
+            let user_discount: FeeDiscountResponse = app
+                .wrap()
+                .query_wasm_smart(
+                    contracts.raffle,
+                    &raffles::msg::QueryMsg::FeeDiscount {
+                        user: owner_addr.to_string(),
+                    },
+                )
+                .unwrap();
+
+            assert_eq!(user_discount.discounts.len(), 2);
+            assert!(user_discount.discounts[0].1);
+            assert!(!user_discount.discounts[1].1);
+            assert_eq!(user_discount.total_discount, Decimal::one())
+        }
+
+        #[test]
+        pub fn owner_has_nft_and_staker() {
+            let (mut app, contracts) = proper_raffle_instantiate(None, OWNER_ADDR.to_string());
+            let (owner_addr, _, _) = setup_accounts(&mut app);
+            let (one, two, three, _, _, _) = setup_raffle_participants(&mut app);
+            let nft = mint_one_token(&mut app, &contracts);
+
+            app.execute(
+                owner_addr.clone(),
+                cosmwasm_std::CosmosMsg::Staking(cosmwasm_std::StakingMsg::Delegate {
+                    validator: "validator".to_string(),
+                    amount: coin(150, "TOKEN"),
+                }),
+            )
+            .unwrap();
+
+            let user_discount: FeeDiscountResponse = app
+                .wrap()
+                .query_wasm_smart(
+                    contracts.raffle,
+                    &raffles::msg::QueryMsg::FeeDiscount {
+                        user: owner_addr.to_string(),
+                    },
+                )
+                .unwrap();
+
+            assert_eq!(user_discount.discounts.len(), 2);
+            assert!(user_discount.discounts[0].1);
+            assert!(user_discount.discounts[1].1);
+            assert_eq!(user_discount.total_discount, Decimal::one())
+        }
+
+        #[test]
+        pub fn owner_has_staker() {
+            let (mut app, contracts) = proper_raffle_instantiate(None, OWNER_ADDR.to_string());
+            let (owner_addr, _, _) = setup_accounts(&mut app);
+            let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
+
+            app.sudo(SudoMsg::Bank({
+                BankSudo::Mint {
+                    to_address: one.to_string(),
+                    amount: vec![
+                        coin(150, "TOKEN"), // For staking
+                    ],
+                }
+            }))
+            .unwrap();
+            app.execute(
+                one.clone(),
+                cosmwasm_std::CosmosMsg::Staking(cosmwasm_std::StakingMsg::Delegate {
+                    validator: "validator".to_string(),
+                    amount: coin(150, "TOKEN"),
+                }),
+            )
+            .unwrap();
+
+            let user_discount: FeeDiscountResponse = app
+                .wrap()
+                .query_wasm_smart(
+                    contracts.raffle,
+                    &raffles::msg::QueryMsg::FeeDiscount {
+                        user: one.to_string(),
+                    },
+                )
+                .unwrap();
+
+            assert_eq!(user_discount.discounts.len(), 2);
+            assert!(!user_discount.discounts[0].1);
+            assert!(user_discount.discounts[1].1);
+            assert_eq!(user_discount.total_discount, Decimal::percent(50))
+        }
+    }
 }
