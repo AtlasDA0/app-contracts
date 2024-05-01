@@ -460,8 +460,6 @@ mod tests {
         pub fn owner_has_nft() {
             let (mut app, contracts) = proper_raffle_instantiate(None, OWNER_ADDR.to_string());
             let (owner_addr, _, _) = setup_accounts(&mut app);
-            let (one, two, three, _, _, _) = setup_raffle_participants(&mut app);
-            let nft = mint_one_token(&mut app, &contracts);
 
             let user_discount: FeeDiscountResponse = app
                 .wrap()
@@ -483,8 +481,6 @@ mod tests {
         pub fn owner_has_nft_and_staker() {
             let (mut app, contracts) = proper_raffle_instantiate(None, OWNER_ADDR.to_string());
             let (owner_addr, _, _) = setup_accounts(&mut app);
-            let (one, two, three, _, _, _) = setup_raffle_participants(&mut app);
-            let nft = mint_one_token(&mut app, &contracts);
 
             app.execute(
                 owner_addr.clone(),
@@ -514,7 +510,7 @@ mod tests {
         #[test]
         pub fn owner_has_staker() {
             let (mut app, contracts) = proper_raffle_instantiate(None, OWNER_ADDR.to_string());
-            let (owner_addr, _, _) = setup_accounts(&mut app);
+            let (_, _, _) = setup_accounts(&mut app);
             let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
 
             app.sudo(SudoMsg::Bank({
