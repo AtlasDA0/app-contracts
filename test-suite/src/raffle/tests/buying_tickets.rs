@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod tests {
+    use crate::common_setup::app::StargazeApp;
     use crate::common_setup::helpers::assert_error;
     use crate::common_setup::msg::RaffleContracts;
     use crate::raffle::setup::helpers::{mint_one_token, TokenMint};
     use crate::raffle::setup::{execute_msg::create_raffle_setup, test_msgs::CreateRaffleParams};
-    use sg_multi_test::StargazeApp;
     use utils::state::{Sg721Token, NATIVE_DENOM};
 
     use crate::{

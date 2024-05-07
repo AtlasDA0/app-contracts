@@ -1,5 +1,5 @@
 use cosmwasm_std::{
-    to_json_binary, Addr, Deps, Env, Order, QueryRequest, StdError, StdResult, WasmQuery,
+    to_json_binary, Addr, Decimal, Deps, Env, Order, QueryRequest, StdError, StdResult, WasmQuery,
 };
 use cw721::{Cw721QueryMsg, OwnerOfResponse};
 use cw_storage_plus::Bound;
@@ -11,7 +11,7 @@ mod filters;
 
 use crate::{
     error::ContractError,
-    msg::{AllRafflesResponse, ConfigResponse, QueryFilters, RaffleResponse},
+    msg::{AllRafflesResponse, ConfigResponse, FeeDiscountResponse, QueryFilters, RaffleResponse},
     state::{
         get_raffle_state, load_raffle, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO,
         RAFFLE_TICKETS, USER_TICKETS,
@@ -30,15 +30,49 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     let config = CONFIG.load(deps.storage)?;
     Ok(ConfigResponse {
         name: config.name,
-        owner: config.owner,
-        fee_addr: config.fee_addr,
+        owner: config.owner.to_string(),
+        fee_addr: config.fee_addr.to_string(),
         last_raffle_id: config.last_raffle_id.unwrap_or(0),
         minimum_raffle_duration: config.minimum_raffle_duration,
         raffle_fee: config.raffle_fee,
         locks: config.locks,
-        nois_proxy_addr: config.nois_proxy_addr,
+        nois_proxy_addr: config.nois_proxy_addr.to_string(),
         creation_coins: config.creation_coins,
         nois_proxy_coin: config.nois_proxy_coin,
+        max_tickets_per_raffle: config.max_tickets_per_raffle,
+        fee_discounts: config.fee_discounts,
+    })
+}
+
+pub fn query_discount(deps: Deps, user: String) -> StdResult<FeeDiscountResponse> {
+    let config = CONFIG.load(deps.storage)?;
+
+    let discounts: Vec<_> = config
+        .fee_discounts
+        .into_iter()
+        .map(|f| {
+            (
+                f.clone(),
+                f.condition.has_advantage(deps, user.clone()).is_ok(),
+            )
+        })
+        .collect();
+
+    let total_discount = Decimal::one()
+        - discounts
+            .iter()
+            .map(|(discount, has_discount)| {
+                if *has_discount {
+                    Decimal::one() - discount.discount
+                } else {
+                    Decimal::one()
+                }
+            })
+            .fold(Decimal::one(), |acc, el| acc * el);
+
+    Ok(FeeDiscountResponse {
+        discounts,
+        total_discount,
     })
 }
 

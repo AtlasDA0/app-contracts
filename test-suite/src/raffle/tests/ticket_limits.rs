@@ -154,8 +154,8 @@ mod tests {
             query_config,
             ConfigResponse {
                 name: RAFFLE_NAME.to_string(),
-                owner: Addr::unchecked(OWNER_ADDR),
-                fee_addr: Addr::unchecked(TREASURY_ADDR),
+                owner: OWNER_ADDR.to_string(),
+                fee_addr: TREASURY_ADDR.to_string(),
                 last_raffle_id: 0,
                 minimum_raffle_duration: 1,
                 raffle_fee: Decimal::percent(50),
@@ -163,12 +163,14 @@ mod tests {
                     lock: false,
                     sudo_lock: false,
                 },
-                nois_proxy_addr: contracts.nois.clone(),
+                nois_proxy_addr: contracts.nois.to_string(),
                 nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM),
                 creation_coins: vec![
                     coin(CREATION_FEE_AMNT_NATIVE, NATIVE_DENOM.to_string()),
                     coin(CREATION_FEE_AMNT_STARS, "ustars".to_string())
                 ],
+                fee_discounts: vec![],
+                max_tickets_per_raffle: Some(80),
             }
         );
 

@@ -1,6 +1,7 @@
 use std::vec;
 
 use super::{
+    app::StargazeApp,
     contract_boxes::contract_fake_nois,
     helpers::setup_block_time,
     msg::{RaffleCodeIds, RaffleContracts},
@@ -20,7 +21,6 @@ use crate::common_setup::{
 use cosmwasm_std::{coin, Addr, Coin, Decimal, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
 use raffles::msg::InstantiateMsg;
-use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
 use vending_factory::state::{ParamsExtension, VendingMinterParams};
 
@@ -114,6 +114,7 @@ pub fn proper_raffle_instantiate_precise(
                     coin(CREATION_FEE_AMNT_STARS, "ustars".to_string()),
                 ]
                 .into(),
+                fee_discounts: vec![],
             },
             &[],
             "raffle",

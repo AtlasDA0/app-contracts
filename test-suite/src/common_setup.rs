@@ -1,3 +1,4 @@
+pub mod app;
 pub mod contract_boxes;
 pub mod create_raffles;
 pub mod helpers;

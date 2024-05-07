@@ -5,14 +5,13 @@ mod tests {
     use nois::NoisCallback;
     use raffles::{
         error::ContractError,
-        msg::{ExecuteMsg, QueryMsg as RaffleQueryMsg},
-        state::Config,
+        msg::{ConfigResponse, ExecuteMsg, QueryMsg as RaffleQueryMsg},
     };
-    use sg_multi_test::StargazeApp;
     use utils::state::{AssetInfo, Locks, Sg721Token, SudoMsg as RaffleSudoMsg, NATIVE_DENOM};
 
     use crate::{
         common_setup::{
+            app::StargazeApp,
             helpers::assert_error,
             msg::RaffleContracts,
             nois_proxy::{NOIS_AMOUNT, NOIS_DENOM},
@@ -61,21 +60,21 @@ mod tests {
     fn test_raffle_config_query() {
         let (app, contracts) = proper_raffle_instantiate();
 
-        let query_config: Config = app
+        let query_config: ConfigResponse = app
             .wrap()
             .query_wasm_smart(contracts.raffle.clone(), &RaffleQueryMsg::Config {})
             .unwrap();
         assert_eq!(
             query_config,
-            Config {
+            ConfigResponse {
                 name: RAFFLE_NAME.into(),
-                owner: Addr::unchecked(OWNER_ADDR),
-                fee_addr: Addr::unchecked(TREASURY_ADDR),
-                last_raffle_id: Some(0),
+                owner: OWNER_ADDR.to_string(),
+                fee_addr: TREASURY_ADDR.to_string(),
+                last_raffle_id: 0,
                 minimum_raffle_duration: 1,
-                max_tickets_per_raffle: None,
+                max_tickets_per_raffle: Some(100_000),
                 raffle_fee: RAFFLE_TAX,
-                nois_proxy_addr: contracts.nois.clone(),
+                nois_proxy_addr: contracts.nois.clone().to_string(),
                 nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM),
                 creation_coins: vec![
                     coin(CREATION_FEE_AMNT_NATIVE, NATIVE_DENOM),
@@ -84,7 +83,8 @@ mod tests {
                 locks: Locks {
                     lock: false,
                     sudo_lock: false,
-                }
+                },
+                fee_discounts: vec![],
             }
         )
     }
@@ -109,6 +109,7 @@ mod tests {
                     nois_proxy_coin: None,
                     creation_coins: None,
                     max_tickets_per_raffle: None,
+                    fee_discounts: None,
                 },
                 &[],
             )
@@ -167,32 +168,34 @@ mod tests {
                     nois_proxy_coin: Some(coin(NOIS_AMOUNT, NOIS_DENOM)),
                     creation_coins: Some(vec![coin(420, "new-new")]),
                     max_tickets_per_raffle: None,
+                    fee_discounts: None,
                 },
                 &[],
             )
             .unwrap();
         // good responses
-        let res: Config = app
+        let res: ConfigResponse = app
             .wrap()
             .query_wasm_smart(contracts.raffle.clone(), &RaffleQueryMsg::Config {})
             .unwrap();
         assert_eq!(
             res,
-            Config {
+            ConfigResponse {
                 name: "new-owner".to_string(),
-                owner: Addr::unchecked("new-owner"),
-                fee_addr: Addr::unchecked("new-owner"),
-                last_raffle_id: Some(0),
+                owner: "new-owner".to_string(),
+                fee_addr: "new-owner".to_string(),
+                last_raffle_id: 0,
                 minimum_raffle_duration: 60,
-                max_tickets_per_raffle: None,
+                max_tickets_per_raffle: Some(100_000),
                 raffle_fee: Decimal::percent(99),
-                nois_proxy_addr: Addr::unchecked("new-owner"),
+                nois_proxy_addr: "new-owner".to_string(),
                 nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM),
                 creation_coins: vec![coin(420, "new-new")],
                 locks: Locks {
                     lock: false,
                     sudo_lock: false,
-                }
+                },
+                fee_discounts: vec![],
             }
         )
     }
@@ -213,7 +216,7 @@ mod tests {
             )
             .unwrap();
         // confirm the state is now true
-        let res: Config = app
+        let res: ConfigResponse = app
             .wrap()
             .query_wasm_smart(contracts.raffle.to_string(), &RaffleQueryMsg::Config {})
             .unwrap();
@@ -254,7 +257,7 @@ mod tests {
             .unwrap();
 
         // confirm the state is now true
-        let res: Config = app
+        let res: ConfigResponse = app
             .wrap()
             .query_wasm_smart(contracts.raffle.to_string(), &RaffleQueryMsg::Config {})
             .unwrap();

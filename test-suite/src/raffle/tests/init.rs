@@ -40,6 +40,7 @@ mod tests {
                         coin(20, "ustars".to_string()),
                     ]
                     .into(),
+                    fee_discounts: vec![],
                 },
                 &[],
                 "raffle",

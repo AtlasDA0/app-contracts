@@ -3,7 +3,6 @@ mod tests {
     use cosmwasm_std::{coin, Addr, Coin, Timestamp, Uint128};
     use cw_multi_test::Executor;
     use raffles::state::{RaffleInfo, RaffleOptions, MAX_TICKET_NUMBER};
-    use sg_multi_test::StargazeApp;
     use std::vec;
     use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
 
@@ -16,8 +15,8 @@ mod tests {
 
     use crate::{
         common_setup::{
-            helpers::assert_error, msg::RaffleContracts, setup_accounts_and_block::setup_accounts,
-            setup_raffle::proper_raffle_instantiate,
+            app::StargazeApp, helpers::assert_error, msg::RaffleContracts,
+            setup_accounts_and_block::setup_accounts, setup_raffle::proper_raffle_instantiate,
         },
         raffle::setup::{
             execute_msg::{create_raffle_function, create_raffle_setup},

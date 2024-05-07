@@ -13,7 +13,8 @@ use dao_voting::deposit::UncheckedDepositInfo;
 use dao_voting::pre_propose::PreProposeInfo;
 use dao_voting::threshold::PercentageThreshold;
 use dao_voting::threshold::Threshold::ThresholdQuorum;
-use sg_multi_test::StargazeApp;
+
+use crate::common_setup::app::StargazeApp;
 
 pub const CREATOR_ADDR: &str = "dao-creator";
 

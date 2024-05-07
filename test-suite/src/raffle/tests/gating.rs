@@ -1,5 +1,6 @@
 #[cfg(test)]
 mod tests {
+    use crate::common_setup::app::StargazeApp;
     use crate::common_setup::contract_boxes::contract_cw20;
     use crate::raffle::setup::daodao::instantiate_with_staked_balances_governance;
     use crate::raffle::setup::helpers::mint_one_token;
@@ -16,8 +17,7 @@ mod tests {
     use cw20::Cw20Coin;
     use cw_multi_test::{BankSudo, Executor, SudoMsg};
     use raffles::msg::QueryMsg as RaffleQueryMsg;
-    use raffles::state::GatingOptionsMsg;
-    use sg_multi_test::StargazeApp;
+    use raffles::state::AdvantageOptionsMsg;
     use std::vec;
     use utils::state::AssetInfo;
     use utils::state::{Sg721Token, NATIVE_DENOM};
@@ -26,7 +26,7 @@ mod tests {
         app: &mut StargazeApp,
         raffle: Addr,
         owner_addr: Addr,
-        gating: Vec<GatingOptionsMsg>,
+        gating: Vec<AdvantageOptionsMsg>,
         token: &TokenMint,
     ) {
         let params = CreateRaffleParams {
@@ -48,7 +48,7 @@ mod tests {
         };
         create_raffle_setup(params).unwrap();
     }
-    fn setup_gating_raffle(gating: Vec<GatingOptionsMsg>) -> (StargazeApp, Addr, Addr) {
+    fn setup_gating_raffle(gating: Vec<AdvantageOptionsMsg>) -> (StargazeApp, Addr, Addr) {
         let (mut app, contracts) = proper_raffle_instantiate();
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
@@ -70,7 +70,7 @@ mod tests {
     #[test]
     fn native_gating() {
         let (mut app, raffle, one) =
-            setup_gating_raffle(vec![GatingOptionsMsg::Coin(coin(12783, GATED_DENOM))]);
+            setup_gating_raffle(vec![AdvantageOptionsMsg::Coin(coin(12783, GATED_DENOM))]);
 
         app.sudo(SudoMsg::Bank({
             BankSudo::Mint {
@@ -138,7 +138,7 @@ mod tests {
             &mut app,
             contracts.raffle.clone(),
             owner_addr.clone(),
-            vec![GatingOptionsMsg::Cw20(Cw20Coin {
+            vec![AdvantageOptionsMsg::Cw20(Cw20Coin {
                 address: cw20_addr.to_string(),
                 amount: 13987u128.into(),
             })],
@@ -173,8 +173,8 @@ mod tests {
     #[test]
     fn multiple_native_gating() {
         let (mut app, raffle, one) = setup_gating_raffle(vec![
-            GatingOptionsMsg::Coin(coin(12783, GATED_DENOM)),
-            GatingOptionsMsg::Coin(coin(12789, GATED_DENOM_1)),
+            AdvantageOptionsMsg::Coin(coin(12783, GATED_DENOM)),
+            AdvantageOptionsMsg::Coin(coin(12789, GATED_DENOM_1)),
         ]);
 
         app.sudo(SudoMsg::Bank({
@@ -223,7 +223,10 @@ mod tests {
             &mut app,
             contracts.raffle.clone(),
             owner_addr.clone(),
-            vec![GatingOptionsMsg::Sg721Token(token.nft.to_string())],
+            vec![AdvantageOptionsMsg::Sg721Token {
+                nft_address: token.nft.to_string(),
+                nft_count: 1,
+            }],
             &token,
         );
 
@@ -282,7 +285,7 @@ mod tests {
             &mut app,
             contracts.raffle.clone(),
             owner_addr,
-            vec![GatingOptionsMsg::DaoVotingPower {
+            vec![AdvantageOptionsMsg::DaoVotingPower {
                 dao_address: core_addr.to_string(),
                 min_voting_power: 100_000u128.into(),
             }],
@@ -332,7 +335,7 @@ mod tests {
 
         #[test]
         fn bad_native_gating() {
-            let one_condition = GatingOptionsMsg::Coin(coin(12783, GATED_DENOM));
+            let one_condition = AdvantageOptionsMsg::Coin(coin(12783, GATED_DENOM));
             let (mut app, raffle, one) = setup_gating_raffle(vec![one_condition.clone()]);
 
             // customize ticket purchase params
@@ -382,7 +385,7 @@ mod tests {
                 &mut app,
                 contracts.raffle.clone(),
                 owner_addr.clone(),
-                vec![GatingOptionsMsg::Cw20(Cw20Coin {
+                vec![AdvantageOptionsMsg::Cw20(Cw20Coin {
                     address: cw20_addr.to_string(),
                     amount: 13987u128.into(),
                 })],
@@ -405,8 +408,8 @@ mod tests {
         #[test]
         fn bad_native_gating_with_one_success() {
             let (mut app, raffle, one) = setup_gating_raffle(vec![
-                GatingOptionsMsg::Coin(coin(12783, GATED_DENOM)),
-                GatingOptionsMsg::Coin(coin(12789, GATED_DENOM_1)),
+                AdvantageOptionsMsg::Coin(coin(12783, GATED_DENOM)),
+                AdvantageOptionsMsg::Coin(coin(12789, GATED_DENOM_1)),
             ]);
 
             app.sudo(SudoMsg::Bank({
@@ -441,7 +444,10 @@ mod tests {
                 &mut app,
                 contracts.raffle.clone(),
                 owner_addr.clone(),
-                vec![GatingOptionsMsg::Sg721Token(token.nft.to_string())],
+                vec![AdvantageOptionsMsg::Sg721Token {
+                    nft_address: token.nft.to_string(),
+                    nft_count: 1,
+                }],
                 &token,
             );
 
@@ -471,7 +477,7 @@ mod tests {
                 &mut app,
                 contracts.raffle.clone(),
                 owner_addr,
-                vec![GatingOptionsMsg::DaoVotingPower {
+                vec![AdvantageOptionsMsg::DaoVotingPower {
                     dao_address: core_addr.to_string(),
                     min_voting_power: 100_000u128.into(),
                 }],
@@ -521,7 +527,7 @@ mod tests {
                 &mut app,
                 contracts.raffle.clone(),
                 owner_addr,
-                vec![GatingOptionsMsg::DaoVotingPower {
+                vec![AdvantageOptionsMsg::DaoVotingPower {
                     dao_address: core_addr.to_string(),
                     min_voting_power: 100_000u128.into(),
                 }],
@@ -560,8 +566,8 @@ mod tests {
         #[test]
         fn multiple_gated_query_works() {
             let (mut app, raffle, one) = setup_gating_raffle(vec![
-                GatingOptionsMsg::Coin(coin(12783, GATED_DENOM)),
-                GatingOptionsMsg::Coin(coin(12789, GATED_DENOM_1)),
+                AdvantageOptionsMsg::Coin(coin(12783, GATED_DENOM)),
+                AdvantageOptionsMsg::Coin(coin(12789, GATED_DENOM_1)),
             ]);
 
             let partial_conditions_sender = "someone_with_only_some_condition_met".to_string();

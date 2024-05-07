@@ -1,3 +1,4 @@
+use crate::common_setup::app::StargazeApp;
 use crate::common_setup::{
     contract_boxes::{
         contract_nft_loans, contract_sg721_base, contract_vending_factory, contract_vending_minter,
@@ -9,7 +10,6 @@ use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, Uint128};
 use cw_multi_test::Executor;
 use nft_loans_nc::msg::InstantiateMsg as LoanInstantiateMsg;
 use sg721::CollectionInfo;
-use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
 use vending_factory::{
     msg::{ExecuteMsg as SgVendingFactoryExecuteMsg, VendingMinterCreateMsg},

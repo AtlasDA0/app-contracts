@@ -19,8 +19,8 @@ use crate::{
     msg::ExecuteMsg,
     query::is_nft_owner,
     state::{
-        get_raffle_state, Config, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState, CONFIG,
-        MINIMUM_RAFFLE_DURATION, RAFFLE_INFO, RAFFLE_TICKETS, USER_TICKETS,
+        get_raffle_state, Config, FeeDiscountMsg, RaffleInfo, RaffleOptions, RaffleOptionsMsg,
+        RaffleState, CONFIG, MINIMUM_RAFFLE_DURATION, RAFFLE_INFO, RAFFLE_TICKETS, USER_TICKETS,
     },
     utils::{
         buyer_can_buy_ticket, can_buy_ticket, get_nois_randomness,
@@ -29,6 +29,8 @@ use crate::{
         is_raffle_owner, ticket_cost,
     },
 };
+
+pub const NOIS_TIMEOUT: u64 = 6;
 
 #[allow(clippy::too_many_arguments)]
 pub fn execute_create_raffle(
@@ -145,7 +147,7 @@ pub fn execute_create_raffle(
     let raffle_lifecycle = raffle_options
         .raffle_start_timestamp
         .plus_seconds(raffle_options.raffle_duration)
-        .plus_seconds(6);
+        .plus_seconds(NOIS_TIMEOUT);
 
     let mut msgs = vec![];
 
@@ -641,7 +643,7 @@ pub fn execute_claim(deps: DepsMut, env: Env, raffle_id: u64) -> Result<Response
         raffle_info.winners =
             get_raffle_winners(deps.as_ref(), &env, raffle_id, raffle_info.clone())?;
         let owner_funds_msg = get_raffle_owner_funds_finished_messages(
-            deps.storage,
+            deps.as_ref(),
             env.clone(),
             raffle_info.clone(),
         )?;
@@ -682,6 +684,7 @@ pub fn execute_update_config(
     nois_proxy_addr: Option<String>,
     nois_proxy_coin: Option<Coin>,
     creation_coins: Option<Vec<Coin>>,
+    fee_discounts: Option<Vec<FeeDiscountMsg>>,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     // ensure msg sender is admin
@@ -751,6 +754,14 @@ pub fn execute_update_config(
         Some(mpn) => mpn,
         None => config.max_tickets_per_raffle.unwrap(),
     };
+
+    let fee_discounts = match fee_discounts {
+        Some(discounts) => discounts
+            .into_iter()
+            .map(|d| d.check(deps.api))
+            .collect::<Result<_, _>>()?,
+        None => config.fee_discounts,
+    };
     // we have a seperate function to lock a raffle, so we skip here
 
     let new_config = Config {
@@ -765,6 +776,7 @@ pub fn execute_update_config(
         creation_coins,
         max_tickets_per_raffle: max_tickets_per_raffle.into(),
         last_raffle_id: config.last_raffle_id,
+        fee_discounts,
     };
 
     CONFIG.save(deps.storage, &new_config)?;

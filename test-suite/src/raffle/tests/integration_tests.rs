@@ -5,17 +5,17 @@ mod tests {
     use cw721::{ApprovalsResponse, OwnerOfResponse};
     #[cfg(feature = "sg")]
     use sg721_base::QueryMsg as Sg721QueryMsg;
-    use sg_multi_test::StargazeApp;
     use std::vec;
     use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
 
     use raffles::{
-        msg::QueryMsg as RaffleQueryMsg,
-        state::{Config, RaffleState},
+        msg::{ConfigResponse, QueryMsg as RaffleQueryMsg},
+        state::RaffleState,
     };
 
     use crate::{
         common_setup::{
+            app::StargazeApp,
             helpers::assert_treasury_balance,
             msg::RaffleContracts,
             setup_accounts_and_block::{setup_accounts, setup_raffle_participants},
@@ -67,7 +67,7 @@ mod tests {
 
         create_simple_raffle(&mut app, &contracts, &token, owner_addr.clone());
 
-        let _res: Config = app
+        let _res: ConfigResponse = app
             .wrap()
             .query_wasm_smart(contracts.raffle.clone(), &RaffleQueryMsg::Config {})
             .unwrap();
@@ -155,7 +155,7 @@ mod tests {
 
         assert_eq!(res.raffle_state, RaffleState::Claimed);
 
-        // confirm owner of nft is now raffle winner
+        // confirm the winner exists
         let res: OwnerOfResponse = app
             .wrap()
             .query_wasm_smart(
@@ -276,12 +276,12 @@ mod tests {
         // creates raffle2
         create_simple_raffle(&mut app, &contracts, &token1, owner_addr);
 
-        let res: Config = app
+        let res: ConfigResponse = app
             .wrap()
             .query_wasm_smart(contracts.raffle.to_string(), &RaffleQueryMsg::Config {})
             .unwrap();
         // confirm raffles were created
-        assert_eq!(res.last_raffle_id, Some(1));
+        assert_eq!(res.last_raffle_id, 1);
 
         // purchase raffle tickets
         // addr_one buys 10 tickets from raffle 1

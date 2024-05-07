@@ -10,13 +10,14 @@ use crate::{
         execute_modify_raffle, execute_receive, execute_receive_nois, execute_sudo_toggle_lock,
         execute_toggle_lock, execute_update_config,
     },
-    msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse},
+    msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg, RaffleResponse},
     query::{
-        add_raffle_winners, query_all_raffles, query_all_tickets, query_config, query_ticket_count,
+        add_raffle_winners, query_all_raffles, query_all_tickets, query_config, query_discount,
+        query_ticket_count,
     },
     state::{
         get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
-        STATIC_RAFFLE_CREATION_FEE,
+        OLD_CONFIG, STATIC_RAFFLE_CREATION_FEE,
     },
     utils::get_nois_randomness,
 };
@@ -81,6 +82,11 @@ pub fn instantiate(
         nois_proxy_coin: msg.nois_proxy_coin,
         creation_coins,
         max_tickets_per_raffle: Some(msg.max_ticket_number.unwrap_or(MAX_TICKET_NUMBER)),
+        fee_discounts: msg
+            .fee_discounts
+            .into_iter()
+            .map(|d| d.check(deps.api))
+            .collect::<Result<_, _>>()?,
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -93,12 +99,33 @@ pub fn instantiate(
 }
 
 #[cfg_attr(not(feature = "library"), ::cosmwasm_std::entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> StdResult<Response> {
+pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> StdResult<Response> {
+    let old_config = OLD_CONFIG.load(deps.storage)?;
+
+    let config = Config {
+        name: old_config.name,
+        owner: old_config.owner,
+        fee_addr: old_config.fee_addr,
+        last_raffle_id: old_config.last_raffle_id,
+        minimum_raffle_duration: old_config.minimum_raffle_duration,
+        max_tickets_per_raffle: old_config.max_tickets_per_raffle,
+        raffle_fee: old_config.raffle_fee,
+        locks: old_config.locks,
+        nois_proxy_addr: old_config.nois_proxy_addr,
+        nois_proxy_coin: old_config.nois_proxy_coin,
+        creation_coins: old_config.creation_coins,
+        fee_discounts: msg
+            .fee_discounts
+            .into_iter()
+            .map(|d| d.check(deps.api))
+            .collect::<Result<_, _>>()?,
+    };
     set_contract_version(
         deps.storage,
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
     )?;
+    CONFIG.save(deps.storage, &config)?;
     Ok(Response::default())
 }
 
@@ -165,6 +192,7 @@ pub fn execute(
             nois_proxy_addr,
             nois_proxy_coin,
             creation_coins,
+            fee_discounts,
         } => execute_update_config(
             deps,
             env,
@@ -178,6 +206,7 @@ pub fn execute(
             nois_proxy_addr,
             nois_proxy_coin,
             creation_coins,
+            fee_discounts,
         ),
         ExecuteMsg::UpdateRandomness { raffle_id } => {
             let config = CONFIG.load(deps.storage)?;
@@ -195,9 +224,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<QueryResponse, Contr
         QueryMsg::RaffleInfo { raffle_id } => {
             let mut raffle_info = load_raffle(deps.storage, raffle_id)?;
             let raffle_state = get_raffle_state(&env, &raffle_info);
-
             add_raffle_winners(deps, &env, raffle_id, &mut raffle_info)?;
-
             to_json_binary(&RaffleResponse {
                 raffle_id,
                 raffle_state,
@@ -223,6 +250,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<QueryResponse, Contr
         QueryMsg::TicketCount { owner, raffle_id } => {
             to_json_binary(&query_ticket_count(deps, env, raffle_id, owner)?)?
         }
+        QueryMsg::FeeDiscount { user } => to_json_binary(&query_discount(deps, user)?)?,
     };
     Ok(response)
 }

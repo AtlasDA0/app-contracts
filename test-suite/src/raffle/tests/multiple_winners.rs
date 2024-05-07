@@ -319,7 +319,6 @@ mod tests {
         }
 
         finish_raffle_timeout(&mut app, &contracts, 0, 1000).unwrap();
-        let raffle_info = raffle_info(&app, &contracts, 0).raffle_info.unwrap();
     }
 
     #[test]

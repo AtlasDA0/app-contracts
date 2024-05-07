@@ -1,5 +1,5 @@
+use crate::common_setup::app::StargazeApp;
 use cw_multi_test::{Contract, ContractWrapper};
-use sg_multi_test::StargazeApp;
 use sg_std::StargazeMsgWrapper;
 
 pub fn custom_mock_app() -> StargazeApp {

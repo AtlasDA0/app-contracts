@@ -1,9 +1,9 @@
 use cosmwasm_std::{Addr, Coin, Timestamp, Uint128};
-use raffles::state::GatingOptionsMsg;
+use raffles::state::AdvantageOptionsMsg;
 use utils::state::AssetInfo;
 
 pub struct CreateRaffleParams<'a> {
-    pub app: &'a mut sg_multi_test::StargazeApp,
+    pub app: &'a mut crate::common_setup::app::StargazeApp,
     pub raffle_contract_addr: Addr,
     pub owner_addr: Addr,
     pub creation_fee: Vec<Coin>,
@@ -14,11 +14,11 @@ pub struct CreateRaffleParams<'a> {
     pub raffle_nfts: Vec<AssetInfo>,
     pub duration: Option<u64>,
     pub raffle_start_timestamp: Option<Timestamp>,
-    pub gating: Vec<GatingOptionsMsg>,
+    pub gating: Vec<AdvantageOptionsMsg>,
 }
 
 pub struct PurchaseTicketsParams<'a> {
-    pub app: &'a mut sg_multi_test::StargazeApp,
+    pub app: &'a mut crate::common_setup::app::StargazeApp,
     pub raffle_contract_addr: Addr,
     pub msg_senders: Vec<Addr>,
     pub raffle_id: u64,
@@ -27,7 +27,7 @@ pub struct PurchaseTicketsParams<'a> {
 }
 
 // pub struct DetermineWinnerParams<'a> {
-//     pub app: &'a mut sg_multi_test::StargazeApp,
+//     pub app: &'a mut crate::common_setup::app::StargazeApp,
 //     pub raffle_contract_addr: Addr,
 //     pub owner_addr: Addr,
 //     pub raffle_id: u64,

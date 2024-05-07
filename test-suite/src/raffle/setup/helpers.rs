@@ -1,3 +1,4 @@
+use crate::common_setup::app::StargazeApp;
 use crate::common_setup::nois_proxy::{ERROR_ON_NOIS_EXEC, TEST_NOIS_PREFIX};
 use crate::common_setup::{msg::RaffleContracts, setup_minter::common::constants::OWNER_ADDR};
 use anyhow::bail;
@@ -6,7 +7,6 @@ use cw_multi_test::Executor;
 use nois::ProxyExecuteMsg;
 use raffles::msg::{ExecuteMsg, QueryMsg, RaffleResponse};
 use sg721::CollectionInfo;
-use sg_multi_test::StargazeApp;
 use utils::state::NATIVE_DENOM;
 use vending_factory::msg::VendingMinterCreateMsg;
 
