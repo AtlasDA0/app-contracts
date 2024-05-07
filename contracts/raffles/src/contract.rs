@@ -10,14 +10,14 @@ use crate::{
         execute_modify_raffle, execute_receive, execute_receive_nois, execute_sudo_toggle_lock,
         execute_toggle_lock, execute_update_config,
     },
-    msg::{ExecuteMsg, InstantiateMsg, QueryMsg, RaffleResponse},
+    msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg, RaffleResponse},
     query::{
         add_raffle_winners, query_all_raffles, query_all_tickets, query_config, query_discount,
         query_ticket_count,
     },
     state::{
         get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
-        STATIC_RAFFLE_CREATION_FEE,
+        OLD_CONFIG, STATIC_RAFFLE_CREATION_FEE,
     },
     utils::get_nois_randomness,
 };
@@ -99,12 +99,33 @@ pub fn instantiate(
 }
 
 #[cfg_attr(not(feature = "library"), ::cosmwasm_std::entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> StdResult<Response> {
+pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> StdResult<Response> {
+    let old_config = OLD_CONFIG.load(deps.storage)?;
+
+    let config = Config {
+        name: old_config.name,
+        owner: old_config.owner,
+        fee_addr: old_config.fee_addr,
+        last_raffle_id: old_config.last_raffle_id,
+        minimum_raffle_duration: old_config.minimum_raffle_duration,
+        max_tickets_per_raffle: old_config.max_tickets_per_raffle,
+        raffle_fee: old_config.raffle_fee,
+        locks: old_config.locks,
+        nois_proxy_addr: old_config.nois_proxy_addr,
+        nois_proxy_coin: old_config.nois_proxy_coin,
+        creation_coins: old_config.creation_coins,
+        fee_discounts: msg
+            .fee_discounts
+            .into_iter()
+            .map(|d| d.check(deps.api))
+            .collect::<Result<_, _>>()?,
+    };
     set_contract_version(
         deps.storage,
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
     )?;
+    CONFIG.save(deps.storage, &config)?;
     Ok(Response::default())
 }
 
