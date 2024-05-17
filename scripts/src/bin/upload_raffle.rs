@@ -1,4 +1,4 @@
-use cosmwasm_std::{coin, coins, Decimal, Uint128};
+use cosmwasm_std::{coin, coins, Decimal};
 use cw_orch::prelude::TxHandler;
 use cw_orch::{
     contract::interface_traits::{CwOrchInstantiate, CwOrchUpload},

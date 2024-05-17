@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    coin, ensure, ensure_eq, entry_point, to_json_binary, Decimal, Deps, DepsMut, Empty, Env,
-    MessageInfo, QueryResponse, StdResult, Uint128,
+    coin, ensure, ensure_eq, entry_point, to_json_binary, Decimal, Deps, DepsMut, Env, MessageInfo,
+    QueryResponse, StdResult, Uint128,
 };
 
 use crate::{
