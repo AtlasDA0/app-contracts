@@ -100,32 +100,21 @@ pub fn instantiate(
 
 #[cfg_attr(not(feature = "library"), ::cosmwasm_std::entry_point)]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> StdResult<Response> {
-    let old_config = OLD_CONFIG.load(deps.storage)?;
+    let mut config = CONFIG.load(deps.storage)?;
 
-    let config = Config {
-        name: old_config.name,
-        owner: old_config.owner,
-        fee_addr: old_config.fee_addr,
-        last_raffle_id: old_config.last_raffle_id,
-        minimum_raffle_duration: old_config.minimum_raffle_duration,
-        max_tickets_per_raffle: old_config.max_tickets_per_raffle,
-        raffle_fee: old_config.raffle_fee,
-        locks: old_config.locks,
-        nois_proxy_addr: old_config.nois_proxy_addr,
-        nois_proxy_coin: old_config.nois_proxy_coin,
-        creation_coins: old_config.creation_coins,
-        fee_discounts: msg
-            .fee_discounts
-            .into_iter()
-            .map(|d| d.check(deps.api))
-            .collect::<Result<_, _>>()?,
-    };
+    config.fee_discounts = msg
+        .fee_discounts
+        .into_iter()
+        .map(|d| d.check(deps.api))
+        .collect::<Result<_, _>>()?;
+
+    CONFIG.save(deps.storage, &config)?;
+
     set_contract_version(
         deps.storage,
         env!("CARGO_PKG_NAME"),
         env!("CARGO_PKG_VERSION"),
     )?;
-    CONFIG.save(deps.storage, &config)?;
     Ok(Response::default())
 }
 

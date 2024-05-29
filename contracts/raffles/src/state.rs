@@ -98,27 +98,15 @@ impl FeeDiscountMsg {
         );
         match &self.condition {
             AdvantageOptionsMsg::Cw721Coin {
-                nft_count,
+                nft_count: _,
                 nft_address: _,
-            } => {
-                // discount is per token
-                ensure!(
-                    (self.discount * Decimal::from_ratio(*nft_count, 1u128)) <= Decimal::one(),
-                    StdError::generic_err("Discount should be lower than 100%")
-                );
-            }
+            } => {}
             AdvantageOptionsMsg::Cw20(_) => {}
             AdvantageOptionsMsg::Coin(_) => {}
             AdvantageOptionsMsg::Sg721Token {
-                nft_count,
+                nft_count: _,
                 nft_address: _,
-            } => {
-                // discount is per token
-                ensure!(
-                    (self.discount * Decimal::from_ratio(*nft_count, 1u128)) <= Decimal::one(),
-                    StdError::generic_err("Discount should be lower than 100%")
-                );
-            }
+            } => {}
             AdvantageOptionsMsg::DaoVotingPower { .. } => {}
             AdvantageOptionsMsg::Staking { .. } => {}
         }
