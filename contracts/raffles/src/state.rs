@@ -268,6 +268,22 @@ pub struct RaffleOptions {
     pub gating_raffle: Vec<AdvantageOptions>, // Allows for token gating raffle tickets. Only owners of those tokens can buy raffle tickets
 }
 
+impl From<RaffleOptions> for RaffleOptionsMsg {
+    fn from(value: RaffleOptions) -> Self {
+        Self {
+            raffle_start_timestamp: Some(value.raffle_start_timestamp),
+            raffle_duration: Some(value.raffle_duration),
+            comment: value.comment,
+            max_ticket_number: value.max_ticket_number,
+            max_ticket_per_address: value.max_ticket_per_address,
+            raffle_preview: Some(value.raffle_preview),
+            one_winner_per_asset: value.one_winner_per_asset,
+            min_ticket_number: value.min_ticket_number,
+            gating_raffle: value.gating_raffle.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
 #[cw_serde]
 pub enum AdvantageOptions {
     Cw721Coin {
