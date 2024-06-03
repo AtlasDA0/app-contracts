@@ -17,7 +17,7 @@ use crate::{
     },
     state::{
         get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
-        OLD_CONFIG, STATIC_RAFFLE_CREATION_FEE,
+        STATIC_RAFFLE_CREATION_FEE,
     },
     utils::get_nois_randomness,
 };
