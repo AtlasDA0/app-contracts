@@ -9,10 +9,11 @@ edition = "2021"
 anyhow.workspace = true
 cosmrs = "0.15.0"
 cosmwasm-std = "1.5.2"
-cw-orch = { version = "0.21.2", features = ["daemon"] }
+cw-orch = { version = "0.22.2", features = ["daemon"] }
+cw-orch-clone-testing = "0.4.0"
 cw721.workspace = true
 dotenv = "0.15.0"
-env_logger = "0.11.3"
+env_logger = { version = "0.11.3", default-features = false }
 nft-loans-nc = { version = "0.4.0", path = "../contracts/nft-loan" }
 raffles = { version = "0.4.0", path = "../contracts/raffles" }
 sg721.workspace = true

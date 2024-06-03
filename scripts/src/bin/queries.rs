@@ -8,8 +8,8 @@ use scripts::STARGAZE_1;
 
 pub const RAFFLE_ID: u64 = 0;
 pub const TEST_NFT_ADDRESS: &str =
-    "stars1vvl9sevue9kqvvtnu90drtwkhflxg5lzmujmjywz7h0mz474px0swhxgz2";
-pub const TOKEN_ID: &str = "239";
+    "stars1sft72uh67euvjn0tw2kyxs78rnpjgcdhd2xaevf9gatlcm2mkykqh38p9q";
+pub const TOKEN_ID: &str = "365";
 
 pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
