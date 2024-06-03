@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::io::Read;
 
 use cosmwasm_std::coins;
@@ -31,13 +32,13 @@ pub fn main() -> anyhow::Result<()> {
 
     let raffle_options = raffles.raffle_info(RAFFLE_ID)?;
     let info = raffle_options.raffle_info.unwrap();
-    let mut options = info.raffle_options.into();
 
     let amount = coins(50_000_000, "ustars");
     chain.add_balance(&raffles.address()?, amount.clone())?;
+
     raffles.call_as(&raffles.address()?).create_raffle(
         info.assets,
-        options,
+        info.raffle_options.into(),
         info.raffle_ticket_price,
         None,
         &amount,
