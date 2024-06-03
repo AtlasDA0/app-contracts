@@ -1,5 +1,6 @@
 use std::io::Read;
 
+use cosmwasm_std::coins;
 use cosmwasm_std::Addr;
 use cw_orch::daemon::Daemon;
 use cw_orch::daemon::RUNTIME;
@@ -16,7 +17,7 @@ use raffles::msg::QueryMsgFns;
 use scripts::raffles::Raffles;
 use scripts::STARGAZE_1;
 
-pub const RAFFLE_ID: u64 = 230;
+pub const RAFFLE_ID: u64 = 193;
 pub const TOKEN_ID: &str = "239";
 
 pub fn main() -> anyhow::Result<()> {
@@ -26,11 +27,34 @@ pub fn main() -> anyhow::Result<()> {
 
     let raffles = Raffles::new(chain.clone());
 
+    migrate(&raffles)?;
+
+    let raffle_options = raffles.raffle_info(RAFFLE_ID)?;
+    let info = raffle_options.raffle_info.unwrap();
+    let mut options = info.raffle_options.into();
+
+    let amount = coins(50_000_000, "ustars");
+    chain.add_balance(&raffles.address()?, amount.clone())?;
+    raffles.call_as(&raffles.address()?).create_raffle(
+        info.assets,
+        options,
+        info.raffle_ticket_price,
+        None,
+        &amount,
+    )?;
+
+    raffles.claim_raffle(RAFFLE_ID)?;
+
+    Ok(())
+}
+
+fn migrate(raffles: &Raffles<CloneTesting>) -> anyhow::Result<()> {
     let mut file = std::fs::File::open(Raffles::<CloneTesting>::wasm(&STARGAZE_1.into()).path())?;
     let mut wasm = Vec::<u8>::new();
     file.read_to_end(&mut wasm)?;
 
-    let new_code_id = chain
+    let new_code_id = raffles
+        .get_chain()
         .app
         .borrow_mut()
         .store_wasm_code(WasmContract::Local(LocalWasmContract { code: wasm }));
@@ -50,10 +74,6 @@ pub fn main() -> anyhow::Result<()> {
             },
             new_code_id,
         )?;
-
-    raffles.claim_raffle(RAFFLE_ID)?;
-
-    let raffle_options = raffles.raffle_info(RAFFLE_ID)?;
 
     Ok(())
 }
