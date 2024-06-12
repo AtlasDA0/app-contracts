@@ -64,17 +64,7 @@ fn migrate(raffles: &Raffles<CloneTesting>) -> anyhow::Result<()> {
         .call_as(&Addr::unchecked(
             "stars1wk327tnqj03954zq2hzf36xzs656pmffzy0udsmjw2gjxrthh6qqfsvr4v",
         ))
-        .migrate(
-            &MigrateMsg {
-                fee_discounts: raffles
-                    .config()?
-                    .fee_discounts
-                    .into_iter()
-                    .map(Into::into)
-                    .collect(),
-            },
-            new_code_id,
-        )?;
+        .migrate(&MigrateMsg {}, new_code_id)?;
 
     Ok(())
 }

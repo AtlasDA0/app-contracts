@@ -99,17 +99,7 @@ pub fn instantiate(
 }
 
 #[cfg_attr(not(feature = "library"), ::cosmwasm_std::entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> StdResult<Response> {
-    let mut config = CONFIG.load(deps.storage)?;
-
-    config.fee_discounts = msg
-        .fee_discounts
-        .into_iter()
-        .map(|d| d.check(deps.api))
-        .collect::<Result<_, _>>()?;
-
-    CONFIG.save(deps.storage, &config)?;
-
+pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Response> {
     set_contract_version(
         deps.storage,
         env!("CARGO_PKG_NAME"),
