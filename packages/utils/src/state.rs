@@ -140,12 +140,22 @@ pub fn all_elements_unique(vec: &[AssetInfo]) -> bool {
     for i in 0..vec.len() {
         for j in i + 1..vec.len() {
             if vec[i].overlaps(&vec[j]) {
-                println!("{}", vec[i].debug_str());
-                println!("{}", vec[j].debug_str());
-                println!(" ");
                 return false;
             }
         }
     }
     true
+}
+
+pub fn dedupe(vec: &[AssetInfo]) -> Vec<AssetInfo> {
+    let mut all_unique = vec![];
+    'outer: for i in 0..vec.len() {
+        for j in i + 1..vec.len() {
+            if vec[i].overlaps(&vec[j]) {
+                continue 'outer;
+            }
+        }
+        all_unique.push(vec[i].clone())
+    }
+    all_unique
 }

@@ -19,3 +19,8 @@ raffles = { version = "0.4.0", path = "../contracts/raffles" }
 sg721.workspace = true
 sg721-base.workspace = true
 utils = { version = "0.1.0", path = "../packages/utils" }
+
+# Dao-Dao
+dao-cw-orch = { git = "https://github.com/Kayanski/dao-contracts", version = "2.4.2", branch = "development" }
+dao-pre-propose-base = { git = "https://github.com/Kayanski/dao-contracts", version = "2.4.2", branch = "development" }
+dao-pre-propose-single = { git = "https://github.com/Kayanski/dao-contracts", version = "2.4.2", branch = "development" }

@@ -18,7 +18,7 @@ use cw721_base::Extension;
 use nois::ProxyExecuteMsg;
 use rand::Rng;
 use utils::{
-    state::{into_cosmos_msg, AssetInfo},
+    state::{dedupe, into_cosmos_msg, AssetInfo},
     types::CosmosMsg,
 };
 
@@ -241,8 +241,9 @@ fn _get_raffle_end_asset_messages(
     raffle_info: RaffleInfo,
     receivers: Vec<Addr>,
 ) -> StdResult<Vec<CosmosMsg>> {
-    raffle_info
-        .assets
+    let assets = dedupe(&raffle_info.assets);
+
+    assets
         .iter()
         .enumerate()
         .map(|(i, asset)| {

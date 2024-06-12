@@ -36,13 +36,13 @@ pub fn main() -> anyhow::Result<()> {
     let amount = coins(50_000_000, "ustars");
     chain.add_balance(&raffles.address()?, amount.clone())?;
 
-    raffles.call_as(&raffles.address()?).create_raffle(
-        info.assets,
-        info.raffle_options.into(),
-        info.raffle_ticket_price,
-        None,
-        &amount,
-    )?;
+    // raffles.call_as(&raffles.address()?).create_raffle(
+    //     info.assets,
+    //     info.raffle_options.into(),
+    //     info.raffle_ticket_price,
+    //     None,
+    //     &amount,
+    // )?;
 
     raffles.claim_raffle(RAFFLE_ID)?;
 
