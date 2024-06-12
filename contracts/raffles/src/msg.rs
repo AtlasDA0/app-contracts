@@ -186,6 +186,4 @@ pub struct IsClaimedResponse {
 }
 
 #[cw_serde]
-pub struct MigrateMsg {
-    pub fee_discounts: Vec<FeeDiscountMsg>,
-}
+pub struct MigrateMsg {}

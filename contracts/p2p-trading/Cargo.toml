@@ -1,0 +1,44 @@
+[package]
+name = "p2p-trading"
+version = "0.9.0"
+authors = ["Nicolas KOWALSKI <kowalski.kowalskin@gmail.com>"]
+edition = "2018"
+description = "Basic implementation of a CosmWasm-20 compliant token"
+license = "Apache-2.0"
+repository = "https://github.com/CosmWasm/cw-plus"
+homepage = "https://cosmwasm.com"
+documentation = "https://docs.cosmwasm.com"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+backtraces = ["cosmwasm-std/backtraces"]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+
+[profile.release]
+overflow-checks = true
+
+[dependencies]
+# CosmWasm
+cw2 = "0.13.0"
+cw20 = "0.13.0"
+cw721 = "0.13.0"
+cw1155 = "0.13.0"
+cw-storage-plus = "0.13.0"
+cw20-base = { version = "0.13.0", features = ["library"] }
+cosmwasm-std = { version = "1.0.0" }
+
+# Other Modules
+itertools = "0.10.3"
+schemars = "0.8.1"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.23" }
+
+# Local Modules
+p2p-trading-export = { path = "../../packages/p2p-trading", version = "0.1.0" }
+
+[dev-dependencies]
+cosmwasm-schema = { version = "1.0.0" }
+getrandom = { version="^0.2", features = ["js"] }

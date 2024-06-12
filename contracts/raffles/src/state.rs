@@ -98,27 +98,15 @@ impl FeeDiscountMsg {
         );
         match &self.condition {
             AdvantageOptionsMsg::Cw721Coin {
-                nft_count,
+                nft_count: _,
                 nft_address: _,
-            } => {
-                // discount is per token
-                ensure!(
-                    (self.discount * Decimal::from_ratio(*nft_count, 1u128)) <= Decimal::one(),
-                    StdError::generic_err("Discount should be lower than 100%")
-                );
-            }
+            } => {}
             AdvantageOptionsMsg::Cw20(_) => {}
             AdvantageOptionsMsg::Coin(_) => {}
             AdvantageOptionsMsg::Sg721Token {
-                nft_count,
+                nft_count: _,
                 nft_address: _,
-            } => {
-                // discount is per token
-                ensure!(
-                    (self.discount * Decimal::from_ratio(*nft_count, 1u128)) <= Decimal::one(),
-                    StdError::generic_err("Discount should be lower than 100%")
-                );
-            }
+            } => {}
             AdvantageOptionsMsg::DaoVotingPower { .. } => {}
             AdvantageOptionsMsg::Staking { .. } => {}
         }
@@ -278,6 +266,22 @@ pub struct RaffleOptions {
     pub one_winner_per_asset: bool, // Allows to set multiple winners per raffle (one per asset)
 
     pub gating_raffle: Vec<AdvantageOptions>, // Allows for token gating raffle tickets. Only owners of those tokens can buy raffle tickets
+}
+
+impl From<RaffleOptions> for RaffleOptionsMsg {
+    fn from(value: RaffleOptions) -> Self {
+        Self {
+            raffle_start_timestamp: Some(value.raffle_start_timestamp),
+            raffle_duration: Some(value.raffle_duration),
+            comment: value.comment,
+            max_ticket_number: value.max_ticket_number,
+            max_ticket_per_address: value.max_ticket_per_address,
+            raffle_preview: Some(value.raffle_preview),
+            one_winner_per_asset: value.one_winner_per_asset,
+            min_ticket_number: value.min_ticket_number,
+            gating_raffle: value.gating_raffle.into_iter().map(Into::into).collect(),
+        }
+    }
 }
 
 #[cw_serde]

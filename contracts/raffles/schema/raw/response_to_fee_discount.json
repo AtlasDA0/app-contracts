@@ -1,70 +1,29 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ConfigResponse",
+  "title": "FeeDiscountResponse",
   "type": "object",
   "required": [
-    "creation_coins",
-    "fee_addr",
-    "fee_discounts",
-    "last_raffle_id",
-    "locks",
-    "minimum_raffle_duration",
-    "name",
-    "nois_proxy_addr",
-    "nois_proxy_coin",
-    "owner",
-    "raffle_fee"
+    "discounts",
+    "total_discount"
   ],
   "properties": {
-    "creation_coins": {
+    "discounts": {
       "type": "array",
       "items": {
-        "$ref": "#/definitions/Coin"
+        "type": "array",
+        "items": [
+          {
+            "$ref": "#/definitions/FeeDiscount"
+          },
+          {
+            "type": "boolean"
+          }
+        ],
+        "maxItems": 2,
+        "minItems": 2
       }
     },
-    "fee_addr": {
-      "type": "string"
-    },
-    "fee_discounts": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/FeeDiscount"
-      }
-    },
-    "last_raffle_id": {
-      "type": "integer",
-      "format": "uint64",
-      "minimum": 0.0
-    },
-    "locks": {
-      "$ref": "#/definitions/Locks"
-    },
-    "max_tickets_per_raffle": {
-      "type": [
-        "integer",
-        "null"
-      ],
-      "format": "uint32",
-      "minimum": 0.0
-    },
-    "minimum_raffle_duration": {
-      "type": "integer",
-      "format": "uint64",
-      "minimum": 0.0
-    },
-    "name": {
-      "type": "string"
-    },
-    "nois_proxy_addr": {
-      "type": "string"
-    },
-    "nois_proxy_coin": {
-      "$ref": "#/definitions/Coin"
-    },
-    "owner": {
-      "type": "string"
-    },
-    "raffle_fee": {
+    "total_discount": {
       "$ref": "#/definitions/Decimal"
     }
   },
@@ -249,22 +208,6 @@
         },
         "discount": {
           "$ref": "#/definitions/Decimal"
-        }
-      },
-      "additionalProperties": false
-    },
-    "Locks": {
-      "type": "object",
-      "required": [
-        "lock",
-        "sudo_lock"
-      ],
-      "properties": {
-        "lock": {
-          "type": "boolean"
-        },
-        "sudo_lock": {
-          "type": "boolean"
         }
       },
       "additionalProperties": false

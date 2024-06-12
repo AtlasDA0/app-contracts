@@ -38,7 +38,7 @@ sg721 = { version = "^3.3", optional = true }
 sg721-base = { version = "^3.3", optional = true }
 
 utils = { path = "../../packages/utils", version = "0.1.0", feature = "vanilla" }
-cw-orch = "0.21.2"
+cw-orch = "0.22.2"
 rand_xoshiro = { version = "0.6.0", default-features = false }
 rand = { version = "0.8.4", default-features = false }
 dao-interface = "2.3.0"

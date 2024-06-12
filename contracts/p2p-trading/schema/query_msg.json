@@ -5,12 +5,11 @@
     {
       "type": "object",
       "required": [
-        "config"
+        "contract_info"
       ],
       "properties": {
-        "config": {
-          "type": "object",
-          "additionalProperties": false
+        "contract_info": {
+          "type": "object"
         }
       },
       "additionalProperties": false
@@ -18,43 +17,21 @@
     {
       "type": "object",
       "required": [
-        "fee_discount"
+        "trade_info"
       ],
       "properties": {
-        "fee_discount": {
+        "trade_info": {
           "type": "object",
           "required": [
-            "user"
+            "trade_id"
           ],
           "properties": {
-            "user": {
-              "type": "string"
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "raffle_info"
-      ],
-      "properties": {
-        "raffle_info": {
-          "type": "object",
-          "required": [
-            "raffle_id"
-          ],
-          "properties": {
-            "raffle_id": {
+            "trade_id": {
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
             }
-          },
-          "additionalProperties": false
+          }
         }
       },
       "additionalProperties": false
@@ -62,10 +39,38 @@
     {
       "type": "object",
       "required": [
-        "all_raffles"
+        "counter_trade_info"
       ],
       "properties": {
-        "all_raffles": {
+        "counter_trade_info": {
+          "type": "object",
+          "required": [
+            "counter_id",
+            "trade_id"
+          ],
+          "properties": {
+            "counter_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "trade_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "get_all_trades"
+      ],
+      "properties": {
+        "get_all_trades": {
           "type": "object",
           "properties": {
             "filters": {
@@ -94,8 +99,7 @@
               "format": "uint64",
               "minimum": 0.0
             }
-          },
-          "additionalProperties": false
+          }
         }
       },
       "additionalProperties": false
@@ -103,15 +107,25 @@
     {
       "type": "object",
       "required": [
-        "all_tickets"
+        "get_counter_trades"
       ],
       "properties": {
-        "all_tickets": {
+        "get_counter_trades": {
           "type": "object",
           "required": [
-            "raffle_id"
+            "trade_id"
           ],
           "properties": {
+            "filters": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/QueryFilters"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "limit": {
               "type": [
                 "integer",
@@ -120,21 +134,20 @@
               "format": "uint32",
               "minimum": 0.0
             },
-            "raffle_id": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0.0
-            },
             "start_after": {
               "type": [
                 "integer",
                 "null"
               ],
-              "format": "uint32",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "trade_id": {
+              "type": "integer",
+              "format": "uint64",
               "minimum": 0.0
             }
-          },
-          "additionalProperties": false
+          }
         }
       },
       "additionalProperties": false
@@ -142,44 +155,90 @@
     {
       "type": "object",
       "required": [
-        "ticket_count"
+        "get_all_counter_trades"
       ],
       "properties": {
-        "ticket_count": {
+        "get_all_counter_trades": {
           "type": "object",
-          "required": [
-            "owner",
-            "raffle_id"
-          ],
           "properties": {
-            "owner": {
-              "type": "string"
+            "filters": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/QueryFilters"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
-            "raffle_id": {
-              "type": "integer",
-              "format": "uint64",
+            "limit": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
               "minimum": 0.0
+            },
+            "start_after": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/CounterTradeInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
-          },
-          "additionalProperties": false
+          }
         }
       },
       "additionalProperties": false
     }
   ],
   "definitions": {
+    "CounterTradeInfo": {
+      "type": "object",
+      "required": [
+        "counter_id",
+        "trade_id"
+      ],
+      "properties": {
+        "counter_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "trade_id": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
     "QueryFilters": {
       "type": "object",
       "properties": {
+        "assets_withdrawn": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "contains_token": {
           "type": [
             "string",
             "null"
           ]
         },
-        "gated_rights_ticket_buyer": {
+        "counterer": {
           "type": [
             "string",
+            "null"
+          ]
+        },
+        "has_whitelist": {
+          "type": [
+            "boolean",
             "null"
           ]
         },
@@ -198,14 +257,19 @@
             "type": "string"
           }
         },
-        "ticket_depositor": {
+        "wanted_nft": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "whitelisted_user": {
           "type": [
             "string",
             "null"
           ]
         }
-      },
-      "additionalProperties": false
+      }
     }
   }
 }

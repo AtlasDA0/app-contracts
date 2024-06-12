@@ -10,7 +10,7 @@ use nois::{NoisCallback, ProxyExecuteMsg};
 use {crate::query::is_sg721_owner, sg721::ExecuteMsg as Sg721ExecuteMsg};
 
 use utils::{
-    state::{into_cosmos_msg, is_valid_comment, is_valid_name, AssetInfo},
+    state::{all_elements_unique, into_cosmos_msg, is_valid_comment, is_valid_name, AssetInfo},
     types::{CosmosMsg, Response},
 };
 
@@ -84,6 +84,11 @@ pub fn execute_create_raffle(
     // make sure an asset was provided.
     if all_assets.is_empty() {
         return Err(ContractError::NoAssets {});
+    }
+
+    // Make sure there is no duplicate
+    if !all_elements_unique(&all_assets) {
+        return Err(ContractError::DuplicateAssets {});
     }
 
     // Then we physcially transfer all the assets

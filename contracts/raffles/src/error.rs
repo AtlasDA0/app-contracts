@@ -134,6 +134,9 @@ pub enum ContractError {
     #[error("Please include at least one asset when creating a raffle")]
     NoAssets {},
 
+    #[error("Duplicate assets are not allowed inside raffles !")]
+    DuplicateAssets {},
+
     // TODO: update to calculate value
     #[error("The sent assets ({assets_received:?})  don't match the required assets ({assets_wanted:?}) multiplied ({ticket_count:?}) for this raffle")]
     PaymentNotSufficient {
