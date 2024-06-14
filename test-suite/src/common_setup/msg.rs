@@ -67,6 +67,7 @@ pub struct RaffleContracts {
     pub factory: Addr,
     pub raffle: Addr,
     pub nois: Addr,
+    pub cw721: Option<Addr>,
 }
 
 #[cw_serde]

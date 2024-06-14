@@ -32,35 +32,6 @@ pub enum AssetInfo {
     Sg721Token(Sg721Token),
 }
 
-impl AssetInfo {
-    pub fn overlaps(&self, asset: &AssetInfo) -> bool {
-        match self {
-            AssetInfo::Coin(_) => false,
-            AssetInfo::Sg721Token(Sg721Token { address, token_id })
-            | AssetInfo::Cw721Coin(Cw721Coin { address, token_id }) => match asset {
-                AssetInfo::Coin(_) => false,
-                AssetInfo::Sg721Token(Sg721Token {
-                    address: address1,
-                    token_id: token_id1,
-                })
-                | AssetInfo::Cw721Coin(Cw721Coin {
-                    address: address1,
-                    token_id: token_id1,
-                }) => address == address1 && token_id1 == token_id,
-            },
-        }
-    }
-    pub fn debug_str(&self) -> String {
-        match self {
-            AssetInfo::Coin(c) => c.denom.to_string(),
-            AssetInfo::Sg721Token(Sg721Token { address, token_id })
-            | AssetInfo::Cw721Coin(Cw721Coin { address, token_id }) => {
-                format!("{}-{}", address, token_id)
-            }
-        }
-    }
-}
-
 #[cfg(not(feature = "sg"))]
 #[cw_serde]
 pub enum AssetInfo {
@@ -128,34 +99,12 @@ pub fn into_cosmos_msg<M: Serialize, T: Into<String>>(
 #[cw_serde]
 pub enum SudoMsg {
     ToggleLock { lock: bool },
+    BeginBlock {},
+    EndBlock {},
 }
 
 #[cw_serde]
 pub struct Locks {
     pub lock: bool,
     pub sudo_lock: bool,
-}
-
-pub fn all_elements_unique(vec: &[AssetInfo]) -> bool {
-    for i in 0..vec.len() {
-        for j in i + 1..vec.len() {
-            if vec[i].overlaps(&vec[j]) {
-                return false;
-            }
-        }
-    }
-    true
-}
-
-pub fn dedupe(vec: &[AssetInfo]) -> Vec<AssetInfo> {
-    let mut all_unique = vec![];
-    'outer: for i in 0..vec.len() {
-        for j in i + 1..vec.len() {
-            if vec[i].overlaps(&vec[j]) {
-                continue 'outer;
-            }
-        }
-        all_unique.push(vec[i].clone())
-    }
-    all_unique
 }

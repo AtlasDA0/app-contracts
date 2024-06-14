@@ -206,6 +206,31 @@ pub fn finish_raffle_timeout(
 
     Ok(())
 }
+pub fn finish_locality_timeout(
+    app: &mut StargazeApp,
+    contracts: &RaffleContracts,
+    locality_id: u64,
+    timeout: u64,
+) -> anyhow::Result<()> {
+    // We advance time to be able to send the nois message
+    let block = app.block_info();
+    app.set_block(BlockInfo {
+        height: block.height,
+        time: block.time.plus_seconds(timeout),
+        chain_id: block.chain_id,
+    });
+
+    // We send a nois message (that is automatic in the real world)
+    send_nois_ibc_message_locality(app, contracts, locality_id)?;
+    // app.execute_contract(
+    //     contracts.raffle.clone(),
+    //     contracts.raffle.clone(),
+    //     &ExecuteMsg::ClaimRaffle { locality_id },
+    //     &[],
+    // )?;
+
+    Ok(())
+}
 
 pub fn send_nois_ibc_message(
     app: &mut StargazeApp,
@@ -218,6 +243,40 @@ pub fn send_nois_ibc_message(
         contracts.nois.clone(),
         &ProxyExecuteMsg::GetNextRandomness {
             job_id: format!("{TEST_NOIS_PREFIX}raffle-{raffle_id}"),
+        },
+        &[],
+    )?;
+    // We get the error value
+    let error_value = response
+        .events
+        .into_iter()
+        .filter(|e| e.ty == "wasm")
+        .flat_map(|e| {
+            e.attributes
+                .into_iter()
+                .filter(|a| a.key == ERROR_ON_NOIS_EXEC)
+                .map(|a| a.value)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    if error_value.is_empty() {
+        Ok(())
+    } else {
+        bail!("Error on executing on nois randomness : {:?}", error_value)
+    }
+}
+pub fn send_nois_ibc_message_locality(
+    app: &mut StargazeApp,
+    contracts: &RaffleContracts,
+    locality_id: u64,
+) -> anyhow::Result<()> {
+    // We send a nois message (that is automatic in the real world)
+    let response = app.execute_contract(
+        contracts.raffle.clone(),
+        contracts.nois.clone(),
+        &ProxyExecuteMsg::GetNextRandomness {
+            job_id: format!("{TEST_NOIS_PREFIX}locality-{locality_id}"),
         },
         &[],
     )?;

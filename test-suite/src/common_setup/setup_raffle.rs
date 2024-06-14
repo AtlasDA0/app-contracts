@@ -20,7 +20,10 @@ use crate::common_setup::{
 };
 use cosmwasm_std::{coin, Addr, Coin, Decimal, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
-use raffles::msg::InstantiateMsg;
+use raffles::{
+    msg::{InstantiateMsg, NonProfits},
+    state::LocalityConfig,
+};
 use sg_std::NATIVE_DENOM;
 use vending_factory::state::{ParamsExtension, VendingMinterParams};
 
@@ -115,12 +118,17 @@ pub fn proper_raffle_instantiate_precise(
                 ]
                 .into(),
                 fee_discounts: vec![],
+                locality_config: Some(LocalityConfig {
+                    locality_mint_portion: Decimal::zero(),
+                }),
             },
             &[],
             "raffle",
             Some(Addr::unchecked(OWNER_ADDR).to_string()),
         )
         .unwrap();
+
+    let sg721_base = app.store_code(contract_sg721_base());
 
     // fund raffle contract for nois_proxy fee
     app.sudo(SudoMsg::Bank({
@@ -137,6 +145,7 @@ pub fn proper_raffle_instantiate_precise(
             factory: factory_addr,
             raffle: raffle_contract_addr,
             nois: nois_addr,
+            cw721: None,
         },
     )
 }
@@ -147,6 +156,8 @@ pub fn raffle_template_code_ids(router: &mut StargazeApp) -> RaffleCodeIds {
     let minter_code_id = router.store_code(contract_vending_minter());
     let sg721_code_id = router.store_code(contract_sg721_base());
     let nois_code_id = router.store_code(contract_fake_nois());
+
+    println!("{:?}", sg721_code_id);
 
     RaffleCodeIds {
         raffle_code_id,

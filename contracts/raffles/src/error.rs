@@ -3,7 +3,7 @@ use thiserror::Error;
 use cosmwasm_std::{StdError, Timestamp};
 use utils::state::AssetInfo;
 
-use crate::state::{AdvantageOptions, RaffleState};
+use crate::state::{AdvantageOptions, LocalityState, RaffleState};
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {
@@ -134,9 +134,6 @@ pub enum ContractError {
     #[error("Please include at least one asset when creating a raffle")]
     NoAssets {},
 
-    #[error("Duplicate assets are not allowed inside raffles !")]
-    DuplicateAssets {},
-
     // TODO: update to calculate value
     #[error("The sent assets ({assets_received:?})  don't match the required assets ({assets_wanted:?}) multiplied ({ticket_count:?}) for this raffle")]
     PaymentNotSufficient {
@@ -167,6 +164,8 @@ pub enum ContractError {
 
     #[error("This raffle is not ready to be claimed.  Current status : {status:?}")]
     WrongStateForClaim { status: RaffleState },
+    #[error("This locality is not ready to be claimed.  Current status : {status:?}")]
+    WrongState { status: LocalityState },
 
     #[error("This raffle cannot be cancelled anymore,   Current status : {status:?}")]
     WrongStateForCancel { status: RaffleState },
@@ -191,4 +190,18 @@ pub enum ContractError {
         condition: AdvantageOptions,
         user: String,
     },
+
+    #[error("Not Available.")]
+    NotAvailable {},
+
+    #[error("Invalid reply ID")]
+    InvalidReplyID {},
+    #[error("Invalid ID passed during call to proxy for randomness")]
+    InvalidProxyCallID {},
+
+    #[error("Instantiate sg721 error")]
+    InstantiateSg721Error {},
+
+    #[error("This locality is not ready to start.  Current status : {status:?}")]
+    WrongStateForClaimLocality { status: LocalityState },
 }

@@ -167,10 +167,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             limit,
             // filters,
         } => to_json_binary(&query_collaterals(deps, borrower, start_after, limit)?),
-        QueryMsg::AllCollaterals {
-            start_after,
-            limit,
-        } => to_json_binary(&query_all_collaterals(deps, start_after, limit)?),
+        QueryMsg::AllCollaterals { start_after, limit } => {
+            to_json_binary(&query_all_collaterals(deps, start_after, limit)?)
+        }
         QueryMsg::OfferInfo { global_offer_id } => {
             to_json_binary(&query_offer_info(deps, global_offer_id)?)
         }
@@ -195,6 +194,8 @@ pub fn sudo(deps: DepsMut, env: Env, msg: SudoMsg) -> Result<Response, ContractE
         SudoMsg::ToggleLock { lock } => {
             execute_sudo_toggle_lock(deps, env, lock).map_err(|_| ContractError::ContractBug {})
         }
+        SudoMsg::BeginBlock {} => unimplemented!(),
+        SudoMsg::EndBlock {} => unimplemented!(),
     }
 }
 

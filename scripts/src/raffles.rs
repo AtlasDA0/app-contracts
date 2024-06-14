@@ -6,7 +6,7 @@ pub struct Raffles;
 
 impl<Chain: CwEnv> Uploadable for Raffles<Chain> {
     /// Return the path to the wasm file corresponding to the contract
-    fn wasm(_chain: &ChainInfoOwned) -> WasmPath {
+    fn wasm(&self) -> WasmPath {
         artifacts_dir_from_workspace!()
             .find_wasm_path("raffles")
             .unwrap()

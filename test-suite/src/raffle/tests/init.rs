@@ -41,6 +41,7 @@ mod tests {
                     ]
                     .into(),
                     fee_discounts: vec![],
+                    locality_config: None,
                 },
                 &[],
                 "raffle",

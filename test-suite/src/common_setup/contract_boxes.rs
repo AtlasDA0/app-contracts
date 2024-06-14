@@ -12,7 +12,8 @@ pub fn contract_raffles() -> Box<dyn Contract<StargazeMsgWrapper>> {
         raffles::contract::instantiate,
         raffles::contract::query,
     )
-    .with_sudo(raffles::contract::sudo);
+    .with_sudo(raffles::contract::sudo)
+    .with_reply(raffles::contract::reply);
     Box::new(contract)
 }
 pub fn contract_fake_nois() -> Box<dyn Contract<StargazeMsgWrapper>> {

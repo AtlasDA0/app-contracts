@@ -6,7 +6,10 @@ use sg721::ExecuteMsg as Sg721ExecuteMsg;
 
 use crate::{
     error::ContractError,
-    state::{get_raffle_state, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO, RAFFLE_TICKETS},
+    state::{
+        get_locality_state, get_raffle_state, LocalityInfo, LocalityState, RaffleInfo, RaffleState,
+        CONFIG, LOCALITY_INFO, LOCALITY_TICKETS, RAFFLE_INFO, RAFFLE_TICKETS, TOKEN_INDEX,
+    },
 };
 use cosmwasm_std::{
     coins, to_json_binary, Addr, BankMsg, Coin, Decimal, Deps, Empty, Env, HexBinary, Order,
@@ -18,7 +21,7 @@ use cw721_base::Extension;
 use nois::ProxyExecuteMsg;
 use rand::Rng;
 use utils::{
-    state::{dedupe, into_cosmos_msg, AssetInfo},
+    state::{into_cosmos_msg, AssetInfo},
     types::CosmosMsg,
 };
 
@@ -40,6 +43,33 @@ pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<CosmosMsg, Cont
         // The job id is needed to know what randomness we are referring to upon reception in the callback.
         msg: to_json_binary(&ProxyExecuteMsg::GetNextRandomness {
             job_id: "raffle-".to_string() + id.as_str(),
+        })?,
+
+        funds: vec![nois_fee], // Pay from the contract
+    }
+    .into())
+}
+pub fn get_nois_randomness_locality(
+    deps: Deps,
+    locality_id: u64,
+) -> Result<CosmosMsg, ContractError> {
+    let locality_info = LOCALITY_INFO.load(deps.storage, locality_id)?;
+    let config = CONFIG.load(deps.storage)?;
+    let id: String = locality_id.to_string();
+    let nois_fee: Coin = config.nois_proxy_coin;
+
+    // cannot provide new randomness once value is provided
+    if locality_info.randomness.is_some() {
+        return Err(ContractError::RandomnessAlreadyProvided {});
+    }
+
+    // request randomness
+    Ok(WasmMsg::Execute {
+        contract_addr: config.nois_proxy_addr.into_string(),
+        // GetNextRandomness requests the randomness from the proxy
+        // The job id is needed to know what randomness we are referring to upon reception in the callback.
+        msg: to_json_binary(&ProxyExecuteMsg::GetNextRandomness {
+            job_id: "locality-".to_string() + id.as_str(),
         })?,
 
         funds: vec![nois_fee], // Pay from the contract
@@ -159,7 +189,7 @@ pub fn get_raffle_winners(
     let randomness: [u8; 32] = HexBinary::to_array(&raffle_info.randomness.unwrap())?;
 
     let nb_winners = if raffle_info.raffle_options.one_winner_per_asset {
-        raffle_info.assets.len()
+        raffle_info.assets.len().try_into().unwrap()
     } else {
         1
     };
@@ -173,6 +203,55 @@ pub fn get_raffle_winners(
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(winners)
+}
+/// Picking the winner of the raffle
+pub fn get_locality_minters(
+    deps: Deps,
+    env: &Env,
+    locality_id: u64,
+    locality_info: LocalityInfo,
+) -> Result<Vec<CosmosMsg>, ContractError> {
+    println!("if randomness not has been provided then we expect an error");
+    if locality_info.randomness.is_none() {
+        return Err(ContractError::WrongStateForClaimLocality {
+            status: get_locality_state(env, &locality_info),
+        });
+    }
+    let mut res = vec![];
+    println!("We initiate the random number generator");
+    let randomness: [u8; 32] = HexBinary::to_array(&locality_info.randomness.unwrap())?;
+    println!("get the number of minters");
+    let nb_winners = locality_info.harmonics;
+    println!("get minters id");
+    let winner_ids =
+    pick_m_single_winners_among_n(randomness, locality_info.number_of_tickets, nb_winners)?;
+    println!("{:#?}", winner_ids);
+    println!("load winners from ticket map");
+    let winners = winner_ids
+    .into_iter()
+    .map(|winner_id| LOCALITY_TICKETS.load(deps.storage, (locality_id, winner_id)))
+    .collect::<Result<Vec<_>,_>>()?;
+
+    for minter in winners {
+        let token_id = TOKEN_INDEX.load(deps.storage, locality_id.clone())?;
+        
+        println!("mint-to-minter-address");
+        let mint = to_json_binary(&sg721_base::ExecuteMsg::Mint {
+            token_id: token_id.to_string(),
+            owner: minter.to_string(),
+            token_uri: None,
+            extension: None,
+        })?;
+
+        let msg = CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: locality_info.collection.clone().unwrap().to_string(),
+            msg: mint,
+            funds: vec![],
+        });
+        res.push(msg)
+    }
+
+    Ok(res)
 }
 
 /// In this function, we are getting nb_winners different winners among n ticket.
@@ -194,7 +273,7 @@ pub fn get_raffle_winners(
 pub fn pick_m_single_winners_among_n(
     randomness: [u8; 32],
     n: u32,
-    nb_winners: usize, // m
+    nb_winners: u32, // m
 ) -> Result<Vec<u32>, ContractError> {
     let mut map = HashMap::new();
     let mut rng = make_prng(randomness);
@@ -241,9 +320,8 @@ fn _get_raffle_end_asset_messages(
     raffle_info: RaffleInfo,
     receivers: Vec<Addr>,
 ) -> StdResult<Vec<CosmosMsg>> {
-    let assets = dedupe(&raffle_info.assets);
-
-    assets
+    raffle_info
+        .assets
         .iter()
         .enumerate()
         .map(|(i, asset)| {
@@ -298,10 +376,32 @@ pub fn ticket_cost(raffle_info: RaffleInfo, ticket_count: u32) -> Result<AssetIn
         _ => return Err(ContractError::WrongAssetType {}),
     })
 }
+/// Computes the ticket cost for multiple tickets bought together
+pub fn locality_ticket_cost(
+    raffle_info: LocalityInfo,
+    ticket_count: u32,
+) -> Result<AssetInfo, ContractError> {
+    // enforces only Coin is a ticket cost currently.
+    Ok(match raffle_info.ticket_price {
+        AssetInfo::Coin(x) => AssetInfo::Coin(Coin {
+            denom: x.denom,
+            amount: Uint128::from(ticket_count) * x.amount,
+        }),
+        _ => return Err(ContractError::WrongAssetType {}),
+    })
+}
 
 /// Can only buy a ticket when the raffle has started and is not closed
 pub fn can_buy_ticket(env: Env, raffle_info: RaffleInfo) -> Result<(), ContractError> {
     if get_raffle_state(&env, &raffle_info) == RaffleState::Started {
+        Ok(())
+    } else {
+        Err(ContractError::CantBuyTickets {})
+    }
+}
+/// Can only buy a ticket when the raffle has started and is not closed
+pub fn can_buy_locality_ticket(env: Env, locality_info: LocalityInfo) -> Result<(), ContractError> {
+    if get_locality_state(&env, &locality_info) == LocalityState::Started {
         Ok(())
     } else {
         Err(ContractError::CantBuyTickets {})
@@ -317,6 +417,18 @@ pub fn buyer_can_buy_ticket(
     raffle_info
         .raffle_options
         .gating_raffle
+        .iter()
+        .try_for_each(|options| options.has_advantage(deps, buyer.clone()))
+}
+pub fn buyer_can_buy_locality_ticket(
+    deps: Deps,
+    locality_info: &LocalityInfo,
+    buyer: String,
+) -> Result<(), ContractError> {
+    // We also check if the raffle is token gated
+    locality_info
+        .locality_options
+        .gating_locality
         .iter()
         .try_for_each(|options| options.has_advantage(deps, buyer.clone()))
 }
