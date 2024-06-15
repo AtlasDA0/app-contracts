@@ -8,7 +8,7 @@ use cw_storage_plus::{Item, Map};
 use dao_interface::voting::VotingPowerAtHeightResponse;
 use utils::state::{AssetInfo, Locks};
 
-use crate::{error::ContractError, msg::NonProfits};
+use crate::error::ContractError;
 
 pub const CONFIG_KEY: &str = "config";
 pub const CONFIG: Item<Config> = Item::new(CONFIG_KEY);
@@ -235,11 +235,11 @@ pub struct RaffleInfo {
 #[cw_serde]
 pub struct LocalityInfo {
     /// owner of locality instance
-    pub owner: Addr,                  
+    pub owner: Addr,
     /// address of new collection being minted
-    pub collection: Option<Addr>,      
+    pub collection: Option<Addr>,
     /// interval between contract minting to new harmonics group
-    pub frequency: u64,                
+    pub frequency: u64,
     /// number of minters chosen every phase alignment
     pub harmonics: u32,
     pub is_cancelled: bool,
@@ -258,11 +258,11 @@ pub struct LocalityOptions {
     /// various options for advantages on localities
     pub gating_locality: Vec<AdvantageOptions>,
     /// max amount of tickets able to be purchased
-    pub max_ticket_number: Option<u32>, 
+    pub max_ticket_number: Option<u32>,
     /// max amount of tickets able to bought per address
-    pub max_ticket_per_address: Option<u32>, 
-    /// start of minting for locality instance. 
-    pub start_timestamp: Timestamp,     
+    pub max_ticket_per_address: Option<u32>,
+    /// start of minting for locality instance.
+    pub start_timestamp: Timestamp,
     /// timeframe from mint start until end
     pub duration: u64,
 }

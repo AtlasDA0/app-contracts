@@ -200,7 +200,7 @@ pub fn _create_raffle(
 ) -> Result<u64, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
-    // We start by creating a new trade_id (simply incremented from the last id)
+    // We start by creating a new raffle_id (simply incremented from the last id)
     let raffle_id: u64 = CONFIG
         .update(deps.storage, |mut c| -> StdResult<_> {
             c.last_raffle_id = c.last_raffle_id.map_or(Some(0), |id| Some(id + 1));
@@ -210,7 +210,7 @@ pub fn _create_raffle(
         .unwrap(); // This is safe because of the function architecture just there
 
     RAFFLE_INFO.update(deps.storage, raffle_id, |trade| match trade {
-        // If the trade id already exists, the contract is faulty
+        // If the raffle id already exists, the contract is faulty
         // Or an external error happened, or whatever...
         // In that case, we emit an error
         // The priority is : We do not want to overwrite existing data
@@ -218,7 +218,7 @@ pub fn _create_raffle(
         None => Ok(RaffleInfo {
             owner,
             assets: all_assets.clone(),
-            raffle_ticket_price: raffle_ticket_price.clone(), // No checks for the assetInfo type, the worst thing that can happen is an error when trying to buy a raffle ticket
+            raffle_ticket_price: raffle_ticket_price.clone(),
             number_of_tickets: 0u32,
             randomness: None,
             winners: vec![],
@@ -488,6 +488,7 @@ pub fn _buy_locality_tickets(
             (locality_id, locality_info.number_of_tickets + n),
             &owner,
         )?;
+        println!("{:#?},{:#?}", locality_info.number_of_tickets, n)
     }
 
     USER_LOCALITY_TICKETS.update::<_, ContractError>(deps.storage, (&owner, locality_id), |x| {
@@ -562,7 +563,7 @@ pub fn _buy_tickets(
         }
     }
 
-    // Then we check there are some ticket left to buy
+    // Then we check there are some tickets left to buy
     if let Some(max_ticket_number) = raffle_info.raffle_options.max_ticket_number {
         if raffle_info.number_of_tickets + ticket_count > max_ticket_number {
             return Err(ContractError::TooMuchTickets {
@@ -1024,7 +1025,7 @@ pub fn execute_create_locality(
             is_cancelled: false,
             frequency: msg.init_msg.frequency,
             randomness: None,
-            number_of_tickets: msg.init_msg.num_tokens,
+            number_of_tickets: 0,
             harmonics: msg.init_msg.harmonics,
             locality_options: LocalityOptions {
                 gating_locality: vec![],
@@ -1044,9 +1045,9 @@ pub fn execute_create_locality(
         .add_submessage(submsg))
 }
 
-pub fn handle_cron(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
+pub fn handle_cron(mut deps: DepsMut, env: Env) -> Result<Response, ContractError> {
     let res = Response::new();
-    let mut msgs = vec![];
+    // let mut msgs = vec![];
 
     // get all active localities
     println!("get all active localities");
@@ -1074,13 +1075,15 @@ pub fn handle_cron(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
         if in_phase {
             println!("determine winners & return mint msgs");
             let messages =
-                get_locality_minters(deps.as_ref(), &env, locality.id, locality.info.clone())?;
+                get_locality_minters(deps.branch(), &env, locality.id, locality.info.clone())?;
             // println!("{:?}", messages);
-            msgs.extend(messages);
+            // msgs.extend(messages);
         }
     }
 
-    Ok(res.add_messages(msgs))
+    Ok(
+        res, // .add_messages(msgs)
+    )
 }
 
 fn determine_phase_alignment(env: Env, instance: LocalityResponse) -> bool {

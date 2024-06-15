@@ -4,7 +4,7 @@ use super::{
     app::StargazeApp,
     contract_boxes::contract_fake_nois,
     helpers::setup_block_time,
-    msg::{RaffleCodeIds, RaffleContracts},
+    msg::{Cw721, RaffleCodeIds, RaffleContracts},
     nois_proxy::{self, DEFAULT_RANDOMNESS_SEED, NOIS_AMOUNT, NOIS_DENOM},
     setup_accounts_and_block::setup_accounts,
     setup_minter::common::constants::{
@@ -128,8 +128,6 @@ pub fn proper_raffle_instantiate_precise(
         )
         .unwrap();
 
-    let sg721_base = app.store_code(contract_sg721_base());
-
     // fund raffle contract for nois_proxy fee
     app.sudo(SudoMsg::Bank({
         BankSudo::Mint {
@@ -145,7 +143,10 @@ pub fn proper_raffle_instantiate_precise(
             factory: factory_addr,
             raffle: raffle_contract_addr,
             nois: nois_addr,
-            cw721: None,
+            cw721: Cw721 {
+                addr: None,
+                id: code_ids.sg721_code_id,
+            },
         },
     )
 }
@@ -156,8 +157,6 @@ pub fn raffle_template_code_ids(router: &mut StargazeApp) -> RaffleCodeIds {
     let minter_code_id = router.store_code(contract_vending_minter());
     let sg721_code_id = router.store_code(contract_sg721_base());
     let nois_code_id = router.store_code(contract_fake_nois());
-
-    println!("{:?}", sg721_code_id);
 
     RaffleCodeIds {
         raffle_code_id,

@@ -7,13 +7,14 @@ use sg721::ExecuteMsg as Sg721ExecuteMsg;
 use crate::{
     error::ContractError,
     state::{
-        get_locality_state, get_raffle_state, LocalityInfo, LocalityState, RaffleInfo, RaffleState,
-        CONFIG, LOCALITY_INFO, LOCALITY_TICKETS, RAFFLE_INFO, RAFFLE_TICKETS, TOKEN_INDEX,
+        get_locality_state, get_raffle_state, increment_token_index, LocalityInfo, LocalityState,
+        RaffleInfo, RaffleState, CONFIG, LOCALITY_INFO, LOCALITY_TICKETS, RAFFLE_INFO,
+        RAFFLE_TICKETS, TOKEN_INDEX,
     },
 };
 use cosmwasm_std::{
-    coins, to_json_binary, Addr, BankMsg, Coin, Decimal, Deps, Empty, Env, HexBinary, Order,
-    StdError, StdResult, Storage, Uint128, WasmMsg,
+    coins, to_json_binary, Addr, BankMsg, Coin, Decimal, Deps, DepsMut, Empty, Env, HexBinary,
+    Order, StdError, StdResult, Storage, Uint128, WasmMsg,
 };
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
@@ -206,7 +207,7 @@ pub fn get_raffle_winners(
 }
 /// Picking the winner of the raffle
 pub fn get_locality_minters(
-    deps: Deps,
+    deps: DepsMut,
     env: &Env,
     locality_id: u64,
     locality_info: LocalityInfo,
@@ -224,20 +225,22 @@ pub fn get_locality_minters(
     let nb_winners = locality_info.harmonics;
     println!("get minters id");
     let winner_ids =
-    pick_m_single_winners_among_n(randomness, locality_info.number_of_tickets, nb_winners)?;
+        pick_m_single_winners_among_n(randomness, locality_info.number_of_tickets, nb_winners)?;
     println!("{:#?}", winner_ids);
     println!("load winners from ticket map");
     let winners = winner_ids
-    .into_iter()
-    .map(|winner_id| LOCALITY_TICKETS.load(deps.storage, (locality_id, winner_id)))
-    .collect::<Result<Vec<_>,_>>()?;
+        .into_iter()
+        .map(|winner_id| LOCALITY_TICKETS.load(deps.storage, (locality_id, winner_id)))
+        .collect::<Result<Vec<_>, _>>()?;
 
     for minter in winners {
-        let token_id = TOKEN_INDEX.load(deps.storage, locality_id.clone())?;
-        
-        println!("mint-to-minter-address");
+        let mut token_id = TOKEN_INDEX.may_load(deps.storage, locality_id.clone())?;
+        if token_id.is_none() {
+            token_id = Some(increment_token_index(deps.storage, locality_id)?);
+        }
+        println!("mint-to-minter-address: {:#?}", minter);
         let mint = to_json_binary(&sg721_base::ExecuteMsg::Mint {
-            token_id: token_id.to_string(),
+            token_id: token_id.unwrap().to_string(),
             owner: minter.to_string(),
             token_uri: None,
             extension: None,

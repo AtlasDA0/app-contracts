@@ -1,8 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{
-        coin, to_json_binary, Addr, BlockInfo, Coin, Decimal, HexBinary, Timestamp, Uint128,
-    };
+    use cosmwasm_std::{coin, to_json_binary, Addr, BlockInfo, Coin, HexBinary, Uint128};
     use cw721::NumTokensResponse;
     use cw_multi_test::{BankSudo, SudoMsg};
     use cw_multi_test::{Executor, WasmSudo};
@@ -13,20 +11,14 @@ mod tests {
     use raffles::msg::ExecuteMsg;
 
     use sg721::{CollectionInfo, RoyaltyInfoResponse};
-    use utils::state::{AssetInfo, Locks, Sg721Token, NATIVE_DENOM};
+    use utils::state::AssetInfo;
 
     use crate::common_setup::contract_boxes::contract_sg721_base;
 
     use crate::common_setup::nois_proxy::{self, DEFAULT_RANDOMNESS_SEED};
+    use crate::common_setup::setup_minter::common::constants::{OWNER_ADDR, RAFFLE_NAME};
     use crate::common_setup::setup_raffle::proper_raffle_instantiate_precise;
-    use crate::common_setup::{
-        contract_boxes::contract_raffles,
-        helpers::assert_error,
-        setup_minter::common::constants::{OWNER_ADDR, RAFFLE_NAME},
-    };
-    use crate::raffle::setup::helpers::{
-        finish_locality_timeout, finish_raffle_timeout, mint_additional_token, mint_one_token,
-    };
+    use crate::raffle::setup::helpers::mint_one_token;
 
     #[test]
     fn create_single_locality() {
@@ -53,8 +45,6 @@ mod tests {
             }
         }))
         .unwrap();
-        // store nft code
-        let sg721_base = app.store_code(contract_sg721_base());
         // get block information
         let block_info = app.block_info();
         // create locality-instance
@@ -79,7 +69,7 @@ mod tests {
                             max_tickets: None,
                         },
                         collection_params: CollectionParams {
-                            code_id: sg721_base,
+                            code_id: contracts.cw721.id,
                             name: "LOCALITY".to_string(),
                             symbol: "LOCAL".to_string(),
                             info: CollectionInfo::<RoyaltyInfoResponse> {
@@ -105,6 +95,20 @@ mod tests {
             time: current_time.plus_seconds(1),
             chain_id: chainid.clone(),
         });
+        // not in phase
+        let response: Vec<String> = app
+            .wrap()
+            .query_wasm_smart(
+                contracts.raffle.clone(),
+                &raffles::msg::QueryMsg::AllTickets {
+                    raffle_id: 0,
+                    start_after: None,
+                    limit: None,
+                },
+            )
+            .unwrap();
+
+        println!("{:#?}", response);
         // verify no nfts were minted
         let res: NumTokensResponse = app
             .wrap()
@@ -113,20 +117,22 @@ mod tests {
         assert_eq!(res.count, 0);
 
         // purchase 2 tickets
-        app.execute_contract(
-            Addr::unchecked(OWNER_ADDR),
-            contracts.raffle.clone(),
-            &ExecuteMsg::PurchaseLocalityTicket {
-                id: 0,
-                ticket_count: 2,
-                assets: AssetInfo::Coin(Coin {
-                    denom: "ustars".to_string(),
-                    amount: Uint128::from(50u64),
-                }),
-            },
-            &vec![coin(50, "ustars")],
-        )
-        .unwrap();
+        let purchase = app
+            .execute_contract(
+                Addr::unchecked("wallet-1"),
+                contracts.raffle.clone(),
+                &ExecuteMsg::PurchaseLocalityTicket {
+                    id: 0,
+                    ticket_count: 2,
+                    assets: AssetInfo::Coin(Coin {
+                        denom: "ustars".to_string(),
+                        amount: Uint128::from(50u64),
+                    }),
+                },
+                &vec![coin(50, "ustars")],
+            )
+            .unwrap();
+        println!("{:#?}", purchase);
 
         // in phase
         let current_time = app.block_info().time;
@@ -137,7 +143,7 @@ mod tests {
         });
 
         // mimic res from nois
-        let nois_res = app
+        let _nois_res = app
             .execute_contract(
                 contracts.nois.clone(),
                 contracts.raffle.clone(),
