@@ -18,7 +18,7 @@ pub fn main() -> anyhow::Result<()> {
 
     let raffles = Raffles::new(chain.clone());
 
-    raffles.upload()?;
+    // raffles.upload()?;
 
     let proposal_title = "Migrate Raffles to 0.5.2";
     let proposal_description =
@@ -29,13 +29,14 @@ pub fn main() -> anyhow::Result<()> {
         msg: to_json_binary(&MigrateMsg {})?,
     };
 
-    // Then we do the migration proposal
+    // Then we do the migration proposal (no authz_granter this time)
+    let chain = Daemon::builder().chain(STARGAZE_1).build()?;
+
     let dao_proposal = DaoPreProposeSingle::new("atlas-dao-pre-proposal", chain.clone());
     dao_proposal.propose(dao_pre_propose_single::contract::ProposeMessage::Propose {
         title: proposal_title.to_string(),
         description: proposal_description.to_string(),
         msgs: vec![msg.into()],
-        vote: None,
     })?;
 
     Ok(())
