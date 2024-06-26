@@ -313,6 +313,13 @@ pub fn buyer_can_buy_ticket(
     raffle_info: &RaffleInfo,
     buyer: String,
 ) -> Result<(), ContractError> {
+    // We check that the buyer is whitelisted if any
+    if let Some(whitelist) = &raffle_info.raffle_options.whitelist {
+        if !whitelist.contains(&Addr::unchecked(&buyer)) {
+            return Err(StdError::generic_err("Ticket buyer not whitelisted").into());
+        }
+    }
+
     // We also check if the raffle is token gated
     raffle_info
         .raffle_options

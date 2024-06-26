@@ -264,6 +264,7 @@ pub struct RaffleOptions {
     pub raffle_preview: u32,               // ?
     pub min_ticket_number: Option<u32>,    // Minimum ticket number for a raffle to close.
     pub one_winner_per_asset: bool, // Allows to set multiple winners per raffle (one per asset)
+    pub whitelist: Option<Vec<Addr>>,
 
     pub gating_raffle: Vec<AdvantageOptions>, // Allows for token gating raffle tickets. Only owners of those tokens can buy raffle tickets
 }
@@ -280,6 +281,9 @@ impl From<RaffleOptions> for RaffleOptionsMsg {
             one_winner_per_asset: value.one_winner_per_asset,
             min_ticket_number: value.min_ticket_number,
             gating_raffle: value.gating_raffle.into_iter().map(Into::into).collect(),
+            whitelist: value
+                .whitelist
+                .map(|v| v.into_iter().map(Into::into).collect()),
         }
     }
 }
@@ -436,6 +440,7 @@ pub struct RaffleOptionsMsg {
     pub raffle_preview: Option<u32>,
     pub one_winner_per_asset: bool,
     pub min_ticket_number: Option<u32>,
+    pub whitelist: Option<Vec<String>>,
 
     pub gating_raffle: Vec<AdvantageOptionsMsg>,
 }
@@ -596,6 +601,14 @@ impl RaffleOptions {
             } else {
                 raffle_options.min_ticket_number
             },
+            whitelist: raffle_options
+                .whitelist
+                .map(|v| {
+                    v.into_iter()
+                        .map(|a| api.addr_validate(&a))
+                        .collect::<Result<Vec<_>, _>>()
+                })
+                .transpose()?,
 
             gating_raffle: raffle_options
                 .gating_raffle
@@ -650,6 +663,14 @@ impl RaffleOptions {
             } else {
                 raffle_options.min_ticket_number
             },
+            whitelist: raffle_options
+                .whitelist
+                .map(|v| {
+                    v.into_iter()
+                        .map(|a| api.addr_validate(&a))
+                        .collect::<Result<Vec<_>, _>>()
+                })
+                .transpose()?,
 
             gating_raffle: raffle_options
                 .gating_raffle
