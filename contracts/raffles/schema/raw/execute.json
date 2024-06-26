@@ -702,6 +702,15 @@
               "type": "null"
             }
           ]
+        },
+        "whitelist": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": false
