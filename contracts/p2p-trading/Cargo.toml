@@ -38,7 +38,12 @@ thiserror = { version = "1.0.23" }
 
 # Local Modules
 p2p-trading-export = { path = "../../packages/p2p-trading", version = "0.1.0" }
+cw-orch = "0.23.0"
+utils = { version = "0.1.0", path = "../../packages/utils" }
+sg721.workspace = true
+cw721-base = "0.18.0"
+sg721-base = { workspace = true, features = ["library"] }
 
 [dev-dependencies]
 cosmwasm-schema = { version = "1.0.0" }
-getrandom = { version="^0.2", features = ["js"] }
+getrandom = { version = "^0.2", features = ["js"] }

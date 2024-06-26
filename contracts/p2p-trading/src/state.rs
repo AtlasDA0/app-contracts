@@ -1,11 +1,10 @@
 use cw_storage_plus::{Item, Map};
 
 use cosmwasm_std::{Addr, Coin, StdError, StdResult, Storage, Uint128};
+use utils::state::{AssetInfo, Cw721Coin, Sg721Token};
 
 use crate::error::ContractError;
-use p2p_trading_export::state::{
-    AssetInfo, ContractInfo, Cw1155Coin, Cw20Coin, Cw721Coin, TradeInfo, TradeState,
-};
+use p2p_trading_export::state::{ContractInfo, TradeInfo, TradeState};
 
 pub const CONTRACT_INFO: Item<ContractInfo> = Item::new("contract_info");
 
@@ -55,41 +54,6 @@ pub fn add_funds(
     }
 }
 
-pub fn add_cw20_coin(
-    address: String,
-    sent_amount: Uint128,
-) -> impl FnOnce(Option<TradeInfo>) -> Result<TradeInfo, ContractError> {
-    move |d: Option<TradeInfo>| -> Result<TradeInfo, ContractError> {
-        match d {
-            Some(mut trade) => {
-                let existing_token = trade.associated_assets.iter_mut().find(|c| match c {
-                    AssetInfo::Cw20Coin(x) => x.address == address,
-                    _ => false,
-                });
-                if let Some(existing_token) = existing_token {
-                    let current_amount = match existing_token {
-                        AssetInfo::Cw20Coin(x) => x.amount,
-                        _ => Uint128::zero(),
-                    };
-                    *existing_token = AssetInfo::Cw20Coin(Cw20Coin {
-                        address,
-                        amount: current_amount + sent_amount,
-                    })
-                } else {
-                    trade.associated_assets.push(AssetInfo::Cw20Coin(Cw20Coin {
-                        address,
-                        amount: sent_amount,
-                    }))
-                }
-
-                Ok(trade)
-            }
-            //TARPAULIN : Unreachable in current code state
-            None => Err(ContractError::NotFoundInTradeInfo {}),
-        }
-    }
-}
-
 pub fn add_cw721_coin(
     address: String,
     token_id: String,
@@ -107,39 +71,16 @@ pub fn add_cw721_coin(
     }
 }
 
-pub fn add_cw1155_coin(
+pub fn add_sg721_coin(
     address: String,
     token_id: String,
-    value: Uint128,
 ) -> impl FnOnce(Option<TradeInfo>) -> Result<TradeInfo, ContractError> {
     move |d: Option<TradeInfo>| -> Result<TradeInfo, ContractError> {
         match d {
-            Some(mut trade) => {
-                let existing_token = trade.associated_assets.iter_mut().find(|c| match c {
-                    AssetInfo::Cw1155Coin(x) => x.address == address && x.token_id == token_id,
-                    _ => false,
-                });
-                if let Some(existing_token) = existing_token {
-                    let current_value = match existing_token {
-                        AssetInfo::Cw1155Coin(x) => x.value,
-                        _ => Uint128::zero(),
-                    };
-                    *existing_token = AssetInfo::Cw1155Coin(Cw1155Coin {
-                        address,
-                        token_id,
-                        value: current_value + value,
-                    })
-                } else {
-                    trade
-                        .associated_assets
-                        .push(AssetInfo::Cw1155Coin(Cw1155Coin {
-                            address,
-                            token_id,
-                            value,
-                        }))
-                }
-
-                Ok(trade)
+            Some(mut one) => {
+                one.associated_assets
+                    .push(AssetInfo::Sg721Token(Sg721Token { address, token_id }));
+                Ok(one)
             }
             //TARPAULIN : Unreachable in current code state
             None => Err(ContractError::NotFoundInTradeInfo {}),
@@ -151,19 +92,6 @@ pub fn is_owner(storage: &dyn Storage, sender: Addr) -> Result<ContractInfo, Con
     let contract_info = CONTRACT_INFO.load(storage)?;
     if sender == contract_info.owner {
         Ok(contract_info)
-    } else {
-        Err(ContractError::Unauthorized {})
-    }
-}
-
-pub fn is_fee_contract(storage: &dyn Storage, sender: Addr) -> Result<(), ContractError> {
-    let contract_info = CONTRACT_INFO.load(storage)?;
-    if let Some(fee_contract) = contract_info.fee_contract {
-        if sender == fee_contract {
-            Ok(())
-        } else {
-            Err(ContractError::Unauthorized {})
-        }
     } else {
         Err(ContractError::Unauthorized {})
     }

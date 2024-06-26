@@ -33,11 +33,11 @@ pub fn main() -> anyhow::Result<()> {
     let chain = Daemon::builder().chain(STARGAZE_1).build()?;
 
     let dao_proposal = DaoPreProposeSingle::new("atlas-dao-pre-proposal", chain.clone());
-    dao_proposal.propose(dao_pre_propose_single::contract::ProposeMessage::Propose {
-        title: proposal_title.to_string(),
-        description: proposal_description.to_string(),
-        msgs: vec![msg.into()],
-    })?;
-
+    /// New version is not compatible
+    // dao_proposal.propose(dao_pre_propose_single::contract::ProposeMessage::Propose {
+    //     title: proposal_title.to_string(),
+    //     description: proposal_description.to_string(),
+    //     msgs: vec![msg.into()],
+    // })?;
     Ok(())
 }

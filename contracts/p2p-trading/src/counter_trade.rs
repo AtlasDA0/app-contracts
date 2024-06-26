@@ -1,12 +1,13 @@
 use cosmwasm_std::{Addr, Deps, DepsMut, Env, MessageInfo, Response};
 
-use p2p_trading_export::state::{AdditionalTradeInfo, AssetInfo, TradeInfo, TradeState};
+use p2p_trading_export::state::{AdditionalTradeInfo, TradeInfo, TradeState};
+use utils::state::AssetInfo;
 
 use crate::error::ContractError;
 use crate::messages::set_comment;
 use crate::state::{
-    add_cw1155_coin, add_cw20_coin, add_cw721_coin, add_funds, can_suggest_counter_trade,
-    is_counter_trader, load_trade, COUNTER_TRADE_INFO, LAST_USER_COUNTER_TRADE, TRADE_INFO,
+    add_cw721_coin, add_funds, add_sg721_coin, can_suggest_counter_trade, is_counter_trader,
+    load_trade, COUNTER_TRADE_INFO, LAST_USER_COUNTER_TRADE, TRADE_INFO,
 };
 use crate::trade::{
     _are_assets_in_trade, _create_receive_asset_messages, _create_withdraw_messages_unsafe,
@@ -138,20 +139,15 @@ pub fn add_asset_to_counter_trade(
             (trade_id, counter_id),
             add_funds(coin, info.funds.clone()),
         ),
-        AssetInfo::Cw20Coin(token) => COUNTER_TRADE_INFO.update(
-            deps.storage,
-            (trade_id, counter_id),
-            add_cw20_coin(token.address.clone(), token.amount),
-        ),
         AssetInfo::Cw721Coin(token) => COUNTER_TRADE_INFO.update(
             deps.storage,
             (trade_id, counter_id),
             add_cw721_coin(token.address.clone(), token.token_id),
         ),
-        AssetInfo::Cw1155Coin(token) => COUNTER_TRADE_INFO.update(
+        AssetInfo::Sg721Token(token) => COUNTER_TRADE_INFO.update(
             deps.storage,
             (trade_id, counter_id),
-            add_cw1155_coin(token.address.clone(), token.token_id.clone(), token.value),
+            add_sg721_coin(token.address.clone(), token.token_id),
         ),
     }?;
 
@@ -169,7 +165,7 @@ pub fn add_asset_to_counter_trade(
 /// Allows to withdraw assets while creating a counter_trade, Refer to the `trade.rs`file for more information (similar mechanism)
 pub fn withdraw_counter_trade_assets_while_creating(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     trade_id: u64,
     counter_id: u64,
@@ -193,14 +189,8 @@ pub fn withdraw_counter_trade_assets_while_creating(
                     counter_info.additional_info.trade_preview = None;
                 }
             }
-            AssetInfo::Cw1155Coin(preview_coin) => {
-                if assets.iter().any(|r| match r.1.clone() {
-                    AssetInfo::Cw1155Coin(coin) => {
-                        coin.address == preview_coin.address
-                            && coin.token_id == preview_coin.token_id
-                    }
-                    _ => false,
-                }) {
+            AssetInfo::Sg721Token(_) => {
+                if assets.iter().any(|r| r.1 == preview) {
                     counter_info.additional_info.trade_preview = None;
                 }
             }
@@ -211,9 +201,11 @@ pub fn withdraw_counter_trade_assets_while_creating(
     COUNTER_TRADE_INFO.save(deps.storage, (trade_id, counter_id), &counter_info)?;
 
     let res = _create_withdraw_messages_unsafe(
-        &env.contract.address,
+        deps.as_ref(),
         &info.sender,
         &assets.iter().map(|x| x.1.clone()).collect(),
+        None,
+        None,
     )?;
     // We load the trade_info for events
     let trade_info = load_trade(deps.storage, trade_id)?;
@@ -316,7 +308,8 @@ pub fn withdraw_all_from_counter(
     }
 
     // We create withdraw messages to send the funds back to the counter trader
-    let res = check_and_create_withdraw_messages(env, &info.sender, &counter_info)?;
+    let res =
+        check_and_create_withdraw_messages(deps.as_ref(), &info.sender, &counter_info, None, None)?;
     counter_info.assets_withdrawn = true;
     COUNTER_TRADE_INFO.save(deps.storage, (trade_id, counter_id), &counter_info)?;
 
