@@ -1,6 +1,6 @@
+use crate::common_setup::app::StargazeApp;
 use cosmwasm_std::{coin, coins, Addr};
 use cw_multi_test::{BankSudo, SudoMsg};
-use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
 
 pub const INITIAL_BALANCE: u128 = 100_000_000_000_000;
@@ -18,27 +18,19 @@ pub fn setup_accounts(
     let depositor = Addr::unchecked("depositor");
     let lender = Addr::unchecked("offerer");
     //define balances
-    let owner_funds = vec![
-        coin(INITIAL_BALANCE + 100000u128, "uflix".to_string()),
-        coin(INITIAL_BALANCE + 100000u128, "uscrt".to_string()),
-        coin(INITIAL_BALANCE + 100104u128, NATIVE_DENOM),
-    ];
-    let depositor_funds = coins(INITIAL_BALANCE, NATIVE_DENOM);
-    let lender_funds = coins(INITIAL_BALANCE, NATIVE_DENOM);
-
     // fund accounts
     router
         .sudo(SudoMsg::Bank({
             BankSudo::Mint {
                 to_address: owner.to_string(),
                 amount: vec![
+                    coin(INITIAL_BALANCE, "TOKEN"), // For staking
                     coin(INITIAL_BALANCE + 100104u128, NATIVE_DENOM.to_string()),
                     coin(INITIAL_BALANCE + 100000u128, "uflix".to_string()),
                     coin(INITIAL_BALANCE + 100000u128, "uscrt".to_string()),
                 ],
             }
         }))
-        .map_err(|err| println!("{err:?}"))
         .ok();
     router
         .sudo(SudoMsg::Bank({
@@ -47,7 +39,6 @@ pub fn setup_accounts(
                 amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
             }
         }))
-        .map_err(|err| println!("{err:?}"))
         .ok();
     router
         .sudo(SudoMsg::Bank({
@@ -56,20 +47,29 @@ pub fn setup_accounts(
                 amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
             }
         }))
-        .map_err(|err| println!("{err:?}"))
         .ok();
 
-    // check native balances
-    let owner_native_balances = router.wrap().query_all_balances(owner.clone()).unwrap();
-    assert_eq!(owner_native_balances, owner_funds);
-    // // check native balances
-    let depositor_native_balances = router.wrap().query_all_balances(depositor.clone()).unwrap();
-    assert_eq!(depositor_native_balances, depositor_funds);
-    // check native balances
-    let lender_native_balances = router.wrap().query_all_balances(lender.clone()).unwrap();
-    assert_eq!(lender_native_balances, lender_funds);
-    // return accounts
     (owner, depositor, lender)
+}
+
+pub fn setup_n_accounts(router: &mut StargazeApp, n: u64) -> Vec<Addr> {
+    let mut addresses = vec![];
+    for i in 0..n {
+        // define account
+        let addr = Addr::unchecked(&format!("participant-{}", i));
+        // fund account
+        router
+            .sudo(SudoMsg::Bank({
+                BankSudo::Mint {
+                    to_address: addr.to_string(),
+                    amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
+                }
+            }))
+            .unwrap();
+        addresses.push(addr);
+    }
+
+    addresses
 }
 
 pub fn setup_raffle_participants(router: &mut StargazeApp) -> (Addr, Addr, Addr, Addr, Addr, Addr) {
@@ -96,7 +96,6 @@ pub fn setup_raffle_participants(router: &mut StargazeApp) -> (Addr, Addr, Addr,
                 amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
             }
         }))
-        .map_err(|err| println!("{err:?}"))
         .ok();
     router
         .sudo(SudoMsg::Bank({
@@ -105,7 +104,6 @@ pub fn setup_raffle_participants(router: &mut StargazeApp) -> (Addr, Addr, Addr,
                 amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
             }
         }))
-        .map_err(|err| println!("{err:?}"))
         .ok();
     router
         .sudo(SudoMsg::Bank({
@@ -114,7 +112,6 @@ pub fn setup_raffle_participants(router: &mut StargazeApp) -> (Addr, Addr, Addr,
                 amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
             }
         }))
-        .map_err(|err| println!("{err:?}"))
         .ok();
     router
         .sudo(SudoMsg::Bank({
@@ -123,7 +120,6 @@ pub fn setup_raffle_participants(router: &mut StargazeApp) -> (Addr, Addr, Addr,
                 amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
             }
         }))
-        .map_err(|err| println!("{err:?}"))
         .ok();
     router
         .sudo(SudoMsg::Bank({
@@ -132,7 +128,6 @@ pub fn setup_raffle_participants(router: &mut StargazeApp) -> (Addr, Addr, Addr,
                 amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
             }
         }))
-        .map_err(|err| println!("{err:?}"))
         .ok();
     router
         .sudo(SudoMsg::Bank({
@@ -141,7 +136,6 @@ pub fn setup_raffle_participants(router: &mut StargazeApp) -> (Addr, Addr, Addr,
                 amount: vec![coin(INITIAL_BALANCE, NATIVE_DENOM.to_string())],
             }
         }))
-        .map_err(|err| println!("{err:?}"))
         .ok();
 
     // check native balances

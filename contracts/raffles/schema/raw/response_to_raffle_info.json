@@ -32,6 +32,134 @@
       "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
       "type": "string"
     },
+    "AdvantageOptions": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "cw721_coin"
+          ],
+          "properties": {
+            "cw721_coin": {
+              "type": "object",
+              "required": [
+                "nft_address",
+                "nft_count"
+              ],
+              "properties": {
+                "nft_address": {
+                  "$ref": "#/definitions/Addr"
+                },
+                "nft_count": {
+                  "type": "integer",
+                  "format": "uint32",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "cw20"
+          ],
+          "properties": {
+            "cw20": {
+              "$ref": "#/definitions/Cw20CoinVerified"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "coin"
+          ],
+          "properties": {
+            "coin": {
+              "$ref": "#/definitions/Coin"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "sg721_token"
+          ],
+          "properties": {
+            "sg721_token": {
+              "type": "object",
+              "required": [
+                "nft_address",
+                "nft_count"
+              ],
+              "properties": {
+                "nft_address": {
+                  "$ref": "#/definitions/Addr"
+                },
+                "nft_count": {
+                  "type": "integer",
+                  "format": "uint32",
+                  "minimum": 0.0
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "dao_voting_power"
+          ],
+          "properties": {
+            "dao_voting_power": {
+              "type": "object",
+              "required": [
+                "dao_address",
+                "min_voting_power"
+              ],
+              "properties": {
+                "dao_address": {
+                  "$ref": "#/definitions/Addr"
+                },
+                "min_voting_power": {
+                  "$ref": "#/definitions/Uint128"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "staking"
+          ],
+          "properties": {
+            "staking": {
+              "type": "object",
+              "required": [
+                "min_voting_power"
+              ],
+              "properties": {
+                "min_voting_power": {
+                  "$ref": "#/definitions/Uint128"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "AssetInfo": {
       "oneOf": [
         {
@@ -87,6 +215,22 @@
         }
       }
     },
+    "Cw20CoinVerified": {
+      "type": "object",
+      "required": [
+        "address",
+        "amount"
+      ],
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/Addr"
+        },
+        "amount": {
+          "$ref": "#/definitions/Uint128"
+        }
+      },
+      "additionalProperties": false
+    },
     "Cw721Coin": {
       "type": "object",
       "required": [
@@ -115,7 +259,8 @@
         "number_of_tickets",
         "owner",
         "raffle_options",
-        "raffle_ticket_price"
+        "raffle_ticket_price",
+        "winners"
       ],
       "properties": {
         "assets": {
@@ -151,15 +296,11 @@
             }
           ]
         },
-        "winner": {
-          "anyOf": [
-            {
-              "$ref": "#/definitions/Addr"
-            },
-            {
-              "type": "null"
-            }
-          ]
+        "winners": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Addr"
+          }
         }
       },
       "additionalProperties": false
@@ -167,10 +308,11 @@
     "RaffleOptions": {
       "type": "object",
       "required": [
+        "gating_raffle",
+        "one_winner_per_asset",
         "raffle_duration",
         "raffle_preview",
-        "raffle_start_timestamp",
-        "raffle_timeout"
+        "raffle_start_timestamp"
       ],
       "properties": {
         "comment": {
@@ -178,6 +320,12 @@
             "string",
             "null"
           ]
+        },
+        "gating_raffle": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AdvantageOptions"
+          }
         },
         "max_ticket_number": {
           "type": [
@@ -195,6 +343,17 @@
           "format": "uint32",
           "minimum": 0.0
         },
+        "min_ticket_number": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "one_winner_per_asset": {
+          "type": "boolean"
+        },
         "raffle_duration": {
           "type": "integer",
           "format": "uint64",
@@ -207,11 +366,6 @@
         },
         "raffle_start_timestamp": {
           "$ref": "#/definitions/Timestamp"
-        },
-        "raffle_timeout": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0.0
         }
       },
       "additionalProperties": false
@@ -222,8 +376,8 @@
         "created",
         "started",
         "closed",
-        "finished",
         "claimed",
+        "finished",
         "cancelled"
       ]
     },

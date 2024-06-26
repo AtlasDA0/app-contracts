@@ -1,3 +1,4 @@
+use crate::common_setup::app::StargazeApp;
 use crate::common_setup::{
     contract_boxes::{
         contract_nft_loans, contract_sg721_base, contract_vending_factory, contract_vending_minter,
@@ -9,7 +10,6 @@ use cosmwasm_std::{coin, Addr, Coin, Decimal, Empty, Uint128};
 use cw_multi_test::Executor;
 use nft_loans_nc::msg::InstantiateMsg as LoanInstantiateMsg;
 use sg721::CollectionInfo;
-use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
 use vending_factory::{
     msg::{ExecuteMsg as SgVendingFactoryExecuteMsg, VendingMinterCreateMsg},
@@ -42,6 +42,9 @@ pub fn loan_template_code_ids(router: &mut StargazeApp) -> LoanCodeIds {
         loan_code_id,
     }
 }
+
+pub const LOAN_FEE_RATE: u64 = 50;
+pub const NATIVE_LOAN_LISTING_AMT: u128 = 25;
 
 pub fn proper_loan_instantiate() -> (StargazeApp, Addr, Addr) {
     // setup mock blockchain environment
@@ -101,9 +104,9 @@ pub fn proper_loan_instantiate() -> (StargazeApp, Addr, Addr) {
                 name: "loan-with-insights".to_string(),
                 owner: Some(Addr::unchecked(OWNER_ADDR).to_string()),
                 treasury_addr: Addr::unchecked(TREASURY_ADDR).to_string(),
-                fee_rate: Decimal::percent(50),
+                fee_rate: Decimal::percent(LOAN_FEE_RATE),
                 listing_fee_coins: vec![
-                    coin(25, NATIVE_DENOM.to_string()),
+                    coin(NATIVE_LOAN_LISTING_AMT, NATIVE_DENOM.to_string()),
                     coin(50, "uflix".to_string()),
                     coin(10, "ujuno".to_string()),
                 ]

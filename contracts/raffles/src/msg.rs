@@ -1,6 +1,6 @@
-use crate::state::{RaffleInfo, RaffleOptionsMsg, RaffleState};
+use crate::state::{FeeDiscount, FeeDiscountMsg, RaffleInfo, RaffleOptionsMsg, RaffleState};
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Coin, Decimal, HexBinary, StdError, StdResult};
+use cosmwasm_std::{Coin, Decimal, HexBinary, StdError, StdResult};
 use nois::NoisCallback;
 use utils::state::{is_valid_name, AssetInfo, Locks};
 
@@ -18,14 +18,14 @@ pub struct InstantiateMsg {
     pub fee_addr: Option<String>,
     // Minimum lifecycle length of raffle
     pub minimum_raffle_duration: Option<u64>,
-    // Minimum cooldown from raffle end to determine winner
-    pub minimum_raffle_timeout: Option<u64>,
     // Maximum participant limit for a raffle
     pub max_ticket_number: Option<u32>,
     // % fee of raffle ticket sales to fee_addr
     pub raffle_fee: Decimal,
 
     pub creation_coins: Option<Vec<Coin>>,
+
+    pub fee_discounts: Vec<FeeDiscountMsg>,
 }
 
 impl InstantiateMsg {
@@ -47,15 +47,19 @@ impl InstantiateMsg {
 }
 
 #[cw_serde]
+#[derive(cw_orch::ExecuteFns)]
 pub enum ExecuteMsg {
+    #[payable]
     CreateRaffle {
         owner: Option<String>,
         assets: Vec<AssetInfo>,
         raffle_options: RaffleOptionsMsg,
         raffle_ticket_price: AssetInfo,
-        autocycle: Option<bool>,
     },
     CancelRaffle {
+        raffle_id: u64,
+    },
+    ClaimRaffle {
         raffle_id: u64,
     },
     UpdateConfig {
@@ -63,45 +67,47 @@ pub enum ExecuteMsg {
         owner: Option<String>,
         fee_addr: Option<String>,
         minimum_raffle_duration: Option<u64>,
-        minimum_raffle_timeout: Option<u64>,
         max_tickets_per_raffle: Option<u32>,
         raffle_fee: Option<Decimal>,
         nois_proxy_addr: Option<String>,
         nois_proxy_coin: Option<Coin>,
         creation_coins: Option<Vec<Coin>>,
+        fee_discounts: Option<Vec<FeeDiscountMsg>>,
     },
     ModifyRaffle {
         raffle_id: u64,
         raffle_ticket_price: Option<AssetInfo>,
         raffle_options: RaffleOptionsMsg,
     },
+    #[payable]
     BuyTicket {
         raffle_id: u64,
         ticket_count: u32,
         sent_assets: AssetInfo,
+        on_behalf_of: Option<String>,
     },
     Receive(cw721::Cw721ReceiveMsg),
-    DetermineWinner {
-        raffle_id: u64,
-    },
     NoisReceive {
         callback: NoisCallback,
     },
+
     // Admin messages
-    ToggleLock {
-        lock: bool,
-    },
-    // provide job_id for randomness contract
+    /// Provide job_id for randomness contract
     UpdateRandomness {
         raffle_id: u64,
+    },
+    ToggleLock {
+        lock: bool,
     },
 }
 
 #[cw_serde]
-#[derive(QueryResponses)]
+#[derive(QueryResponses, cw_orch::QueryFns)]
 pub enum QueryMsg {
     #[returns(ConfigResponse)]
     Config {},
+    #[returns(FeeDiscountResponse)]
+    FeeDiscount { user: String },
     #[returns(RaffleResponse)]
     RaffleInfo { raffle_id: u64 },
     #[returns(AllRafflesResponse)]
@@ -126,21 +132,29 @@ pub struct QueryFilters {
     pub owner: Option<String>,
     pub ticket_depositor: Option<String>,
     pub contains_token: Option<String>,
+    pub gated_rights_ticket_buyer: Option<String>,
 }
 
 #[cw_serde]
 pub struct ConfigResponse {
     pub name: String,
-    pub owner: Addr,
-    pub fee_addr: Addr,
+    pub owner: String,
+    pub fee_addr: String,
     pub last_raffle_id: u64,
     pub minimum_raffle_duration: u64, // The minimum interval in which users can buy raffle tickets
-    pub minimum_raffle_timeout: u64, // The minimum interval during which users can provide entropy to the contract
+    pub max_tickets_per_raffle: Option<u32>,
     pub raffle_fee: Decimal, // The percentage of the resulting ticket-tokens that will go to the treasury
     pub locks: Locks,        // Wether the contract can accept new raffles
-    pub nois_proxy_addr: Addr,
+    pub nois_proxy_addr: String,
     pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,
+    pub fee_discounts: Vec<FeeDiscount>,
+}
+
+#[cw_serde]
+pub struct FeeDiscountResponse {
+    pub discounts: Vec<(FeeDiscount, bool)>,
+    pub total_discount: Decimal,
 }
 
 #[cw_serde]

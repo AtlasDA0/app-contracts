@@ -2,7 +2,6 @@
 mod tests {
     use cosmwasm_std::{coin, Addr, Coin, Decimal};
     use cw_multi_test::Executor;
-    use raffles::state::ATLAS_DAO_STARGAZE_TREASURY;
     use sg_std::NATIVE_DENOM;
 
     use nft_loans_nc::{
@@ -20,6 +19,7 @@ mod tests {
             setup_loan::{configure_loan_assets, proper_loan_instantiate},
             setup_minter::common::constants::{
                 LOAN_INTEREST_TAX, LOAN_NAME, MINT_PRICE, MIN_COLLATERAL_LISTING, OWNER_ADDR,
+                TREASURY_ADDR,
             },
         },
         loan::setup::{
@@ -52,7 +52,7 @@ mod tests {
             Config {
                 name: LOAN_NAME.into(),
                 owner: Addr::unchecked(OWNER_ADDR.to_string()),
-                treasury_addr: Addr::unchecked(ATLAS_DAO_STARGAZE_TREASURY.to_string()),
+                treasury_addr: Addr::unchecked(TREASURY_ADDR.to_string()),
                 fee_rate: LOAN_INTEREST_TAX,
                 global_offer_index: 0,
                 global_collection_offer_index: 0,
@@ -147,7 +147,7 @@ mod tests {
                 Addr::unchecked(OWNER_ADDR.to_string()),
                 nft_loan_addr.clone(),
                 &nft_loans_nc::msg::ExecuteMsg::SetFeeDestination {
-                    treasury_addr: ATLAS_DAO_STARGAZE_TREASURY.into(),
+                    treasury_addr: TREASURY_ADDR.into(),
                 },
                 &[],
             )
@@ -167,7 +167,7 @@ mod tests {
             Config {
                 name: LOAN_NAME.into(),
                 owner: Addr::unchecked(OWNER_ADDR.to_string()),
-                treasury_addr: Addr::unchecked(ATLAS_DAO_STARGAZE_TREASURY.to_string()),
+                treasury_addr: Addr::unchecked(TREASURY_ADDR.to_string()),
                 fee_rate: Decimal::percent(10),
                 listing_fee_coins: vec![
                     coin(4, "uflix"),
@@ -292,5 +292,91 @@ mod tests {
             Err(deposit_collateral),
             ContractError::ContractIsLocked {}.to_string(),
         )
+    }
+
+    #[test]
+    fn change_some_config() {
+        let (mut app, loan_addr, _factory_addr) = proper_loan_instantiate();
+        // unauthorized update fee destination addr
+        let bad_set_fee_distributor = app
+            .execute_contract(
+                Addr::unchecked("not-admin".to_string()),
+                loan_addr.clone(),
+                &ExecuteMsg::SetFeeDestination {
+                    treasury_addr: "not-admin".to_string(),
+                },
+                &[],
+            )
+            .unwrap_err();
+        assert_error(
+            Err(bad_set_fee_distributor),
+            ContractError::Unauthorized {}.to_string(),
+        );
+
+        // error if unauthorized to set fee rate
+        let bad_set_fee_rate = app
+            .execute_contract(
+                Addr::unchecked("not-admin".to_string()),
+                loan_addr.clone(),
+                &ExecuteMsg::SetFeeRate {
+                    fee_rate: Decimal::percent(69),
+                },
+                &[],
+            )
+            .unwrap_err();
+        assert_error(
+            Err(bad_set_fee_rate),
+            ContractError::Unauthorized {}.to_string(),
+        );
+
+        // good set fee rate
+        let _set_fee_rate = app
+            .execute_contract(
+                Addr::unchecked(OWNER_ADDR),
+                loan_addr.clone(),
+                &ExecuteMsg::SetFeeRate {
+                    fee_rate: Decimal::percent(69),
+                },
+                &[],
+            )
+            .unwrap();
+        let res: Config = app
+            .wrap()
+            .query_wasm_smart(loan_addr.clone(), &LoanQueryMsg::Config {})
+            .unwrap();
+        assert_eq!(res.fee_rate, Decimal::percent(69));
+
+        // error if unauthorized to set owner
+        let bad_set_owner = app
+            .execute_contract(
+                Addr::unchecked("not-admin".to_string()),
+                loan_addr.clone(),
+                &ExecuteMsg::SetOwner {
+                    owner: "not-admin".to_string(),
+                },
+                &[],
+            )
+            .unwrap_err();
+        assert_error(
+            Err(bad_set_owner),
+            ContractError::Unauthorized {}.to_string(),
+        );
+
+        // good set owner
+        let _good_set_owner = app
+            .execute_contract(
+                Addr::unchecked(OWNER_ADDR),
+                loan_addr.clone(),
+                &ExecuteMsg::SetOwner {
+                    owner: "new-admin".to_string(),
+                },
+                &[],
+            )
+            .unwrap();
+        let res: Config = app
+            .wrap()
+            .query_wasm_smart(loan_addr.clone(), &LoanQueryMsg::Config {})
+            .unwrap();
+        assert_eq!(res.owner, "new-admin".to_string());
     }
 }

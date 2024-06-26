@@ -18,6 +18,27 @@
     {
       "type": "object",
       "required": [
+        "fee_discount"
+      ],
+      "properties": {
+        "fee_discount": {
+          "type": "object",
+          "required": [
+            "user"
+          ],
+          "properties": {
+            "user": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
         "raffle_info"
       ],
       "properties": {
@@ -151,6 +172,12 @@
       "type": "object",
       "properties": {
         "contains_token": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gated_rights_ticket_buyer": {
           "type": [
             "string",
             "null"

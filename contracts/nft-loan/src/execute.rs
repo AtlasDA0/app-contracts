@@ -678,7 +678,8 @@ pub fn repay_borrowed_funds(
 
     // We prepare the funds to send back to the lender
     // % of interest expected back
-    let lender_payback = interests * (Decimal::one() - config.fee_rate);
+    let lender_payback =
+        offer_info.terms.principle.amount + interests * (Decimal::one() - config.fee_rate);
     let treasury_payback = info.funds[0].amount - lender_payback;
 
     let mut res = Response::new();

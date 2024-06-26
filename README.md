@@ -16,8 +16,8 @@ You can find the documentation for these smart contracts [here.](https://docs.at
 - **code-id:** `3649`
 - **contract:** `stars1wh7f798wrwkcxs3d6x5e9l5wqg27cut9es07wj8uq9ehmk8x74zs6g2wsh`
 #### Mainnet: `Stargaze-1`
-- **code-id:** `204`
-- **contract-address:** `stars16u49fhakqrvnyyhw075x9n6mrevgauwacfca39vj2utpepauplqsz7z3h5`
+- **code-id:** `230`
+- **contract-address:** `stars19g0l90sxlr64ksjj9qpqz72e8dtvw772fv6dxcvva3rqas6vryzs903x60`
 
 ### [On-Chain Raffles](./contracts//raffles/README.md)
 #### Testnet: `Elgafar-1`

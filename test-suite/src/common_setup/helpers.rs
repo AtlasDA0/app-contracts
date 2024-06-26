@@ -1,8 +1,9 @@
 use anyhow::Error;
-use cosmwasm_std::Timestamp;
+use cosmwasm_std::{Timestamp, Uint128};
 use cw_multi_test::AppResponse;
-use sg_multi_test::StargazeApp;
 
+use super::app::StargazeApp;
+use crate::common_setup::setup_minter::common::constants::TREASURY_ADDR;
 
 pub fn setup_block_time(router: &mut StargazeApp, nanos: u64, height: Option<u64>, chain_id: &str) {
     let mut block = router.block_info();
@@ -24,4 +25,9 @@ pub fn generate_bytes_string(num_bytes: usize, byte_value: u8) -> String {
     let bytes: Vec<u8> = vec![byte_value; num_bytes];
     // Convert the byte vector to a UTF-8 string
     String::from_utf8_lossy(&bytes).to_string()
+}
+
+pub fn assert_treasury_balance(app: &StargazeApp, denom: &str, amount: u128) {
+    let treasury_balance = app.wrap().query_balance(TREASURY_ADDR, denom.to_string());
+    assert_eq!(treasury_balance.unwrap().amount, Uint128::new(amount));
 }

@@ -3,7 +3,7 @@ use thiserror::Error;
 use cosmwasm_std::{StdError, Timestamp};
 use utils::state::AssetInfo;
 
-use crate::state::RaffleState;
+use crate::state::{AdvantageOptions, RaffleState};
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {
@@ -18,7 +18,7 @@ pub enum ContractError {
 
     #[error("Proxy coin is not valid")]
     InvalidProxyCoin,
-    
+
     #[error("Invalid raffle ticket value set")]
     InvalidTicketCost,
 
@@ -134,6 +134,9 @@ pub enum ContractError {
     #[error("Please include at least one asset when creating a raffle")]
     NoAssets {},
 
+    #[error("Duplicate assets are not allowed inside raffles !")]
+    DuplicateAssets {},
+
     // TODO: update to calculate value
     #[error("The sent assets ({assets_received:?})  don't match the required assets ({assets_wanted:?}) multiplied ({ticket_count:?}) for this raffle")]
     PaymentNotSufficient {
@@ -182,4 +185,10 @@ pub enum ContractError {
 
     #[error("The raffle comment is ({size}) bytes, must be <=  ({max}) bytes")]
     CommentTooLarge { size: u64, max: u64 },
+
+    #[error("The token gated conditions {condition:?} is not met for user {user}")]
+    NotGatingCondition {
+        condition: AdvantageOptions,
+        user: String,
+    },
 }

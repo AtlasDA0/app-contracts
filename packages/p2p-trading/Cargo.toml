@@ -1,0 +1,34 @@
+[package]
+name = "p2p-trading-export"
+version = "0.1.0"
+authors = ["Nicolas KOWALSKI <kowalski.kowalskin@gmail.com>"]
+edition = "2018"
+description = "Messages for the p2p trading contract"
+license = "Apache-2.0"
+
+[lib]
+bench = false
+
+[features]
+backtraces = ["cosmwasm-std/backtraces"]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+
+[dependencies]
+# CosmWasm
+cw20 = "0.13.0"
+cw721 = "0.13.0"
+cw-storage-plus = "0.13.0"
+cw20-base = { version = "0.13.0", features = ["library"] }
+cosmwasm-std = { version = "1.0.0" }
+
+# Other Modules
+schemars = "0.8.1"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.23" }
+strum = "0.24"
+strum_macros = "0.24"
+
+[dev-dependencies]
+cosmwasm-schema = { version = "1.0.0" }
+
