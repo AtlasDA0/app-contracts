@@ -1,10 +1,6 @@
 #[cfg(test)]
 mod tests {
-<<<<<<< HEAD
-    use cosmwasm_std::{coin, Addr, HexBinary, Uint128};
-=======
     use cosmwasm_std::{coin, testing::mock_env, Addr, BlockInfo, Decimal, HexBinary, Uint128};
->>>>>>> upstream/main
     use cw_multi_test::Executor;
     use nois::NoisCallback;
     use raffles::{error::ContractError, msg::ExecuteMsg as RaffleExecuteMsg, state::RaffleState};

@@ -1,3 +1,4 @@
+use crate::common_setup::app::StargazeApp;
 use cosmwasm_std::{coin, coins, Addr, BlockInfo, Coin, Decimal, Empty, Timestamp, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
 use nft_loans_nc::{
@@ -5,7 +6,6 @@ use nft_loans_nc::{
     state::{CollateralInfo, LoanState, LoanTerms},
 };
 use sg721::CollectionInfo;
-use sg_multi_test::StargazeApp;
 use sg_std::NATIVE_DENOM;
 use utils::state::{AssetInfo, Sg721Token};
 use vending_factory::{
