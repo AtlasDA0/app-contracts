@@ -1064,6 +1064,7 @@ dependencies = [
 [[package]]
 name = "cw-denom"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1086,6 +1087,7 @@ dependencies = [
 [[package]]
 name = "cw-hooks"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1431,6 +1433,7 @@ dependencies = [
 [[package]]
 name = "cw-paginate-storage"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-std",
  "cw-storage-plus 1.2.0",
@@ -1498,6 +1501,7 @@ dependencies = [
 [[package]]
 name = "cw-tokenfactory-issuer"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1516,6 +1520,7 @@ dependencies = [
 [[package]]
 name = "cw-tokenfactory-types"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1747,6 +1752,7 @@ dependencies = [
 [[package]]
 name = "cw20-stake"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1770,6 +1776,7 @@ dependencies = [
 [[package]]
 name = "cw20-stake-external-rewards"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1791,6 +1798,7 @@ dependencies = [
 [[package]]
 name = "cw20-stake-reward-distributor"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1971,6 +1979,7 @@ dependencies = [
 [[package]]
 name = "cw721-controllers"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1982,6 +1991,7 @@ dependencies = [
 [[package]]
 name = "dao-cw-orch"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-std",
  "cw-orch 0.22.2",
@@ -2013,6 +2023,7 @@ dependencies = [
 [[package]]
 name = "dao-cw721-extensions"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2043,6 +2054,7 @@ dependencies = [
 [[package]]
 name = "dao-dao-core"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2073,6 +2085,7 @@ dependencies = [
 [[package]]
 name = "dao-dao-macros"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "proc-macro2",
@@ -2096,6 +2109,7 @@ dependencies = [
 [[package]]
 name = "dao-hooks"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2124,6 +2138,7 @@ dependencies = [
 [[package]]
 name = "dao-interface"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2138,6 +2153,7 @@ dependencies = [
 [[package]]
 name = "dao-pre-propose-approval-single"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2153,6 +2169,7 @@ dependencies = [
 [[package]]
 name = "dao-pre-propose-approver"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2188,6 +2205,7 @@ dependencies = [
 [[package]]
 name = "dao-pre-propose-base"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2206,6 +2224,7 @@ dependencies = [
 [[package]]
 name = "dao-pre-propose-multiple"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2230,6 +2249,7 @@ dependencies = [
 [[package]]
 name = "dao-pre-propose-single"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2241,6 +2261,7 @@ dependencies = [
 [[package]]
 name = "dao-proposal-condorcet"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2257,6 +2278,7 @@ dependencies = [
 [[package]]
 name = "dao-proposal-hook-counter"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2270,6 +2292,7 @@ dependencies = [
 [[package]]
 name = "dao-proposal-multiple"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2318,6 +2341,7 @@ dependencies = [
 [[package]]
 name = "dao-proposal-single"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2341,6 +2365,7 @@ dependencies = [
 [[package]]
 name = "dao-proposal-sudo"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2355,6 +2380,7 @@ dependencies = [
 [[package]]
 name = "dao-test-custom-factory"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2404,6 +2430,7 @@ dependencies = [
 [[package]]
 name = "dao-voting"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2419,6 +2446,7 @@ dependencies = [
 [[package]]
 name = "dao-voting-cw20-balance"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2457,6 +2485,7 @@ dependencies = [
 [[package]]
 name = "dao-voting-cw20-staked"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2476,6 +2505,7 @@ dependencies = [
 [[package]]
 name = "dao-voting-cw4"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2493,6 +2523,7 @@ dependencies = [
 [[package]]
 name = "dao-voting-cw721-roles"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2514,6 +2545,7 @@ dependencies = [
 [[package]]
 name = "dao-voting-cw721-staked"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2536,6 +2568,7 @@ dependencies = [
 [[package]]
 name = "dao-voting-token-staked"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",

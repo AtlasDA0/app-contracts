@@ -32,11 +32,12 @@ pub fn main() -> anyhow::Result<()> {
     let chain = Daemon::builder().chain(STARGAZE_1).build()?;
 
     let dao_proposal = DaoPreProposeSingle::new("atlas-dao-pre-proposal", chain.clone());
-    // New version is not compatible
-    dao_proposal.propose(dao_pre_propose_single::contract::ProposeMessage::Propose {
-        title: proposal_title.to_string(),
-        description: proposal_description.to_string(),
-        msgs: vec![msg.into()],
-    })?;
+    // // New version is not compatible, use the old version of dao-dao and add cw-orch
+    // // This commit for instance : 8c945acdb0746ec84d15cfebeadcfe32122f85a2
+    // dao_proposal.propose(dao_pre_propose_single::contract::ProposeMessage::Propose {
+    //     title: proposal_title.to_string(),
+    //     description: proposal_description.to_string(),
+    //     msgs: vec![msg.into()],
+    // })?;
     Ok(())
 }
