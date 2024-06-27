@@ -3,6 +3,7 @@ use cw_orch::{contract::interface_traits::CwOrchUpload, prelude::*};
 use dao_cw_orch::DaoPreProposeSingle;
 use dao_pre_propose_base::msg::ExecuteMsgFns;
 use raffles::msg::MigrateMsg;
+use scripts::loans::Loans;
 use scripts::raffles::Raffles;
 use scripts::STARGAZE_1;
 
@@ -16,26 +17,29 @@ pub fn main() -> anyhow::Result<()> {
         .authz_granter(MULTISIG_ADDRESS)
         .build()?;
 
-    let raffles = Raffles::new(chain.clone());
+    let loans = Loans::new(chain.clone());
+    // loans.upload()?;
 
-    raffles.upload()?;
-
-    let proposal_title = "Migrate Raffles to 0.5.2";
-    let proposal_description =
-        "This migrates the raffle contract to avoid conflicts when claiming raffles";
+    let proposal_title = "Migrate Loans to 0.7.0";
+    let proposal_description = "This migrates the loans contract to introduce collection offers";
     let msg = WasmMsg::Migrate {
-        contract_addr: raffles.address()?.to_string(),
-        new_code_id: raffles.code_id()?,
+        contract_addr: loans.address()?.to_string(),
+        new_code_id: loans.code_id()?,
         msg: to_json_binary(&MigrateMsg {})?,
     };
 
+    let chain = Daemon::builder().chain(STARGAZE_1).build()?;
+
+    let contract_info = chain.wasm_querier().contract_info(loans.address()?)?;
+    println!("{:?}", contract_info);
+
     // Then we do the migration proposal
     let dao_proposal = DaoPreProposeSingle::new("atlas-dao-pre-proposal", chain.clone());
-    dao_proposal.propose(dao_pre_propose_single::contract::ProposeMessage::Propose {
-        title: proposal_title.to_string(),
-        description: proposal_description.to_string(),
-        msgs: vec![msg.into()],
-    })?;
+    // dao_proposal.propose(dao_pre_propose_single::contract::ProposeMessage::Propose {
+    //     title: proposal_title.to_string(),
+    //     description: proposal_description.to_string(),
+    //     msgs: vec![msg.into()],
+    // })?;
 
     Ok(())
 }

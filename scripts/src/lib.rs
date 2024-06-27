@@ -1,5 +1,6 @@
 use cw_orch::environment::{ChainInfo, ChainKind, NetworkInfo};
 
+pub mod loans;
 pub mod raffles;
 
 pub const STARGAZE_NETWORK: NetworkInfo = NetworkInfo {

@@ -5,6 +5,7 @@ use utils::state::{AssetInfo, Locks};
 
 use crate::{error::ContractError, lender_offer::lender_offers};
 
+pub const OLD_CONFIG: Item<OldConfig> = Item::new("config");
 pub const CONFIG: Item<Config> = Item::new("config");
 pub const COLLATERAL_INFO: Map<(Addr, u64), CollateralInfo> = Map::new("collateral_info");
 pub const BORROWER_INFO: Map<&Addr, BorrowerInfo> = Map::new("borrower_info");
@@ -14,6 +15,24 @@ pub const STATIC_LOAN_LISTING_FEE: u128 = 10;
 pub struct OwnerStruct {
     pub owner: Addr,
     pub new_owner: Option<Addr>,
+}
+
+#[cw_serde]
+pub struct OldConfig {
+    /// The name of the smart contract
+    pub name: String,
+    /// The admin of the smart contract
+    pub owner: Addr,
+    /// The address which all generated fees are sent to
+    pub treasury_addr: Addr,
+    /// A % used to calculate how much of a loan interest is
+    /// sent to the fee_distributor
+    pub fee_rate: Decimal,
+    pub listing_fee_coins: Vec<Coin>,
+    /// Tracks the number of offers made across all loans
+    pub global_offer_index: u64,
+    /// lock state prevents new collateral listings to be made
+    pub locks: Locks,
 }
 
 #[cw_serde]

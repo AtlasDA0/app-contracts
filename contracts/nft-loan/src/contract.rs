@@ -17,6 +17,7 @@ use crate::{
         query_all_collaterals, query_borrower_info, query_collateral_info, query_collaterals,
         query_config, query_lender_offers, query_offer_info, query_offers,
     },
+    state::OLD_CONFIG,
 };
 use crate::{
     collection_offer::execute_make_collection_offer,
@@ -89,6 +90,22 @@ pub fn instantiate(
 
 #[cfg_attr(not(feature = "library"), ::cosmwasm_std::entry_point)]
 pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> StdResult<Response> {
+    let old_config = OLD_CONFIG.load(deps.storage)?;
+
+    CONFIG.save(
+        deps.storage,
+        &Config {
+            name: old_config.name,
+            owner: old_config.owner,
+            treasury_addr: old_config.treasury_addr,
+            fee_rate: old_config.fee_rate,
+            listing_fee_coins: old_config.listing_fee_coins,
+            global_offer_index: old_config.global_offer_index,
+            global_collection_offer_index: 0,
+            locks: old_config.locks,
+        },
+    )?;
+
     set_contract_version(
         deps.storage,
         env!("CARGO_PKG_NAME"),
