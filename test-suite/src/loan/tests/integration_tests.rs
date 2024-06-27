@@ -501,7 +501,7 @@ mod tests {
                 },
                 &[Coin {
                     denom: NATIVE_DENOM.to_string(),
-                    amount: Uint128::new(100u128),
+                    amount: Uint128::new(25u128),
                 }],
             )
             .unwrap_err();

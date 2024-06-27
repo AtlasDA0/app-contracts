@@ -1,8 +1,8 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{to_json_binary, Addr, StdResult, WasmMsg};
+use cosmwasm_std::{to_json_binary, Addr, BankMsg, Coin, Deps, StdResult, WasmMsg};
 use utils::types::CosmosMsg;
 
-use crate::msg::ExecuteMsg;
+use crate::{error::ContractError, msg::ExecuteMsg, state::CONFIG};
 
 /// NftLoanContract is a wrapper around Addr that provides a lot of helpers
 /// for working with this.
@@ -23,4 +23,28 @@ impl NftLoanContract {
         }
         .into())
     }
+}
+
+pub fn assert_listing_fee(deps: Deps, funds: Vec<Coin>) -> Result<CosmosMsg, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+
+    let fee = funds
+        .clone()
+        .into_iter()
+        .find(|c| config.listing_fee_coins.contains(c))
+        .unwrap_or_default();
+
+    println!("{:?}, {:?}, {:?}", funds, fee, config.listing_fee_coins);
+
+    if !config.listing_fee_coins.contains(&fee) {
+        return Err(ContractError::DepositFeeError {});
+    }
+    // transfer fee to treasury_addr
+    let transfer_fee_msg: CosmosMsg = BankMsg::Send {
+        to_address: config.treasury_addr.to_string(),
+        amount: vec![fee], // only the fee required
+    }
+    .into();
+
+    Ok(transfer_fee_msg)
 }
