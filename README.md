@@ -27,6 +27,11 @@ You can find the documentation for these smart contracts [here.](https://docs.at
 - **code-id:** `203`
 - **contract-address:** `stars19nz52gq75j6q3hw5wh0wznqvtc8pufncmt8pckeuksqs5pnn5c6qpsp3zt`
 
+### [On-Chain p2p-NFT trading](./contracts//p2p-trading/README.md)
+#### Mainnet: `Stargaze-1`
+- **code-id:** ``
+- **contract-address:** `stars1g7rqnsqqvcwtdxj0sw4nsuc6eg2z9sxhwqhnhdxkfn2fntllgk4qryfqlc`
+
 
 
 
