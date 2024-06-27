@@ -58,6 +58,7 @@ pub fn main() -> anyhow::Result<()> {
             raffle_preview: None,
             min_ticket_number: None,
             one_winner_per_asset: false,
+            whitelist: None,
             gating_raffle: vec![],
         },
         AssetInfo::Coin(coin(123, "ustars")),
