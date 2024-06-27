@@ -17,12 +17,11 @@ pub fn main() -> anyhow::Result<()> {
         .build()?;
 
     let raffles = Raffles::new(chain.clone());
+    raffles.upload()?;
 
-    // raffles.upload()?;
-
-    let proposal_title = "Migrate Raffles to 0.5.2";
+    let proposal_title = "Migrate Raffles to 0.7.3";
     let proposal_description =
-        "This migrates the raffle contract to avoid conflicts when claiming raffles";
+        "This migrates the raffle contract to allow for whitelisting raffles to certain addresses";
     let msg = WasmMsg::Migrate {
         contract_addr: raffles.address()?.to_string(),
         new_code_id: raffles.code_id()?,
@@ -33,11 +32,11 @@ pub fn main() -> anyhow::Result<()> {
     let chain = Daemon::builder().chain(STARGAZE_1).build()?;
 
     let dao_proposal = DaoPreProposeSingle::new("atlas-dao-pre-proposal", chain.clone());
-    /// New version is not compatible
-    // dao_proposal.propose(dao_pre_propose_single::contract::ProposeMessage::Propose {
-    //     title: proposal_title.to_string(),
-    //     description: proposal_description.to_string(),
-    //     msgs: vec![msg.into()],
-    // })?;
+    // New version is not compatible
+    dao_proposal.propose(dao_pre_propose_single::contract::ProposeMessage::Propose {
+        title: proposal_title.to_string(),
+        description: proposal_description.to_string(),
+        msgs: vec![msg.into()],
+    })?;
     Ok(())
 }
