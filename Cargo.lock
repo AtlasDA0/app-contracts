@@ -54,6 +54,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "aho-corasick"
+version = "1.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e60d3430d3a69478ad0993f19238d2df97c507009a52b3c10addcd7f6bcb916"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
 name = "android-tzdata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -132,12 +141,15 @@ dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-multi-test",
+ "cw-orch 0.23.0",
+ "cw-orch-clone-testing 0.5.2",
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw20 1.1.2",
  "cw20-base 1.1.2",
  "cw20-stake 2.3.0",
- "cw721 0.18.0",
+ "cw721 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw721-base 0.18.0 (git+https://github.com/AbstractSDK/cw-nfts)",
  "dao-dao-core 2.3.0",
  "dao-interface 2.3.0",
  "dao-pre-propose-single 2.3.0",
@@ -147,6 +159,8 @@ dependencies = [
  "hex",
  "nft-loans-nc",
  "nois",
+ "p2p-trading",
+ "p2p-trading-export",
  "raffles",
  "rand",
  "schemars",
@@ -510,7 +524,7 @@ dependencies = [
  "cosmrs",
  "cosmwasm-std",
  "cosmwasm-vm",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "derivative",
@@ -1050,6 +1064,7 @@ dependencies = [
 [[package]]
 name = "cw-denom"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1072,6 +1087,7 @@ dependencies = [
 [[package]]
 name = "cw-hooks"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1109,8 +1125,33 @@ dependencies = [
  "cosmwasm-std",
  "cw-orch-contract-derive",
  "cw-orch-core",
- "cw-orch-daemon",
- "cw-orch-fns-derive",
+ "cw-orch-daemon 0.22.1",
+ "cw-orch-fns-derive 0.19.1",
+ "cw-orch-mock",
+ "cw-orch-networks",
+ "cw-orch-traits",
+ "cw-utils 1.0.3",
+ "hex",
+ "log",
+ "schemars",
+ "serde",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "cw-orch"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97c76d9dd1c2632359f964e3531e5d0833d9022ae9fb216ce9aaaf36070d8bdf"
+dependencies = [
+ "anyhow",
+ "cosmrs",
+ "cosmwasm-std",
+ "cw-orch-contract-derive",
+ "cw-orch-core",
+ "cw-orch-daemon 0.23.5",
+ "cw-orch-fns-derive 0.21.0",
  "cw-orch-mock",
  "cw-orch-networks",
  "cw-orch-traits",
@@ -1133,7 +1174,28 @@ dependencies = [
  "clone-cw-multi-test",
  "cosmwasm-std",
  "cw-orch-core",
- "cw-orch-daemon",
+ "cw-orch-daemon 0.22.1",
+ "cw-orch-mock",
+ "cw-utils 1.0.3",
+ "itertools 0.12.1",
+ "log",
+ "serde",
+ "sha2 0.10.8",
+ "tokio",
+ "tonic",
+]
+
+[[package]]
+name = "cw-orch-clone-testing"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4abedeb2eeec24f9d4367503acebb6b304ef41b5478fb41174de6a473cfaf8ae"
+dependencies = [
+ "anyhow",
+ "clone-cw-multi-test",
+ "cosmwasm-std",
+ "cw-orch-core",
+ "cw-orch-daemon 0.23.5",
  "cw-orch-mock",
  "cw-utils 1.0.3",
  "itertools 0.12.1",
@@ -1157,14 +1219,15 @@ dependencies = [
 
 [[package]]
 name = "cw-orch-core"
-version = "1.0.0"
+version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c8e62b4d04699596bc2f45c57a8e5459495584d8127588ae4bbe7f95d616b61"
+checksum = "b60b3a78e06f38cc7d23127489f356b357d795df8c62090bc66c759f875cbc5f"
 dependencies = [
  "abstract-cw-multi-test",
  "anyhow",
  "cosmos-sdk-proto 0.21.1",
  "cosmwasm-std",
+ "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "dirs",
  "log",
@@ -1215,10 +1278,65 @@ dependencies = [
 ]
 
 [[package]]
+name = "cw-orch-daemon"
+version = "0.23.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3da5ddf3e3d51a72acdca54aaa89a3828bb26b720648b3c10bd9ec5cefc7c49c"
+dependencies = [
+ "anyhow",
+ "async-recursion",
+ "base16",
+ "base64",
+ "bitcoin",
+ "chrono",
+ "cosmrs",
+ "cosmwasm-std",
+ "cw-orch-core",
+ "cw-orch-networks",
+ "cw-orch-traits",
+ "dirs",
+ "ed25519-dalek",
+ "eyre",
+ "file-lock",
+ "flate2",
+ "hex",
+ "hkd32",
+ "lazy_static",
+ "log",
+ "once_cell",
+ "prost 0.12.6",
+ "prost-types 0.12.6",
+ "rand_core 0.6.4",
+ "regex",
+ "reqwest",
+ "ring",
+ "ripemd",
+ "schemars",
+ "serde",
+ "serde_json",
+ "sha2 0.10.8",
+ "thiserror",
+ "tokio",
+ "tonic",
+]
+
+[[package]]
 name = "cw-orch-fns-derive"
 version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e9acb7a15bfacc52abdf312a9fffb139883c1effb6ea7e645cd39580a8527463"
+dependencies = [
+ "convert_case",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "cw-orch-fns-derive"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67bd0a41e97819cee77efeeee0aa82bc0b029a9cb7a5a4b47de0c87f1bf69802"
 dependencies = [
  "convert_case",
  "proc-macro2",
@@ -1315,6 +1433,7 @@ dependencies = [
 [[package]]
 name = "cw-paginate-storage"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-std",
  "cw-storage-plus 1.2.0",
@@ -1382,6 +1501,7 @@ dependencies = [
 [[package]]
 name = "cw-tokenfactory-issuer"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1400,6 +1520,7 @@ dependencies = [
 [[package]]
 name = "cw-tokenfactory-types"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1631,12 +1752,13 @@ dependencies = [
 [[package]]
 name = "cw20-stake"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-controllers 1.1.2",
  "cw-hooks 2.4.2",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-ownable",
  "cw-paginate-storage 2.4.2",
  "cw-storage-plus 1.2.0",
@@ -1654,11 +1776,12 @@ dependencies = [
 [[package]]
 name = "cw20-stake-external-rewards"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-controllers 1.1.2",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-ownable",
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
@@ -1675,10 +1798,11 @@ dependencies = [
 [[package]]
 name = "cw20-stake-reward-distributor"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-ownable",
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
@@ -1787,6 +1911,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "cw721"
+version = "0.18.0"
+source = "git+https://github.com/AbstractSDK/cw-nfts#2cfdc7964e102bdacd55085dfdbeb185c2134e8e"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-utils 1.0.3",
+ "schemars",
+ "serde",
+]
+
+[[package]]
 name = "cw721-base"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1815,8 +1951,26 @@ dependencies = [
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
- "cw721 0.18.0",
+ "cw721 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cw721-base 0.16.0",
+ "schemars",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
+name = "cw721-base"
+version = "0.18.0"
+source = "git+https://github.com/AbstractSDK/cw-nfts#2cfdc7964e102bdacd55085dfdbeb185c2134e8e"
+dependencies = [
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-orch 0.22.2",
+ "cw-ownable",
+ "cw-storage-plus 1.2.0",
+ "cw-utils 1.0.3",
+ "cw2 1.1.2",
+ "cw721 0.18.0 (git+https://github.com/AbstractSDK/cw-nfts)",
  "schemars",
  "serde",
  "thiserror",
@@ -1825,6 +1979,7 @@ dependencies = [
 [[package]]
 name = "cw721-controllers"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1836,13 +1991,14 @@ dependencies = [
 [[package]]
 name = "dao-cw-orch"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-std",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw20-stake 2.4.2",
  "cw20-stake-external-rewards",
  "cw20-stake-reward-distributor",
- "cw721-base 0.18.0",
+ "cw721-base 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dao-dao-core 2.4.2",
  "dao-interface 2.4.2",
  "dao-pre-propose-approval-single",
@@ -1867,6 +2023,7 @@ dependencies = [
 [[package]]
 name = "dao-cw721-extensions"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1888,7 +2045,7 @@ dependencies = [
  "cw-utils 1.0.3",
  "cw2 1.1.2",
  "cw20 1.1.2",
- "cw721 0.18.0",
+ "cw721 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dao-dao-macros 2.3.0",
  "dao-interface 2.3.0",
  "thiserror",
@@ -1897,6 +2054,7 @@ dependencies = [
 [[package]]
 name = "dao-dao-core"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1906,7 +2064,7 @@ dependencies = [
  "cw-utils 1.0.3",
  "cw2 1.1.2",
  "cw20 1.1.2",
- "cw721 0.18.0",
+ "cw721 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dao-dao-macros 2.4.2",
  "dao-interface 2.4.2",
  "thiserror",
@@ -1927,6 +2085,7 @@ dependencies = [
 [[package]]
 name = "dao-dao-macros"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "proc-macro2",
@@ -1950,6 +2109,7 @@ dependencies = [
 [[package]]
 name = "dao-hooks"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -1971,27 +2131,29 @@ dependencies = [
  "cw-utils 1.0.3",
  "cw2 1.1.2",
  "cw20 1.1.2",
- "cw721 0.18.0",
+ "cw721 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "osmosis-std 0.19.2",
 ]
 
 [[package]]
 name = "dao-interface"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
  "cw20 1.1.2",
- "cw721 0.18.0",
+ "cw721 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "osmosis-std 0.20.1",
 ]
 
 [[package]]
 name = "dao-pre-propose-approval-single"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2007,6 +2169,7 @@ dependencies = [
 [[package]]
 name = "dao-pre-propose-approver"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2042,12 +2205,13 @@ dependencies = [
 [[package]]
 name = "dao-pre-propose-base"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-denom 2.4.2",
  "cw-hooks 2.4.2",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
@@ -2060,6 +2224,7 @@ dependencies = [
 [[package]]
 name = "dao-pre-propose-multiple"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2084,6 +2249,7 @@ dependencies = [
 [[package]]
 name = "dao-pre-propose-single"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2095,10 +2261,11 @@ dependencies = [
 [[package]]
 name = "dao-proposal-condorcet"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
@@ -2111,10 +2278,11 @@ dependencies = [
 [[package]]
 name = "dao-proposal-hook-counter"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-storage-plus 1.2.0",
  "cw2 1.1.2",
  "dao-hooks 2.4.2",
@@ -2124,11 +2292,12 @@ dependencies = [
 [[package]]
 name = "dao-proposal-multiple"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-hooks 2.4.2",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
@@ -2172,11 +2341,12 @@ dependencies = [
 [[package]]
 name = "dao-proposal-single"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-hooks 2.4.2",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-proposal-single",
  "cw-storage-plus 1.2.0",
  "cw-utils 0.13.4",
@@ -2195,10 +2365,11 @@ dependencies = [
 [[package]]
 name = "dao-proposal-sudo"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-storage-plus 1.2.0",
  "cw2 1.1.2",
  "dao-dao-macros 2.4.2",
@@ -2209,17 +2380,18 @@ dependencies = [
 [[package]]
 name = "dao-test-custom-factory"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-ownable",
  "cw-storage-plus 1.2.0",
  "cw-tokenfactory-issuer",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
- "cw721 0.18.0",
- "cw721-base 0.18.0",
+ "cw721 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw721-base 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dao-dao-macros 2.4.2",
  "dao-interface 2.4.2",
  "dao-voting 2.4.2",
@@ -2258,6 +2430,7 @@ dependencies = [
 [[package]]
 name = "dao-voting"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2273,10 +2446,11 @@ dependencies = [
 [[package]]
 name = "dao-voting-cw20-balance"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
@@ -2311,10 +2485,11 @@ dependencies = [
 [[package]]
 name = "dao-voting-cw20-staked"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
@@ -2330,10 +2505,11 @@ dependencies = [
 [[package]]
 name = "dao-voting-cw4"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
@@ -2347,17 +2523,18 @@ dependencies = [
 [[package]]
 name = "dao-voting-cw721-roles"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-ownable",
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
  "cw4",
- "cw721 0.18.0",
- "cw721-base 0.18.0",
+ "cw721 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw721-base 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cw721-controllers",
  "dao-cw721-extensions",
  "dao-dao-macros 2.4.2",
@@ -2368,17 +2545,18 @@ dependencies = [
 [[package]]
 name = "dao-voting-cw721-staked"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-controllers 1.1.2",
  "cw-hooks 2.4.2",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
- "cw721 0.18.0",
- "cw721-base 0.18.0",
+ "cw721 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw721-base 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cw721-controllers",
  "dao-dao-macros 2.4.2",
  "dao-hooks 2.4.2",
@@ -2390,12 +2568,13 @@ dependencies = [
 [[package]]
 name = "dao-voting-token-staked"
 version = "2.4.2"
+source = "git+https://github.com/Kayanski/dao-contracts?branch=development#8c945acdb0746ec84d15cfebeadcfe32122f85a2"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-controllers 1.1.2",
  "cw-hooks 2.4.2",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-ownable",
  "cw-storage-plus 1.2.0",
  "cw-tokenfactory-issuer",
@@ -2831,6 +3010,16 @@ name = "fiat-crypto"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28dea519a9695b9977216879a3ebfddf92f1c08c05d984f8996aecd6ecdc811d"
+
+[[package]]
+name = "file-lock"
+version = "2.1.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "040b48f80a749da50292d0f47a1e2d5bf1d772f52836c07f64bfccc62ba6e664"
+dependencies = [
+ "cc",
+ "libc",
+]
 
 [[package]]
 name = "flate2"
@@ -3513,8 +3702,8 @@ dependencies = [
  "cosmwasm-std",
  "cw-storage-plus 1.2.0",
  "cw2 1.1.2",
- "cw721 0.18.0",
- "cw721-base 0.18.0",
+ "cw721 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw721-base 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "nois",
  "schemars",
  "serde",
@@ -3743,18 +3932,23 @@ version = "0.9.0"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
+ "cw-orch 0.23.0",
  "cw-storage-plus 0.13.4",
  "cw1155",
  "cw2 0.13.4",
  "cw20 0.13.4",
  "cw20-base 0.13.4",
  "cw721 0.13.4",
+ "cw721-base 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "getrandom",
  "itertools 0.10.5",
  "p2p-trading-export",
  "schemars",
  "serde",
+ "sg721",
+ "sg721-base",
  "thiserror",
+ "utils",
 ]
 
 [[package]]
@@ -3763,6 +3957,7 @@ version = "0.1.0"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
+ "cw-orch 0.23.0",
  "cw-storage-plus 0.13.4",
  "cw20 0.13.4",
  "cw20-base 0.13.4",
@@ -3772,6 +3967,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "thiserror",
+ "utils",
 ]
 
 [[package]]
@@ -4109,14 +4305,14 @@ version = "0.4.0"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-orch",
+ "cw-orch 0.22.2",
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
  "cw20 1.1.2",
  "cw20-base 1.1.2",
- "cw721 0.18.0",
- "cw721-base 0.18.0",
+ "cw721 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw721-base 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dao-interface 2.3.0",
  "nois",
  "rand",
@@ -4226,6 +4422,35 @@ dependencies = [
  "slice-group-by",
  "smallvec",
 ]
+
+[[package]]
+name = "regex"
+version = "1.10.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b91213439dad192326a0d7c6ee3955910425f441d7038e0d6933b0aec5c4517f"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+ "regex-automata",
+ "regex-syntax",
+]
+
+[[package]]
+name = "regex-automata"
+version = "0.4.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38caf58cc5ef2fed281f89292ef23f6365465ed9a41b7a7754eb4e26496c92df"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+ "regex-syntax",
+]
+
+[[package]]
+name = "regex-syntax"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a66a03ae7c801facd77a29370b4faec201768915ac14a721ba36f20bc9c209b"
 
 [[package]]
 name = "region"
@@ -4527,9 +4752,9 @@ dependencies = [
  "anyhow",
  "cosmrs",
  "cosmwasm-std",
- "cw-orch",
- "cw-orch-clone-testing",
- "cw721 0.18.0",
+ "cw-orch 0.22.2",
+ "cw-orch-clone-testing 0.4.1",
+ "cw721 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dao-cw-orch",
  "dao-pre-propose-base 2.4.2",
  "dao-pre-propose-single 2.4.2",
@@ -4766,7 +4991,7 @@ dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-utils 1.0.3",
- "cw721 0.18.0",
+ "cw721 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "schemars",
  "serde",
  "thiserror",
@@ -4843,7 +5068,7 @@ dependencies = [
  "cosmwasm-std",
  "cw-ownable",
  "cw-utils 1.0.3",
- "cw721-base 0.18.0",
+ "cw721-base 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "thiserror",
 ]
@@ -4860,8 +5085,8 @@ dependencies = [
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
- "cw721 0.18.0",
- "cw721-base 0.18.0",
+ "cw721 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw721-base 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
  "sg-std",
  "sg721",
@@ -5687,8 +5912,8 @@ dependencies = [
  "cw-storage-plus 1.2.0",
  "cw-utils 1.0.3",
  "cw2 1.1.2",
- "cw721 0.18.0",
- "cw721-base 0.18.0",
+ "cw721 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cw721-base 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand_core 0.6.4",
  "rand_xoshiro",
  "schemars",

@@ -6,7 +6,8 @@ use crate::state::{
 use crate::trade::prepare_trade_modification;
 use cosmwasm_std::{DepsMut, Env, MessageInfo, Response};
 use p2p_trading_export::msg::AddAssetAction;
-use p2p_trading_export::state::{AssetInfo, Comment, TradeState};
+use p2p_trading_export::state::{Comment, TradeState};
+use utils::state::AssetInfo;
 
 pub fn review_counter_trade(
     deps: DepsMut,

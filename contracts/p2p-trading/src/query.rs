@@ -3,6 +3,7 @@ use cosmwasm_std::Api;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::{Deps, Order, StdResult, Storage};
 use std::convert::TryInto;
+use utils::state::AssetInfo;
 
 use cw_storage_plus::Bound;
 use schemars::JsonSchema;
@@ -13,7 +14,7 @@ use crate::state::{
     TRADE_INFO,
 };
 use p2p_trading_export::msg::{QueryFilters, TradeInfoResponse};
-use p2p_trading_export::state::{AssetInfo, ContractInfo, CounterTradeInfo, TradeInfo};
+use p2p_trading_export::state::{ContractInfo, CounterTradeInfo, TradeInfo};
 
 use itertools::Itertools;
 // settings for pagination
@@ -155,9 +156,8 @@ pub fn trade_filter(
                 .iter()
                 .any(|asset| match asset {
                     AssetInfo::Coin(x) => x.denom == token.as_ref(),
-                    AssetInfo::Cw20Coin(x) => x.address == token.as_ref(),
                     AssetInfo::Cw721Coin(x) => x.address == token.as_ref(),
-                    AssetInfo::Cw1155Coin(x) => x.address == token.as_ref(),
+                    AssetInfo::Sg721Token(x) => x.address == token.as_ref(),
                 }),
             None => true,
         } && match &filters.assets_withdrawn {

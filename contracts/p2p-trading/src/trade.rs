@@ -1,25 +1,27 @@
 use cosmwasm_std::{
-    to_json_binary, Addr, Api, BankMsg, Binary, Deps, DepsMut, Env, MessageInfo, Response,
-    StdError, StdResult, Storage, Uint128,
+    coin, coins, to_json_binary, Addr, Api, BankMsg, Binary, Decimal, Deps, DepsMut, Empty, Env,
+    MessageInfo, Response, StdError, StdResult, Storage, Uint128,
 };
+use sg721_base::msg::CollectionInfoResponse;
+use utils::state::AssetInfo;
 
 use std::collections::HashSet;
 use std::iter::FromIterator;
 
-use cw1155::Cw1155ExecuteMsg;
-use cw20::Cw20ExecuteMsg;
 use cw721::Cw721ExecuteMsg;
 
+use cw721_base::Extension;
 use p2p_trading_export::msg::into_cosmos_msg;
 use p2p_trading_export::state::{
-    AdditionalTradeInfo, AssetInfo, Comment, CounterTradeInfo, TradeInfo, TradeState,
+    AdditionalTradeInfo, Comment, CounterTradeInfo, TradeInfo, TradeState,
 };
+use sg721::{ExecuteMsg as Sg721ExecuteMsg, RoyaltyInfoResponse};
 
 use crate::error::ContractError;
 use crate::messages::set_comment;
 use crate::state::{
-    add_cw1155_coin, add_cw20_coin, add_cw721_coin, add_funds, is_trader, load_counter_trade,
-    CONTRACT_INFO, COUNTER_TRADE_INFO, LAST_USER_TRADE, TRADE_INFO,
+    add_cw721_coin, add_funds, add_sg721_coin, is_trader, load_counter_trade, CONTRACT_INFO,
+    COUNTER_TRADE_INFO, LAST_USER_TRADE, TRADE_INFO,
 };
 
 /// Query the last trade created by the owner.
@@ -147,7 +149,7 @@ pub fn prepare_harmless_trade_modifications(
 
 pub fn _create_receive_asset_messages(
     env: Env,
-    info: MessageInfo,
+    _info: MessageInfo,
     asset: AssetInfo,
 ) -> Result<Response, ContractError> {
     Ok(match asset {
@@ -156,19 +158,7 @@ pub fn _create_receive_asset_messages(
             .add_attribute("asset_type", "fund")
             .add_attribute("denom", coin.denom)
             .add_attribute("amount", coin.amount),
-        AssetInfo::Cw20Coin(token) => {
-            let message = Cw20ExecuteMsg::TransferFrom {
-                owner: info.sender.to_string(),
-                recipient: env.contract.address.into(),
-                amount: token.amount,
-            };
-            Response::new()
-                .add_message(into_cosmos_msg(message, token.address.clone())?)
-                .add_attribute("action", "add_asset")
-                .add_attribute("asset_type", "token")
-                .add_attribute("token", token.address)
-                .add_attribute("amount", token.amount)
-        }
+
         AssetInfo::Cw721Coin(token) => {
             let message = Cw721ExecuteMsg::TransferNft {
                 recipient: env.contract.address.into(),
@@ -182,22 +172,18 @@ pub fn _create_receive_asset_messages(
                 .add_attribute("nft", token.address)
                 .add_attribute("token_id", token.token_id)
         }
-        AssetInfo::Cw1155Coin(token) => {
-            let message = Cw1155ExecuteMsg::SendFrom {
-                from: info.sender.to_string(),
-                to: env.contract.address.into(),
+        AssetInfo::Sg721Token(token) => {
+            let message = Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
+                recipient: env.contract.address.into(),
                 token_id: token.token_id.clone(),
-                value: token.value,
-                msg: None,
             };
 
             Response::new()
                 .add_message(into_cosmos_msg(message, token.address.clone())?)
                 .add_attribute("action", "add_asset")
-                .add_attribute("asset_type", "cw1155")
-                .add_attribute("token", token.address)
+                .add_attribute("asset_type", "NFT")
+                .add_attribute("nft", token.address)
                 .add_attribute("token_id", token.token_id)
-                .add_attribute("amount", token.value)
         }
     })
 }
@@ -218,20 +204,15 @@ pub fn add_asset_to_trade(
         AssetInfo::Coin(coin) => {
             TRADE_INFO.update(deps.storage, trade_id, add_funds(coin, info.funds.clone()))
         }
-        AssetInfo::Cw20Coin(token) => TRADE_INFO.update(
-            deps.storage,
-            trade_id,
-            add_cw20_coin(token.address.clone(), token.amount),
-        ),
         AssetInfo::Cw721Coin(token) => TRADE_INFO.update(
             deps.storage,
             trade_id,
             add_cw721_coin(token.address.clone(), token.token_id),
         ),
-        AssetInfo::Cw1155Coin(token) => TRADE_INFO.update(
+        AssetInfo::Sg721Token(token) => TRADE_INFO.update(
             deps.storage,
             trade_id,
-            add_cw1155_coin(token.address.clone(), token.token_id.clone(), token.value),
+            add_sg721_coin(token.address.clone(), token.token_id),
         ),
     }?;
 
@@ -249,7 +230,7 @@ pub fn add_asset_to_trade(
 /// This allows users to withdraw single assets without a risk of running out of gas.
 pub fn withdraw_trade_assets_while_creating(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     trade_id: u64,
     assets: Vec<(u16, AssetInfo)>,
@@ -276,14 +257,8 @@ pub fn withdraw_trade_assets_while_creating(
                     trade_info.additional_info.trade_preview = None;
                 }
             }
-            AssetInfo::Cw1155Coin(preview_coin) => {
-                if assets.iter().any(|r| match r.1.clone() {
-                    AssetInfo::Cw1155Coin(coin) => {
-                        coin.address == preview_coin.address
-                            && coin.token_id == preview_coin.token_id
-                    }
-                    _ => false,
-                }) {
+            AssetInfo::Sg721Token(_) => {
+                if assets.iter().any(|r| r.1 == preview) {
                     trade_info.additional_info.trade_preview = None;
                 }
             }
@@ -295,9 +270,11 @@ pub fn withdraw_trade_assets_while_creating(
 
     // We send the assets back to the sender
     let res = _create_withdraw_messages_unsafe(
-        &env.contract.address,
+        deps.as_ref(),
         &info.sender,
         &assets.iter().map(|x| x.1.clone()).collect(),
+        None,
+        None,
     )?;
     Ok(res
         .add_attribute("action", "remove_from_trade")
@@ -336,24 +313,6 @@ pub fn _are_assets_in_trade(
                 }
             }
 
-            AssetInfo::Cw20Coin(token_info) => {
-                // We check the token is the one we want
-                if let AssetInfo::Cw20Coin(token) = asset {
-                    // We verify the sent information matches the saved token
-                    if token_info.address != token.address {
-                        return Err(ContractError::AssetNotFound { position });
-                    }
-                    if token_info.amount < token.amount {
-                        return Err(ContractError::TooMuchWithdrawn {
-                            address: token_info.address,
-                            wanted: token.amount.u128(),
-                            available: token_info.amount.u128(),
-                        });
-                    }
-                } else {
-                    return Err(ContractError::AssetNotFound { position });
-                }
-            }
             AssetInfo::Cw721Coin(nft_info) => {
                 // We check the token is the one we want
                 if let AssetInfo::Cw721Coin(nft) = asset {
@@ -368,22 +327,15 @@ pub fn _are_assets_in_trade(
                     return Err(ContractError::AssetNotFound { position });
                 }
             }
-            AssetInfo::Cw1155Coin(cw1155_info) => {
+            AssetInfo::Sg721Token(nft_info) => {
                 // We check the token is the one we want
-                if let AssetInfo::Cw1155Coin(cw1155) = asset {
+                if let AssetInfo::Sg721Token(nft) = asset {
                     // We verify the sent information matches the saved nft
-                    if cw1155_info.address != cw1155.address {
+                    if nft_info.address != nft.address {
                         return Err(ContractError::AssetNotFound { position });
                     }
-                    if cw1155_info.token_id != cw1155.token_id {
+                    if nft_info.token_id != nft.token_id {
                         return Err(ContractError::AssetNotFound { position });
-                    }
-                    if cw1155_info.value < cw1155.value {
-                        return Err(ContractError::TooMuchWithdrawn {
-                            address: cw1155_info.address.to_string(),
-                            wanted: cw1155.value.u128(),
-                            available: cw1155_info.value.u128(),
-                        });
                     }
                 } else {
                     return Err(ContractError::AssetNotFound { position });
@@ -414,28 +366,16 @@ pub fn _try_withdraw_assets_unsafe(
                     trade_info.associated_assets[position] = AssetInfo::Coin(fund_info);
                 }
             }
-            AssetInfo::Cw20Coin(mut token_info) => {
-                if let AssetInfo::Cw20Coin(token) = asset {
-                    token_info.amount = token_info
-                        .amount
-                        .checked_sub(token.amount)
-                        .map_err(ContractError::Overflow)?;
-                    trade_info.associated_assets[position] = AssetInfo::Cw20Coin(token_info);
-                }
-            }
             AssetInfo::Cw721Coin(mut nft_info) => {
                 if let AssetInfo::Cw721Coin(_) = asset {
                     nft_info.address = "".to_string();
                     trade_info.associated_assets[position] = AssetInfo::Cw721Coin(nft_info);
                 }
             }
-            AssetInfo::Cw1155Coin(mut cw1155_info) => {
-                if let AssetInfo::Cw1155Coin(cw1155) = asset {
-                    cw1155_info.value = cw1155_info
-                        .value
-                        .checked_sub(cw1155.value)
-                        .map_err(ContractError::Overflow)?;
-                    trade_info.associated_assets[position] = AssetInfo::Cw1155Coin(cw1155_info);
+            AssetInfo::Sg721Token(mut nft_info) => {
+                if let AssetInfo::Cw721Coin(_) = asset {
+                    nft_info.address = "".to_string();
+                    trade_info.associated_assets[position] = AssetInfo::Sg721Token(nft_info);
                 }
             }
         }
@@ -444,22 +384,23 @@ pub fn _try_withdraw_assets_unsafe(
     // Then we remove empty assets from the trade
     trade_info.associated_assets.retain(|asset| match asset {
         AssetInfo::Coin(fund) => fund.amount != Uint128::zero(),
-        AssetInfo::Cw20Coin(token) => token.amount != Uint128::zero(),
         AssetInfo::Cw721Coin(nft) => !nft.address.is_empty(),
-        AssetInfo::Cw1155Coin(cw1155) => cw1155.value != Uint128::zero(),
+        AssetInfo::Sg721Token(nft) => !nft.address.is_empty(),
     });
 
     Ok(())
 }
 
 /// Helper function to create withdraw messages based on a slice of assets.
-/// This function doesn't do any checks and mus be used with caution
+/// This function doesn't do any checks and must be used with caution
 /// We must always verify the sender has the right to withdraw before calling this function
 #[allow(clippy::ptr_arg)]
 pub fn _create_withdraw_messages_unsafe(
-    contract_address: &Addr,
+    deps: Deps,
     recipient: &Addr,
     assets: &Vec<AssetInfo>,
+    royalties: Option<Vec<RoyaltyInfoResponse>>,
+    fund_fee: Option<Decimal>,
 ) -> Result<Response, ContractError> {
     let mut res = Response::new();
 
@@ -467,26 +408,69 @@ pub fn _create_withdraw_messages_unsafe(
     for asset in assets {
         match asset {
             AssetInfo::Coin(fund) => {
-                let message = BankMsg::Send {
-                    to_address: recipient.to_string(),
-                    amount: vec![fund.clone()],
+                let (royalty_msgs, funds_after_royalties) = if let Some(royalties) = &royalties {
+                    let nb_royalties = royalties.len() as u128;
+
+                    if nb_royalties == 0 {
+                        (vec![], fund.clone())
+                    } else {
+                        let mut total_amount = fund.amount;
+                        let amount_per_nft = fund.amount / Uint128::from(nb_royalties);
+
+                        let msgs = royalties
+                            .iter()
+                            .filter_map(|r| {
+                                let amount = r.share * amount_per_nft;
+                                total_amount -= amount;
+                                if amount.is_zero() {
+                                    None
+                                } else {
+                                    Some(BankMsg::Send {
+                                        to_address: r.payment_address.clone(),
+                                        amount: coins(amount.u128(), fund.denom.clone()),
+                                    })
+                                }
+                            })
+                            .collect::<Vec<_>>();
+
+                        (msgs, coin(total_amount.u128(), fund.denom.clone()))
+                    }
+                } else {
+                    (vec![], fund.clone())
                 };
+
+                let (fee_msgs, funds_for_recipient) = if let Some(fund_fee) = fund_fee {
+                    let fee_amount = funds_after_royalties.amount * fund_fee;
+                    let fee_denom = funds_after_royalties.denom.clone();
+                    let remaining_amount = funds_after_royalties.amount - fee_amount;
+
+                    (
+                        if fee_amount.is_zero() {
+                            None
+                        } else {
+                            Some(BankMsg::Send {
+                                to_address: CONTRACT_INFO.load(deps.storage)?.treasury.to_string(),
+                                amount: coins(fee_amount.u128(), fee_denom.clone()),
+                            })
+                        },
+                        coin(remaining_amount.u128(), fee_denom),
+                    )
+                } else {
+                    (None, funds_after_royalties)
+                };
+
+                let withdraw_message = BankMsg::Send {
+                    to_address: recipient.to_string(),
+                    amount: vec![funds_for_recipient.clone()],
+                };
+
                 res = res
-                    .add_message(message)
+                    .add_messages(royalty_msgs)
+                    .add_messages(fee_msgs)
+                    .add_message(withdraw_message)
                     .add_attribute("asset_type", "fund")
                     .add_attribute("denom", fund.denom.clone())
                     .add_attribute("amount", fund.amount);
-            }
-            AssetInfo::Cw20Coin(token) => {
-                let message = Cw20ExecuteMsg::Transfer {
-                    recipient: recipient.to_string(),
-                    amount: token.amount,
-                };
-                res = res
-                    .add_message(into_cosmos_msg(message, token.address.clone())?)
-                    .add_attribute("asset_type", "token")
-                    .add_attribute("token", token.address.clone())
-                    .add_attribute("amount", token.amount);
             }
             AssetInfo::Cw721Coin(nft) => {
                 let message = Cw721ExecuteMsg::TransferNft {
@@ -499,20 +483,16 @@ pub fn _create_withdraw_messages_unsafe(
                     .add_attribute("nft", nft.address.clone())
                     .add_attribute("token_id", nft.token_id.clone());
             }
-            AssetInfo::Cw1155Coin(cw1155) => {
-                let message = Cw1155ExecuteMsg::SendFrom {
-                    from: contract_address.to_string(),
-                    to: recipient.to_string(),
-                    token_id: cw1155.token_id.clone(),
-                    value: cw1155.value,
-                    msg: None,
+            AssetInfo::Sg721Token(nft) => {
+                let message = Sg721ExecuteMsg::<Extension, Empty>::TransferNft {
+                    recipient: recipient.to_string(),
+                    token_id: nft.token_id.clone(),
                 };
                 res = res
-                    .add_message(into_cosmos_msg(message, cw1155.address.clone())?)
-                    .add_attribute("asset_type", "Cw1155")
-                    .add_attribute("token", cw1155.address.clone())
-                    .add_attribute("token_id", cw1155.token_id.clone())
-                    .add_attribute("amount", cw1155.value);
+                    .add_message(into_cosmos_msg(message, nft.address.clone())?)
+                    .add_attribute("asset_type", "NFT")
+                    .add_attribute("nft", nft.address.clone())
+                    .add_attribute("token_id", nft.token_id.clone());
             }
         }
     }
@@ -522,18 +502,57 @@ pub fn _create_withdraw_messages_unsafe(
 
 /// Check the assets are not already withdrawn and then creates the withdraw messages
 pub fn check_and_create_withdraw_messages(
-    env: Env,
+    deps: Deps,
     recipient: &Addr,
     trade_info: &TradeInfo,
+    royalties: Option<Vec<RoyaltyInfoResponse>>,
+    fund_fee: Option<Decimal>,
 ) -> Result<Response, ContractError> {
     if trade_info.assets_withdrawn {
         return Err(ContractError::TradeAlreadyWithdrawn {});
     }
+
     _create_withdraw_messages_unsafe(
-        &env.contract.address,
+        deps,
         recipient,
         &trade_info.associated_assets,
+        royalties,
+        fund_fee,
     )
+}
+
+/// Gathers all the percentages needed to compute the Atlas Fee as well as the Royalties fee
+pub fn gather_royalties(
+    deps: Deps,
+    trade_info: &TradeInfo,
+) -> Result<Vec<RoyaltyInfoResponse>, ContractError> {
+    // For all assets in the trade_info, we gather the collection info
+    let all_royalties = trade_info
+        .associated_assets
+        .iter()
+        .filter_map(|asset| match asset {
+            AssetInfo::Cw721Coin(_) => None,
+            AssetInfo::Coin(_) => None,
+            AssetInfo::Sg721Token(token) => {
+                let collection_info: Result<CollectionInfoResponse, _> =
+                    deps.querier.query_wasm_smart(
+                        token.address.clone(),
+                        &sg721_base::msg::QueryMsg::CollectionInfo {},
+                    );
+
+                println!(
+                    "Collection : {:?}, royalties : {:?}",
+                    token.address, collection_info
+                );
+                match collection_info {
+                    Ok(collection_info) => collection_info.royalty_info,
+                    Err(_) => None,
+                }
+            }
+        })
+        .collect::<Vec<_>>();
+
+    Ok(all_royalties)
 }
 
 /// Helper to validate a slice of addresses
@@ -722,7 +741,7 @@ pub fn add_tokens_wanted(
     // We validate the tokens_wanted structure
     for token in tokens_wanted.clone() {
         match token {
-            AssetInfo::Coin(_) | AssetInfo::Cw20Coin(_) => Ok(()),
+            AssetInfo::Coin(_) => Ok(()),
             _ => Err(ContractError::WrongTokenType {}),
         }?
     }
@@ -796,7 +815,7 @@ pub fn set_tokens_wanted(
     // We validate the tokens_wanted structure
     for token in tokens_wanted.clone() {
         match token {
-            AssetInfo::Coin(_) | AssetInfo::Cw20Coin(_) => Ok(()),
+            AssetInfo::Coin(_) => Ok(()),
             _ => Err(ContractError::WrongTokenType {}),
         }?
     }
@@ -881,6 +900,7 @@ pub fn accept_trade(
 ) -> Result<Response, ContractError> {
     // Only the initial trader can accept a trade
     let mut trade_info = is_trader(deps.storage, &info.sender, trade_id)?;
+
     // We check the counter trade exists
     let mut counter_info = load_counter_trade(deps.storage, trade_id, counter_id)?;
 
@@ -987,7 +1007,7 @@ pub fn cancel_trade(
 /// If the trade is only in the created state, it is automatically cancelled before withdrawing assets
 pub fn withdraw_all_from_trade(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     trade_id: u64,
 ) -> Result<Response, ContractError> {
@@ -1003,7 +1023,8 @@ pub fn withdraw_all_from_trade(
         return Err(ContractError::TradeNotCancelled {});
     }
 
-    let res = check_and_create_withdraw_messages(env, &info.sender, &trade_info)?;
+    let res =
+        check_and_create_withdraw_messages(deps.as_ref(), &info.sender, &trade_info, None, None)?;
     trade_info.assets_withdrawn = true;
     TRADE_INFO.save(deps.storage, trade_id, &trade_info)?;
 

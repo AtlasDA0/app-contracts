@@ -1,11 +1,13 @@
-use crate::state::{AssetInfo, Comment, CounterTradeInfo, TradeInfo, TradeState};
+use crate::state::{Comment, CounterTradeInfo, TradeInfo, TradeState};
 use cosmwasm_std::{
-    from_json, to_json_binary, Addr, Binary, CosmosMsg, StdError, StdResult, Timestamp, WasmMsg,
+    from_json, to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, StdError, StdResult,
+    Timestamp, WasmMsg,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::iter::FromIterator;
+use utils::state::AssetInfo;
 
 fn is_valid_name(name: &str) -> bool {
     let bytes = name.as_bytes();
@@ -36,6 +38,9 @@ pub fn into_cosmos_msg<M: Serialize, T: Into<String>>(
 pub struct InstantiateMsg {
     pub name: String,
     pub owner: Option<String>,
+    pub accept_trade_fee: Vec<Coin>,
+    pub fund_fee: Decimal,
+    pub treasury: String,
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug, Clone, PartialEq)]
@@ -64,11 +69,13 @@ pub enum AddAssetAction {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[derive(cw_orch::ExecuteFns)]
 pub enum ExecuteMsg {
     CreateTrade {
         whitelisted_users: Option<Vec<String>>,
         comment: Option<String>,
     },
+    #[cw_orch(payable)]
     AddAsset {
         action: AddAssetAction,
         asset: AssetInfo,
@@ -170,9 +177,9 @@ pub enum ExecuteMsg {
         counter_id: u64,
         comment: Option<String>,
     },
-    /// The fee contract can Withdraw funds via this function only when the trade is accepted.
-    WithdrawPendingAssets {
-        trader: String,
+    #[cw_orch(payable)]
+    /// The trader or counter trader contract can Withdraw funds via this function only when the trade is accepted.
+    WithdrawSuccessfulTrade {
         trade_id: u64,
     },
     /// You can Withdraw funds only at specific steps of the trade, but you're allowed to try anytime !
@@ -188,8 +195,11 @@ pub enum ExecuteMsg {
     SetNewOwner {
         owner: String,
     },
-    SetNewFeeContract {
-        fee_contract: String,
+    SetNewTreasury {
+        treasury: String,
+    },
+    SetNewAcceptFee {
+        accept_fee: Vec<Coin>,
     },
 }
 
