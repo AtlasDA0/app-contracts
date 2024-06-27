@@ -2,6 +2,7 @@ use cw_orch::environment::{ChainInfo, ChainKind, NetworkInfo};
 
 pub mod loans;
 pub mod raffles;
+pub mod trading;
 
 pub const STARGAZE_NETWORK: NetworkInfo = NetworkInfo {
     chain_name: "stargaze",

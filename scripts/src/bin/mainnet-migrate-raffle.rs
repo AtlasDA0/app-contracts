@@ -2,7 +2,7 @@ use cosmwasm_std::{to_json_binary, WasmMsg};
 use cw_orch::{contract::interface_traits::CwOrchUpload, prelude::*};
 use dao_cw_orch::DaoPreProposeSingle;
 use dao_pre_propose_base::msg::ExecuteMsgFns;
-use raffles::msg::MigrateMsg;
+use raffles::msg::{MigrateMsg, QueryMsgFns};
 use scripts::raffles::Raffles;
 use scripts::STARGAZE_1;
 
@@ -17,8 +17,7 @@ pub fn main() -> anyhow::Result<()> {
         .build()?;
 
     let raffles = Raffles::new(chain.clone());
-
-    // raffles.upload()?;
+    raffles.upload()?;
 
     let proposal_title = "Migrate Raffles to 0.5.2";
     let proposal_description =
