@@ -19,7 +19,7 @@ You can find the documentation for these smart contracts [here.](https://docs.at
 - **code-id:** `230`
 - **contract-address:** `stars19g0l90sxlr64ksjj9qpqz72e8dtvw772fv6dxcvva3rqas6vryzs903x60`
 
-### [On-Chain Raffles](./contracts//raffles/README.md)
+### [On-Chain NFT Raffles](./contracts//raffles/README.md)
 #### Testnet: `Elgafar-1`
 - **code-id:** `3650`
 - **contract:** `stars1hqvn37a7dn58gzq6md4y5gk20e9j4gmm9eu8c7g5vhqj5mpsd0uqg55ngg`
@@ -27,7 +27,7 @@ You can find the documentation for these smart contracts [here.](https://docs.at
 - **code-id:** `203`
 - **contract-address:** `stars19nz52gq75j6q3hw5wh0wznqvtc8pufncmt8pckeuksqs5pnn5c6qpsp3zt`
 
-### [On-Chain p2p-NFT trading](./contracts//p2p-trading/README.md)
+### [P2P-NFT trading](./contracts//p2p-trading/README.md)
 #### Mainnet: `Stargaze-1`
 - **code-id:** ``
 - **contract-address:** `stars1g7rqnsqqvcwtdxj0sw4nsuc6eg2z9sxhwqhnhdxkfn2fntllgk4qryfqlc`
