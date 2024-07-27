@@ -9,12 +9,22 @@ edition = "2021"
 anyhow.workspace = true
 cosmrs = "0.15.0"
 cosmwasm-std = "1.5.2"
-cw-orch = { version = "0.21.2", features = ["daemon"] }
+cw-orch = { version = "0.22.2", features = ["daemon"] }
+cw-orch-clone-testing = "0.4.0"
 cw721.workspace = true
 dotenv = "0.15.0"
-env_logger = "0.11.3"
+env_logger = { version = "0.11.3", default-features = false }
 nft-loans-nc = { version = "0.4.0", path = "../contracts/nft-loan" }
 raffles = { version = "0.4.0", path = "../contracts/raffles" }
+cw-infuser = {version = "0.1.0", path = "../contracts/infuser" }
 sg721.workspace = true
 sg721-base.workspace = true
 utils = { version = "0.1.0", path = "../packages/utils" }
+
+# Dao-Dao
+dao-cw-orch = { git = "https://github.com/Kayanski/dao-contracts", version = "2.4.2", branch = "development" }
+dao-pre-propose-base = { git = "https://github.com/Kayanski/dao-contracts", version = "2.4.2", branch = "development" }
+dao-pre-propose-single = { git = "https://github.com/Kayanski/dao-contracts", version = "2.4.2", branch = "development" }
+# dao-cw-orch = { path = "../../../abstract/dao-contracts/packages/cw-orch" }
+# dao-pre-propose-base = { path = "../../../abstract/dao-contracts/packages/dao-pre-propose-base" }
+# dao-pre-propose-single = { path = "../../../abstract/dao-contracts/contracts/pre-propose/dao-pre-propose-single" }

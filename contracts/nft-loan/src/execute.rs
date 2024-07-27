@@ -8,18 +8,20 @@ use {
 use {
     crate::{
         error::{self, ContractError},
+        helpers::assert_listing_fee,
+        lender_offer::lender_offers,
         query::{is_approved_cw721, is_nft_owner},
         state::{
             can_repay_loan, get_active_loan, get_offer, is_active_lender,
             is_collateral_withdrawable, is_lender, is_loan_acceptable, is_loan_counterable,
             is_loan_defaulted, is_loan_modifiable, is_offer_borrower, is_offer_refusable,
-            lender_offers, save_offer, BorrowerInfo, CollateralInfo, LoanState, LoanTerms,
-            OfferInfo, OfferState, BORROWER_INFO, COLLATERAL_INFO, CONFIG,
+            save_offer, BorrowerInfo, CollateralInfo, LoanState, LoanTerms, OfferInfo, OfferState,
+            BORROWER_INFO, COLLATERAL_INFO, CONFIG,
         },
     },
     cosmwasm_std::{
-        coins, ensure_eq, Addr, BankMsg, Decimal, DepsMut, Empty, Env, MessageInfo, StdError,
-        StdResult, Storage,
+        coins, ensure_eq, Addr, Attribute, BankMsg, Coin, Decimal, DepsMut, Empty, Env,
+        MessageInfo, StdError, StdResult, Storage,
     },
     cw721::Cw721ExecuteMsg,
     cw721_base::Extension,
@@ -28,6 +30,36 @@ use {
         types::{CosmosMsg, Response},
     },
 };
+
+pub fn list_collaterals(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    tokens: Vec<AssetInfo>,
+    terms: Option<LoanTerms>,
+    comment: Option<String>,
+    loan_preview: Option<AssetInfo>,
+) -> Result<Response, ContractError> {
+    // We make sure the contract is not locked
+    let config = CONFIG.load(deps.storage)?;
+
+    // prevent new listings from being made when contract is frozen
+    if config.clone().locks.lock || config.locks.sudo_lock {
+        return Err(ContractError::ContractIsLocked {});
+    }
+    // We verify the sender paid the listing fee
+    let transfer_fee_msg = assert_listing_fee(deps.as_ref(), info.funds)?;
+
+    // set the borrower
+    let borrower = info.sender;
+
+    let (attributes, _loan_id) =
+        _internal_list_collaterals(deps, env, borrower, tokens, terms, comment, loan_preview)?;
+
+    Ok(Response::new()
+        .add_message(transfer_fee_msg)
+        .add_attributes(attributes))
+}
 
 /// Signals the listing of multiple collaterals in the same loan.
 /// This is the first entry point of the loan flow.
@@ -39,25 +71,15 @@ use {
 /// If terms are specified, fund lenders can accept the loan directly.
 /// If not, lenders can propose terms than may be accepted by the borrower in return to start the loan
 /// This deposit function allows CW721 and SG721 tokens to be listed
-pub fn list_collaterals(
+pub fn _internal_list_collaterals(
     deps: DepsMut,
     env: Env,
-    info: MessageInfo,
+    borrower: Addr,
     tokens: Vec<AssetInfo>,
     terms: Option<LoanTerms>,
     comment: Option<String>,
     loan_preview: Option<AssetInfo>,
-) -> Result<Response, ContractError> {
-    let config = CONFIG.load(deps.storage)?;
-
-    // prevent new listings from being made when contract is frozen
-    if config.clone().locks.lock || config.locks.sudo_lock {
-        return Err(ContractError::ContractIsLocked {});
-    }
-
-    // set the borrower
-    let borrower = info.sender;
-
+) -> Result<(Vec<Attribute>, u64), ContractError> {
     // ensure atleas one asset has been provided
     if tokens.is_empty() {
         return Err(ContractError::NoAssets {});
@@ -102,22 +124,6 @@ pub fn list_collaterals(
         _ => Err(ContractError::SenderNotOwner {}),
     })?;
 
-    let fee = info
-        .funds
-        .into_iter()
-        .find(|c| config.listing_fee_coins.contains(c))
-        .unwrap_or_default();
-
-    if !config.listing_fee_coins.contains(&fee) {
-        return Err(ContractError::DepositFeeError {});
-    }
-    // transfer fee to treasury_addr
-    let transfer_fee: CosmosMsg = BankMsg::Send {
-        to_address: config.treasury_addr.to_string(),
-        amount: vec![fee], // only the fee required
-    }
-    .into();
-
     // We save the collateral info in our internal structure
     // First we update the number of collateral a user has deposited (to make sure the id assigned is unique)
     let loan_id = BORROWER_INFO
@@ -159,11 +165,14 @@ pub fn list_collaterals(
     )?;
 
     // response attributes
-    Ok(Response::new()
-        .add_message(transfer_fee)
-        .add_attribute("action", "deposit_collateral")
-        .add_attribute("borrower", borrower)
-        .add_attribute("loan_id", loan_id.to_string()))
+    Ok((
+        vec![
+            Attribute::new("action", "deposit_collateral"),
+            Attribute::new("borrower", borrower),
+            Attribute::new("loan_id", loan_id.to_string()),
+        ],
+        loan_id,
+    ))
 }
 
 // modify a listing, if possible
@@ -271,7 +280,8 @@ pub fn accept_loan(
     let (global_offer_id, _offer_id) = _make_offer_raw(
         deps.storage,
         env.clone(),
-        info,
+        info.sender,
+        info.funds,
         borrower_addr,
         loan_id,
         terms,
@@ -287,10 +297,12 @@ pub fn accept_loan(
 // It verifies an offer can be made for the current loan
 // It verifies the sent funds match the principle indicated in the terms
 // And then saves the new offer in the internal storage
-fn _make_offer_raw(
+#[allow(clippy::too_many_arguments)]
+pub fn _make_offer_raw(
     storage: &mut dyn Storage,
     env: Env,
-    info: MessageInfo,
+    lender: Addr,
+    sent_funds: Vec<Coin>,
     borrower: Addr,
     loan_id: u64,
     terms: LoanTerms,
@@ -308,9 +320,9 @@ fn _make_offer_raw(
     is_loan_counterable(&collateral)?;
 
     // Make sure the transaction contains funds that match the principle indicated in the terms
-    if info.funds.len() != 1 {
+    if sent_funds.len() != 1 {
         return Err(ContractError::MultipleCoins {});
-    } else if terms.principle != info.funds[0].clone() {
+    } else if terms.principle != sent_funds[0].clone() {
         return Err(ContractError::FundsDontMatchTerms {});
     }
 
@@ -326,7 +338,7 @@ fn _make_offer_raw(
         storage,
         &contract_config.global_offer_index.to_string(),
         &OfferInfo {
-            lender: info.sender,
+            lender,
             borrower,
             loan_id,
             offer_id,
@@ -344,7 +356,7 @@ fn _make_offer_raw(
 }
 
 // internal function that begins actually starts the loanl if possible
-fn _accept_offer_raw(
+pub fn _accept_offer_raw(
     deps: DepsMut,
     env: Env,
     global_offer_id: String,
@@ -499,7 +511,8 @@ pub fn make_offer(
     let (global_offer_id, _offer_id) = _make_offer_raw(
         deps.storage,
         env,
-        info.clone(),
+        info.sender.clone(),
+        info.funds,
         borrower.clone(),
         loan_id,
         terms,

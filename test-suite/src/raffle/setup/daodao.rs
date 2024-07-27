@@ -8,7 +8,7 @@ use cw_multi_test::{Contract, ContractWrapper};
 use cw_utils::Duration;
 use dao_interface::state::{Admin, ModuleInstantiateInfo};
 use dao_pre_propose_single as cpps;
-use dao_voting::deposit::DepositRefundPolicy;
+use dao_voting::deposit::{DepositRefundPolicy, VotingModuleTokenType};
 use dao_voting::deposit::UncheckedDepositInfo;
 use dao_voting::pre_propose::PreProposeInfo;
 use dao_voting::threshold::PercentageThreshold;
@@ -97,13 +97,16 @@ pub fn instantiate_with_staked_balances_governance(
                 pre_propose_info: get_pre_propose_info(
                     app,
                     Some(UncheckedDepositInfo {
-                        denom: dao_voting::deposit::DepositToken::VotingModuleToken {},
+                        denom: dao_voting::deposit::DepositToken::VotingModuleToken {
+                            token_type: VotingModuleTokenType::Native,
+                        },
                         amount: Uint128::new(10_000_000),
                         refund_policy: DepositRefundPolicy::OnlyPassed,
                     }),
                     false,
                 ),
                 close_proposal_on_execution_failure: true,
+                veto: None,
             })
             .unwrap(),
             funds: vec![],

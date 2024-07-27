@@ -3,7 +3,9 @@ use cosmwasm_std::{Coin, Decimal, StdError, StdResult};
 
 use utils::state::{is_valid_name, AssetInfo};
 
-use crate::state::{BorrowerInfo, CollateralInfo, Config, LoanState, LoanTerms, OfferInfo};
+use crate::state::{
+    BorrowerInfo, CollateralInfo, CollectionOfferInfo, Config, LoanState, LoanTerms, OfferInfo,
+};
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -85,7 +87,19 @@ pub enum ExecuteMsg {
     ToggleLock {
         lock: bool,
     },
-    // TODO: Encode empathy
+    /// Collection offers
+    MakeCollectionOffer {
+        collection: String,
+        terms: LoanTerms,
+        comment: Option<String>,
+    },
+    WithdrawCollectionOffer {
+        collection_offer_id: u64,
+    },
+    AcceptCollectionOffer {
+        collection_offer_id: u64,
+        token: AssetInfo,
+    },
     /// Internal state
     SetOwner {
         owner: String,
@@ -148,6 +162,12 @@ pub enum QueryMsg {
         start_after: Option<String>,
         limit: Option<u32>,
     },
+    #[returns(MultipleCollectionOffersResponse)]
+    CollectionOffers {
+        collection: String,
+        start_after: Option<String>,
+        limit: Option<u32>,
+    },
 }
 
 // loan info
@@ -185,6 +205,19 @@ pub struct OfferResponse {
 pub struct MultipleOffersResponse {
     pub offers: Vec<OfferResponse>,
     pub next_offer: Option<String>,
+}
+
+// loan collection offer response
+#[cw_serde]
+pub struct CollectionOfferResponse {
+    pub global_offer_id: String,
+    pub collection_offer_info: CollectionOfferInfo,
+}
+// array of loan terms offer responses
+#[cw_serde]
+pub struct MultipleCollectionOffersResponse {
+    pub offers: Vec<CollectionOfferResponse>,
+    pub next_offer: Option<(String, String)>,
 }
 
 // filters on loan queries

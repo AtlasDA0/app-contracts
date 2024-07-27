@@ -4,3 +4,5 @@ pub mod common_setup;
 mod loan;
 #[cfg(test)]
 mod raffle;
+#[cfg(test)]
+mod trading;
