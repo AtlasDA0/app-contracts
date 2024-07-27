@@ -49,6 +49,7 @@ pub fn create_raffle_function(params: CreateRaffleParams) -> Result<AppResponse,
                 one_winner_per_asset: false,
                 gating_raffle: vec![],
                 min_ticket_number: None,
+                whitelist: None,
             },
             raffle_ticket_price: AssetInfo::Coin(Coin {
                 denom: "ustars".to_string(),
@@ -110,6 +111,7 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> anyhow::Result<()> {
                 one_winner_per_asset: false,
                 gating_raffle: params.gating,
                 min_ticket_number: params.min_ticket_number,
+                whitelist: None,
             },
             raffle_ticket_price: AssetInfo::Coin(Coin {
                 denom: "ustars".to_string(),

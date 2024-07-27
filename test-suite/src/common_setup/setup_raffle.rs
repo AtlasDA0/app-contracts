@@ -4,7 +4,7 @@ use super::{
     app::StargazeApp,
     contract_boxes::contract_fake_nois,
     helpers::setup_block_time,
-    msg::{Cw721, RaffleCodeIds, RaffleContracts},
+    msg::{RaffleCodeIds, RaffleContracts},
     nois_proxy::{self, DEFAULT_RANDOMNESS_SEED, NOIS_AMOUNT, NOIS_DENOM},
     setup_accounts_and_block::setup_accounts,
     setup_minter::common::constants::{
@@ -20,10 +20,7 @@ use crate::common_setup::{
 };
 use cosmwasm_std::{coin, Addr, Coin, Decimal, Uint128};
 use cw_multi_test::{BankSudo, Executor, SudoMsg};
-use raffles::{
-    msg::{InstantiateMsg, NonProfits},
-    state::LocalityConfig,
-};
+use raffles::msg::InstantiateMsg;
 use sg_std::NATIVE_DENOM;
 use vending_factory::state::{ParamsExtension, VendingMinterParams};
 
@@ -118,9 +115,7 @@ pub fn proper_raffle_instantiate_precise(
                 ]
                 .into(),
                 fee_discounts: vec![],
-                locality_config: Some(LocalityConfig {
-                    locality_mint_portion: Decimal::zero(),
-                }),
+                locality_fee: None,
             },
             &[],
             "raffle",
@@ -143,10 +138,6 @@ pub fn proper_raffle_instantiate_precise(
             factory: factory_addr,
             raffle: raffle_contract_addr,
             nois: nois_addr,
-            cw721: Cw721 {
-                addr: None,
-                id: code_ids.sg721_code_id,
-            },
         },
     )
 }

@@ -6,28 +6,27 @@ use cosmwasm_std::{
 use cw20::{Cw20Coin, Cw20CoinVerified};
 use cw_storage_plus::{Item, Map};
 use dao_interface::voting::VotingPowerAtHeightResponse;
+use sg721::{CollectionInfo, RoyaltyInfoResponse};
 use utils::state::{AssetInfo, Locks};
 
 use crate::error::ContractError;
 
 pub const CONFIG_KEY: &str = "config";
 pub const CONFIG: Item<Config> = Item::new(CONFIG_KEY);
+pub const LOCALITY_INFO: Map<u64, LocalityInfo> = Map::new("li");
+pub const LOCALITY_TICKETS: Map<(u64, u32), Addr> = Map::new("lt");
+pub const USER_LOCALITY_TICKETS: Map<(&Addr, u64), u32> = Map::new("ult");
 pub const OLD_CONFIG: Item<OldConfig> = Item::new(CONFIG_KEY);
 pub const MAX_TICKET_NUMBER: u32 = 100000; // The maximum amount of tickets () that can be in a raffle
 pub const MINIMUM_RAFFLE_DURATION: u64 = 1; // default minimum raffle duration, in seconds
-pub const RAFFLE_INFO: Map<u64, RaffleInfo> = Map::new("raffle_info");
-pub const RAFFLE_TICKETS: Map<(u64, u32), Addr> = Map::new("raffle_tickets");
-pub const USER_TICKETS: Map<(&Addr, u64), u32> = Map::new("user_tickets");
-
-pub const LOCALITY_CONFIG: Item<LocalityConfig> = Item::new("lconfig");
-pub const LOCALITY_INFO: Map<u64, LocalityInfo> = Map::new("locality_info");
-pub const LOCALITY_TICKETS: Map<(u64, u32), Addr> = Map::new("locality_tickets");
-pub const USER_LOCALITY_TICKETS: Map<(&Addr, u64), u32> = Map::new("ul_tickets");
+pub const RAFFLE_INFO: Map<u64, RaffleInfo> = Map::new("ri");
+pub const RAFFLE_TICKETS: Map<(u64, u32), Addr> = Map::new("rt");
+pub const STATIC_RAFFLE_CREATION_FEE: u128 = 100; // default static tokens required to create raffle
+pub const USER_TICKETS: Map<(&Addr, u64), u32> = Map::new("ut");
+pub const LOCALITY_ENABLED: Item<bool> = Item::new("le");
 pub const TOKEN_INDEX: Map<u64, u64> = Map::new("tidx");
 
-pub const STATIC_RAFFLE_CREATION_FEE: u128 = 100; // default static tokens required to create raffle
 pub const NFT_TOKEN_LIMIT: u32 = 20;
-pub const INSTANTIATE_SG721_REPLY_ID: u64 = 1;
 
 #[cw_serde]
 pub struct Config {
@@ -54,7 +53,7 @@ pub struct Config {
     /// The expected fee token denomination of the nois_proxy contract
     pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,
-
+    pub locality_fee: Decimal,
     /// Fee discounts applied
     pub fee_discounts: Vec<FeeDiscount>,
 }
@@ -85,29 +84,9 @@ pub struct OldConfig {
 }
 
 #[cw_serde]
-pub struct LocalityConfig {
-    /// % of of each mint sale to route to non_profit chosen
-    pub locality_mint_portion: Decimal,
-}
-
-#[cw_serde]
-pub struct NoisProxy {
-    // The price to pay the proxy for randomness
-    pub price: Coin,
-    // The address of the nois-proxy contract deployed onthe same chain as this contract
-    pub address: Addr,
-}
-
-#[cw_serde]
 pub struct FeeDiscount {
     pub discount: Decimal,
     pub condition: AdvantageOptions,
-}
-
-#[cw_serde]
-pub struct FeeDiscountMsg {
-    pub discount: Decimal,
-    pub condition: AdvantageOptionsMsg,
 }
 
 impl From<FeeDiscount> for FeeDiscountMsg {
@@ -127,27 +106,15 @@ impl FeeDiscountMsg {
         );
         match &self.condition {
             AdvantageOptionsMsg::Cw721Coin {
-                nft_count,
+                nft_count: _,
                 nft_address: _,
-            } => {
-                // discount is per token
-                ensure!(
-                    (self.discount * Decimal::from_ratio(*nft_count, 1u128)) <= Decimal::one(),
-                    StdError::generic_err("Discount should be lower than 100%")
-                );
-            }
+            } => {}
             AdvantageOptionsMsg::Cw20(_) => {}
             AdvantageOptionsMsg::Coin(_) => {}
             AdvantageOptionsMsg::Sg721Token {
-                nft_count,
+                nft_count: _,
                 nft_address: _,
-            } => {
-                // discount is per token
-                ensure!(
-                    (self.discount * Decimal::from_ratio(*nft_count, 1u128)) <= Decimal::one(),
-                    StdError::generic_err("Discount should be lower than 100%")
-                );
-            }
+            } => {}
             AdvantageOptionsMsg::DaoVotingPower { .. } => {}
             AdvantageOptionsMsg::Staking { .. } => {}
         }
@@ -205,6 +172,12 @@ impl FeeDiscount {
     }
 }
 
+#[cw_serde]
+pub struct FeeDiscountMsg {
+    pub discount: Decimal,
+    pub condition: AdvantageOptionsMsg,
+}
+
 impl Config {
     pub fn validate_fee(&self) -> Result<(), StdError> {
         ensure!(
@@ -215,23 +188,20 @@ impl Config {
     }
 }
 
+#[cw_serde]
+pub struct NoisProxy {
+    // The price to pay the proxy for randomness
+    pub price: Coin,
+    // The address of the nois-proxy contract deployed onthe same chain as this contract
+    pub address: Addr,
+}
+
 // RAFFLES
 
 pub fn load_raffle(storage: &dyn Storage, raffle_id: u64) -> StdResult<RaffleInfo> {
     RAFFLE_INFO.load(storage, raffle_id)
 }
 
-#[cw_serde]
-pub struct RaffleInfo {
-    pub owner: Addr,                    // owner/admin of the raffle
-    pub assets: Vec<AssetInfo>,         // assets being raffled off
-    pub raffle_ticket_price: AssetInfo, // cost per ticket
-    pub number_of_tickets: u32,         // number of tickets purchased
-    pub randomness: Option<HexBinary>,  // randomness seed provided by nois_proxy
-    pub winners: Vec<Addr>,             // winner is determined here
-    pub is_cancelled: bool,
-    pub raffle_options: RaffleOptions,
-}
 #[cw_serde]
 pub struct LocalityInfo {
     /// owner of locality instance
@@ -266,6 +236,7 @@ pub struct LocalityOptions {
     /// timeframe from mint start until end
     pub duration: u64,
 }
+
 #[cw_serde]
 pub enum LocalityState {
     Created,
@@ -275,6 +246,19 @@ pub enum LocalityState {
     Cancelled,
     SoldOut,
 }
+
+#[cw_serde]
+pub struct RaffleInfo {
+    pub owner: Addr,                    // owner/admin of the raffle
+    pub assets: Vec<AssetInfo>,         // assets being raffled off
+    pub raffle_ticket_price: AssetInfo, // cost per ticket
+    pub number_of_tickets: u32,         // number of tickets purchased
+    pub randomness: Option<HexBinary>,  // randomness seed provided by nois_proxy
+    pub winners: Vec<Addr>,             // winner is determined here
+    pub is_cancelled: bool,
+    pub raffle_options: RaffleOptions,
+}
+
 #[cw_serde]
 pub enum RaffleState {
     Created,
@@ -353,16 +337,6 @@ pub fn get_locality_state(env: &Env, locality_info: &LocalityInfo) -> LocalitySt
     }
 }
 
-// increments the token index for each new locality collection
-pub fn increment_token_index(store: &mut dyn Storage, locality_id: u64) -> StdResult<u64> {
-    let val = TOKEN_INDEX
-        .may_load(store, locality_id.clone())?
-        .unwrap_or_default()
-        + 1;
-    TOKEN_INDEX.save(store, locality_id, &val)?;
-    Ok(val)
-}
-
 #[cw_serde]
 pub struct RaffleOptions {
     pub raffle_start_timestamp: Timestamp, // If not specified, starts immediately
@@ -373,8 +347,28 @@ pub struct RaffleOptions {
     pub raffle_preview: u32,               // ?
     pub min_ticket_number: Option<u32>,    // Minimum ticket number for a raffle to close.
     pub one_winner_per_asset: bool, // Allows to set multiple winners per raffle (one per asset)
+    pub whitelist: Option<Vec<Addr>>,
 
     pub gating_raffle: Vec<AdvantageOptions>, // Allows for token gating raffle tickets. Only owners of those tokens can buy raffle tickets
+}
+
+impl From<RaffleOptions> for RaffleOptionsMsg {
+    fn from(value: RaffleOptions) -> Self {
+        Self {
+            raffle_start_timestamp: Some(value.raffle_start_timestamp),
+            raffle_duration: Some(value.raffle_duration),
+            comment: value.comment,
+            max_ticket_number: value.max_ticket_number,
+            max_ticket_per_address: value.max_ticket_per_address,
+            raffle_preview: Some(value.raffle_preview),
+            one_winner_per_asset: value.one_winner_per_asset,
+            min_ticket_number: value.min_ticket_number,
+            gating_raffle: value.gating_raffle.into_iter().map(Into::into).collect(),
+            whitelist: value
+                .whitelist
+                .map(|v| v.into_iter().map(Into::into).collect()),
+        }
+    }
 }
 
 #[cw_serde]
@@ -529,6 +523,7 @@ pub struct RaffleOptionsMsg {
     pub raffle_preview: Option<u32>,
     pub one_winner_per_asset: bool,
     pub min_ticket_number: Option<u32>,
+    pub whitelist: Option<Vec<String>>,
 
     pub gating_raffle: Vec<AdvantageOptionsMsg>,
 }
@@ -689,6 +684,14 @@ impl RaffleOptions {
             } else {
                 raffle_options.min_ticket_number
             },
+            whitelist: raffle_options
+                .whitelist
+                .map(|v| {
+                    v.into_iter()
+                        .map(|a| api.addr_validate(&a))
+                        .collect::<Result<Vec<_>, _>>()
+                })
+                .transpose()?,
 
             gating_raffle: raffle_options
                 .gating_raffle
@@ -743,6 +746,14 @@ impl RaffleOptions {
             } else {
                 raffle_options.min_ticket_number
             },
+            whitelist: raffle_options
+                .whitelist
+                .map(|v| {
+                    v.into_iter()
+                        .map(|a| api.addr_validate(&a))
+                        .collect::<Result<Vec<_>, _>>()
+                })
+                .transpose()?,
 
             gating_raffle: raffle_options
                 .gating_raffle
@@ -751,4 +762,54 @@ impl RaffleOptions {
                 .collect::<Result<Vec<_>, _>>()?,
         })
     }
+}
+
+/// params for how the locality instance functions
+#[cw_serde]
+pub struct CreateLocalityParams {
+    pub init_msg: LocalityMinterParams,
+    pub collection_params: CollectionParams,
+}
+
+/// msg for creating new collection minter.
+#[cw_serde]
+pub struct LocalityMinterParams {
+    /// the time trading will be available
+    pub start_time: Timestamp,
+    /// number of tokens of the new collection that will be minted
+    pub num_tokens: u32,
+    /// price of token(ticket) for minting
+    pub mint_price: Coin,
+    /// number of ticket able for purchase
+    pub max_tickets: Option<u32>,
+    /// number of tickets an address can purchase
+    pub per_address_limit: Option<u32>,
+    /// length in seconds of the minting timeframe
+    pub duration: u64,
+    /// frequency in blocks for the minting of new tokens
+    pub frequency: u64,
+    /// number of winners determined in phase alignment
+    pub harmonics: u32,
+    /// address for routing payments
+    pub payment_address: Option<String>,
+    // pub whitelist: Option<String>,
+}
+
+/// params for collection to be minted
+#[cw_serde]
+pub struct CollectionParams {
+    pub code_id: u64,
+    pub name: String,
+    pub symbol: String,
+    pub info: CollectionInfo<RoyaltyInfoResponse>,
+}
+
+// increments the token index for each new locality collection
+pub fn increment_token_index(store: &mut dyn Storage, locality_id: u64) -> StdResult<u64> {
+    let val = TOKEN_INDEX
+        .may_load(store, locality_id.clone())?
+        .unwrap_or_default()
+        + 1;
+    TOKEN_INDEX.save(store, locality_id, &val)?;
+    Ok(val)
 }

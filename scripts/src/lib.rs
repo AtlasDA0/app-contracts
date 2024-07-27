@@ -1,9 +1,11 @@
-use cw_orch::daemon::{ChainInfo, ChainKind, NetworkInfo};
+use cw_orch::environment::{ChainInfo, ChainKind, NetworkInfo};
 
+pub mod loans;
 pub mod raffles;
+pub mod infuser;
 
 pub const STARGAZE_NETWORK: NetworkInfo = NetworkInfo {
-    id: "stargaze",
+    chain_name: "stargaze",
     pub_address_prefix: "stars",
     coin_type: 118u32,
 };

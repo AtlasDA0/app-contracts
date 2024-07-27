@@ -1,4 +1,4 @@
-use cosmwasm_std::{StdError, Uint128};
+use cosmwasm_std::{CoinsError, StdError, Uint128};
 use thiserror::Error;
 
 use crate::state::{LoanState, OfferState};
@@ -7,6 +7,9 @@ use crate::state::{LoanState, OfferState};
 pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
+
+    #[error("{0}")]
+    Coins(#[from] CoinsError),
 
     #[error("Unreachable error")]
     Unreachable {},

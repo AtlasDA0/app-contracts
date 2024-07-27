@@ -53,6 +53,7 @@ mod tests {
                         raffle_preview: None,
                         one_winner_per_asset: true,
                         min_ticket_number: None,
+                        whitelist: None,
                         gating_raffle: vec![],
                     },
                     raffle_ticket_price: AssetInfo::Coin(Coin {
@@ -169,6 +170,7 @@ mod tests {
                         raffle_preview: None,
                         one_winner_per_asset: true,
                         min_ticket_number: None,
+                        whitelist: None,
                         gating_raffle: vec![],
                     },
                     raffle_ticket_price: AssetInfo::Coin(Coin {
@@ -291,6 +293,7 @@ mod tests {
                         raffle_preview: None,
                         one_winner_per_asset: true,
                         min_ticket_number: None,
+                        whitelist: None,
                         gating_raffle: vec![],
                     },
                     raffle_ticket_price: AssetInfo::Coin(Coin {

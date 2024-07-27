@@ -7,7 +7,7 @@ mod tests {
         error::ContractError,
         msg::{ConfigResponse, ExecuteMsg, QueryMsg as RaffleQueryMsg},
     };
-    use utils::state::{AssetInfo, Locks, Sg721Token, SudoMsg as RaffleSudoMsg, NATIVE_DENOM};
+    use utils::state::{AssetInfo, Locks, Sg721Token, RaffleSudoMsg, NATIVE_DENOM};
 
     use crate::{
         common_setup::{
@@ -110,6 +110,7 @@ mod tests {
                     creation_coins: None,
                     max_tickets_per_raffle: None,
                     fee_discounts: None,
+                    locality_config: None,
                 },
                 &[],
             )
@@ -169,6 +170,7 @@ mod tests {
                     creation_coins: Some(vec![coin(420, "new-new")]),
                     max_tickets_per_raffle: None,
                     fee_discounts: None,
+                    locality_config: None,
                 },
                 &[],
             )

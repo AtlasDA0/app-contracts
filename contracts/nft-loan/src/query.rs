@@ -9,6 +9,7 @@ use sg721_base::QueryMsg as Sg721QueryMsg;
 
 use crate::{
     error::ContractError,
+    lender_offer::lender_offers,
     msg::{
         CollateralResponse,
         MultipleCollateralsAllResponse,
@@ -18,14 +19,14 @@ use crate::{
         // QueryFilters,
     },
     state::{
-        get_actual_state, get_offer, lender_offers, BorrowerInfo, CollateralInfo, Config,
-        BORROWER_INFO, COLLATERAL_INFO, CONFIG,
+        get_actual_state, get_offer, BorrowerInfo, CollateralInfo, Config, BORROWER_INFO,
+        COLLATERAL_INFO, CONFIG,
     },
 };
 
 // settings for pagination
-const MAX_QUERY_LIMIT: u32 = 150;
-const DEFAULT_QUERY_LIMIT: u32 = 10;
+pub const MAX_QUERY_LIMIT: u32 = 150;
+pub const DEFAULT_QUERY_LIMIT: u32 = 10;
 
 pub fn query_config(deps: Deps) -> StdResult<Config> {
     CONFIG.load(deps.storage)

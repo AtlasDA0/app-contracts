@@ -1,34 +1,35 @@
-use crate::state::{FeeDiscount, FeeDiscountMsg, LocalityConfig, LocalityInfo, LocalityState, RaffleInfo, RaffleOptionsMsg, RaffleState};
+use crate::state::{
+    CreateLocalityParams, FeeDiscount, FeeDiscountMsg, LocalityInfo, LocalityState, RaffleInfo, RaffleOptionsMsg, RaffleState
+};
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Coin, Decimal, HexBinary, StdError, StdResult, Timestamp};
+use cosmwasm_std::{Coin, Decimal, HexBinary, StdError, StdResult};
 use nois::NoisCallback;
-use sg721::{CollectionInfo, RoyaltyInfoResponse};
 use utils::state::{is_valid_name, AssetInfo, Locks};
 
-
-#[cw_serde]pub struct InstantiateMsg {
-    /// Name of the raffle contract
+#[cw_serde]
+pub struct InstantiateMsg {
+    // Name of the raffle contract
     pub name: String,
-    /// Address of the nois_proxy
+    // Address of the nois_proxy
     pub nois_proxy_addr: String,
-    /// Coin expected for the randomness source
+    // Coin expected for the randomness source
     pub nois_proxy_coin: Coin,
-    /// Admin of Contract
+    // Admin of Contract
     pub owner: Option<String>,
-    /// Destination of Fee Streams
+    // Destination of Fee Streams
     pub fee_addr: Option<String>,
-    /// Minimum lifecycle length of raffle
+    // Minimum lifecycle length of raffle
     pub minimum_raffle_duration: Option<u64>,
-    /// Maximum participant limit for a raffle
+    // Maximum participant limit for a raffle
     pub max_ticket_number: Option<u32>,
-    /// % fee of raffle ticket sales to fee_addr
+    // % fee of raffle ticket sales to fee_addr
     pub raffle_fee: Decimal,
-    /// coins able to be used to create a new raffle
+    /// Coins required for creating a raffle
     pub creation_coins: Option<Vec<Coin>>,
-    /// % discount on fees based on AdvantageOptionsMsg
+    /// Various discount scenarios for raffle participants
     pub fee_discounts: Vec<FeeDiscountMsg>,
     /// global params for locality instances
-    pub locality_config: Option<LocalityConfig>,
+    pub locality_fee: Option<Decimal>,
 }
 
 impl InstantiateMsg {
@@ -76,6 +77,7 @@ pub enum ExecuteMsg {
         nois_proxy_coin: Option<Coin>,
         creation_coins: Option<Vec<Coin>>,
         fee_discounts: Option<Vec<FeeDiscountMsg>>,
+        locality_config: Option<Decimal>,
     },
     ModifyRaffle {
         raffle_id: u64,
@@ -101,10 +103,6 @@ pub enum ExecuteMsg {
         ticket_count: u32,
         assets: AssetInfo,
     },
-    // MintLocality {
-    //     id: u64,
-    //     recipient: Option<String>,
-    // },
     // Admin messages
     /// Provide job_id for randomness contract
     UpdateRandomness {
@@ -130,12 +128,6 @@ pub enum QueryMsg {
         limit: Option<u32>,
         filters: Option<QueryFilters>,
     },
-    #[returns(AllLocalitiesResponse)]
-    AllLocalities {
-        start_after: Option<u64>,
-        limit: Option<u32>,
-        filters: Option<QueryFilters>,
-    },
     #[returns(Vec<String>)]
     AllTickets {
         raffle_id: u64,
@@ -146,57 +138,6 @@ pub enum QueryMsg {
     TicketCount { owner: String, raffle_id: u64 },
 }
 
-#[cw_serde]
-pub struct RaffleMinterCreateMsg {
-
-}
-
-/// params for collection to be minted
-#[cw_serde]
-pub struct CollectionParams {
-pub code_id: u64,
-pub name: String,
-pub symbol: String,
-pub info: CollectionInfo<RoyaltyInfoResponse>
-}
-
-/// msg for creating new collection minter.
-#[cw_serde]
-pub struct LocalityMinterParams {
-    /// the time trading will be available 
-    pub start_time: Timestamp,
-    /// number of tokens of the new collection that will be minted
-    pub num_tokens: u32,
-    /// price of token(ticket) for minting
-    pub mint_price: Coin,
-    /// number of ticket able for purchase
-    pub max_tickets: Option<u32>,
-    /// number of tickets an address can purchase
-    pub per_address_limit: Option<u32>,
-    /// length in seconds of the minting timeframe
-    pub duration: u64,
-    /// frequency in blocks for the minting of new tokens
-    pub frequency: u64,
-    /// number of winners determined in phase alignment
-    pub harmonics: u32,
-    /// address for routing payments
-    pub payment_address: Option<String>,
-    // pub whitelist: Option<String>,
-}
-
-/// params for how the locality instance functions
-#[cw_serde]
-pub struct CreateLocalityParams {
- pub init_msg: LocalityMinterParams,
- pub collection_params: CollectionParams,
-}
-
-
-#[cw_serde]
-pub struct NonProfits {
-    pub id: String,
-    pub addr: String,
-}
 #[cw_serde]
 pub struct QueryFilters {
     pub states: Option<Vec<String>>,
@@ -212,13 +153,10 @@ pub struct ConfigResponse {
     pub owner: String,
     pub fee_addr: String,
     pub last_raffle_id: u64,
-    pub minimum_raffle_duration: u64,
-    /// The minimum interval in which users can buy raffle tickets
+    pub minimum_raffle_duration: u64, // The minimum interval in which users can buy raffle tickets
     pub max_tickets_per_raffle: Option<u32>,
-    pub raffle_fee: Decimal,
-    /// The percentage of the resulting ticket-tokens that will go to the treasury
-    pub locks: Locks,
-    /// Wether the contract can accept new raffles
+    pub raffle_fee: Decimal, // The percentage of the resulting ticket-tokens that will go to the treasury
+    pub locks: Locks,        // Wether the contract can accept new raffles
     pub nois_proxy_addr: String,
     pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,
@@ -237,18 +175,7 @@ pub struct RaffleResponse {
     pub raffle_state: RaffleState,
     pub raffle_info: Option<RaffleInfo>,
 }
-#[cw_serde]
-pub struct LocalityResponse {
-    pub id: u64,
-    pub state: LocalityState,
-    pub info: LocalityInfo,
-    pub frequency: u64,
-}
 
-#[cw_serde]
-pub struct AllLocalitiesResponse {
-    pub localities: Vec<LocalityResponse>,
-}
 #[cw_serde]
 pub struct AllRafflesResponse {
     pub raffles: Vec<RaffleResponse>,
@@ -271,13 +198,17 @@ pub struct IsClaimedResponse {
 }
 
 #[cw_serde]
-pub struct MigrateMsg {
-    pub fee_discounts: Vec<FeeDiscountMsg>,
+pub struct AllLocalitiesResponse {
+    pub localities: Vec<LocalityResponse>,
 }
 
 #[cw_serde]
-pub enum SudoMsg {
-    ToggleLock { lock: bool },
-    BeginBlock {},
-    EndBlock {},
+pub struct LocalityResponse {
+    pub id: u64,
+    pub state: LocalityState,
+    pub info: LocalityInfo,
+    pub frequency: u64,
 }
+
+#[cw_serde]
+pub struct MigrateMsg {}

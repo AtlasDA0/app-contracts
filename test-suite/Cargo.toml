@@ -45,17 +45,22 @@ nft-loans-nc = { path = "../contracts/nft-loan", features = ["vanilla", "sg"] }
 utils = { path = "../packages/utils" }
 
 #  For gating
-dao-proposal-single = "2.3.0"
-cw20 = "1.1.2"
-dao-interface = "2.3.0"
-dao-voting-cw20-staked = "2.3.0"
-cw20-base = "1.1.2"
-cw20-stake = "2.3.0"
-dao-dao-core = "2.3.0"
+dao-dao-core            = "2.4.0"
+dao-interface           = "2.4.0"
+dao-proposal-single     = "2.4.0"
+dao-voting-cw20-staked  = "2.4.0"
+dao-voting              = "2.4.0"
+cw20-stake              = "2.4.2"
+dao-pre-propose-single  = "2.4.0"
+cw20= { workspace = true }
+cw20-base = { workspace = true }
 cw-utils.workspace = true
-dao-voting = "2.3.0"
-dao-pre-propose-single = "2.3.0"
 hex = "0.4.3"
+cw-orch = { version = "0.23.0", features = ["daemon"] }
+p2p-trading = { version = "0.9.0", path = "../contracts/p2p-trading" }
+p2p-trading-export = { version = "0.1.0", path = "../packages/p2p-trading" }
+cw-orch-clone-testing = "0.5.2"
+cw721-base = { git = "https://github.com/AbstractSDK/cw-nfts", version = "0.18.0" }
 
 [dev-dependencies]
 rand = "0.8.5"

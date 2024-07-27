@@ -18,6 +18,27 @@
     {
       "type": "object",
       "required": [
+        "fee_discount"
+      ],
+      "properties": {
+        "fee_discount": {
+          "type": "object",
+          "required": [
+            "user"
+          ],
+          "properties": {
+            "user": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
         "raffle_info"
       ],
       "properties": {

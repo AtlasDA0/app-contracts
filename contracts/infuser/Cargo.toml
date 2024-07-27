@@ -1,0 +1,58 @@
+[package]
+name = "cw-infuser"
+version = "0.1.0"
+authors = ["hard-nett <hardnettt@proton.me>"]
+edition = "2021"
+
+exclude = ["scripts"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+panic = 'abort'
+incremental = false
+overflow-checks = true
+
+[features]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+
+[package.metadata.scripts]
+optimize = """docker run --rm -v "$(pwd)":/code \
+  --mount type=volume,source="$(basename "$(pwd)")_cache",target=/target \
+  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
+  cosmwasm/optimizer:0.15.0
+"""
+
+[dependencies]
+cosmwasm-schema       = { workspace = true }
+cosmwasm-std          = { workspace = true, features = [
+  "cosmwasm_1_4",
+  # Enable this if you only deploy to chains that have CosmWasm 2.0 or higher
+  # "cosmwasm_2_0",
+] }
+cw-asset              = { workspace = true }
+cw-storage-plus       = { workspace = true }
+cw2                   = { workspace = true }
+cw-orch               = { workspace = true }
+abstract-cw20         = { workspace = true }
+abstract-cw20-base    = { workspace = true }
+cw721                 = { workspace = true }
+cw721-base            = { workspace = true, features = ["library"] }
+schemars              = { workspace = true }
+sha2                  = { workspace = true, default-features = false }
+serde                 = { workspace = true, default-features = false, features = ["derive"] }
+thiserror             = { workspace = true }
+cw-controllers         = { version = "1.1.2" }
+
+[dev-dependencies]
+cw-multi-test = "1.2.0"

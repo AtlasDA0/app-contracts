@@ -1,6 +1,5 @@
 use cosmwasm_std::{
-    to_json_binary, Addr, Decimal, Deps, DepsMut, Env, Order, QueryRequest, StdError, StdResult,
-    Storage, WasmQuery,
+    to_json_binary, Addr, Decimal, Deps, Env, Order, QueryRequest, StdError, StdResult, WasmQuery,
 };
 use cw721::{Cw721QueryMsg, OwnerOfResponse};
 use cw_storage_plus::Bound;
@@ -8,7 +7,6 @@ use cw_storage_plus::Bound;
 use filters::locality_state_filter;
 #[cfg(feature = "sg")]
 use sg721_base::QueryMsg as Sg721QueryMsg;
-use utils::types::CosmosMsg;
 
 mod filters;
 
@@ -20,7 +18,7 @@ use crate::{
     },
     state::{
         get_locality_state, get_raffle_state, load_raffle, LocalityInfo, RaffleInfo, RaffleState,
-        CONFIG, LOCALITY_INFO, LOCALITY_TICKETS, RAFFLE_INFO, RAFFLE_TICKETS, USER_TICKETS,
+        CONFIG, LOCALITY_INFO, RAFFLE_INFO, RAFFLE_TICKETS, USER_TICKETS,
     },
     utils::get_raffle_winners,
 };
@@ -170,24 +168,6 @@ fn parse_raffles(
         })
 }
 
-// parse localities to human readable format
-fn parse_localities(
-    deps: Deps,
-    env: &Env,
-    item: StdResult<(u64, LocalityInfo)>,
-) -> Result<LocalityResponse, ContractError> {
-    item.map_err(Into::into).and_then(|(id, mut info)| {
-        let state = get_locality_state(env, &info.clone());
-        // add_raffle_winners(deps, env, raffle_id, &mut raffle)?;
-        Ok(LocalityResponse {
-            id,
-            state,
-            info: info.clone(),
-            frequency: info.frequency,
-        })
-    })
-}
-
 /// Query all ticket onwers within a raffle
 ///
 pub fn query_all_tickets(
@@ -207,6 +187,7 @@ pub fn query_all_tickets(
         .take(limit)
         .collect()
 }
+
 pub fn query_all_raffles_raw(
     deps: Deps,
     env: Env,
@@ -270,6 +251,24 @@ pub fn query_all_localities_raw(
     Ok(AllLocalitiesResponse { localities })
 }
 
+// parse localities to human readable format
+fn parse_localities(
+    deps: Deps,
+    env: &Env,
+    item: StdResult<(u64, LocalityInfo)>,
+) -> Result<LocalityResponse, ContractError> {
+    item.map_err(Into::into).and_then(|(id, mut info)| {
+        let state = get_locality_state(env, &info.clone());
+        // add_raffle_winners(deps, env, raffle_id, &mut raffle)?;
+        Ok(LocalityResponse {
+            id,
+            state,
+            info: info.clone(),
+            frequency: info.frequency,
+        })
+    })
+}
+
 pub fn raffle_filter(
     deps: Deps,
     env: Env,
@@ -285,6 +284,7 @@ pub fn raffle_filter(
         true
     }
 }
+
 pub fn locality_filter(
     deps: Deps,
     env: Env,
