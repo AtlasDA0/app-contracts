@@ -53,7 +53,7 @@ impl InstantiateMsg {
 #[cw_serde]
 #[derive(cw_orch::ExecuteFns)]
 pub enum ExecuteMsg {
-    #[payable]
+    #[cw_orch(payable)]
     CreateRaffle {
         owner: Option<String>,
         assets: Vec<AssetInfo>,
@@ -84,7 +84,7 @@ pub enum ExecuteMsg {
         raffle_ticket_price: Option<AssetInfo>,
         raffle_options: RaffleOptionsMsg,
     },
-    #[payable]
+    #[cw_orch(payable)]
     BuyTicket {
         raffle_id: u64,
         ticket_count: u32,
@@ -95,9 +95,11 @@ pub enum ExecuteMsg {
     NoisReceive {
         callback: NoisCallback,
     },
+    #[cw_orch(payable)]
     CreateLocality {
         locality_params: CreateLocalityParams,
     },
+    #[cw_orch(payable)]
     PurchaseLocalityTicket {
         id: u64,
         ticket_count: u32,
