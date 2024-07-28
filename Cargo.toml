@@ -23,7 +23,7 @@ cw20-base = "1.1.2"
 cw721 = "0.18.0"
 cw721-base = "0.18.0"
 cw-asset = { version = "3.0.0" }
-cw-orch = { version = "0.22.2" }
+cw-orch = { version = "0.24.1" }
 cw-multi-test = "0.16.0"
 dao-interface = "2.4.2"
 nois = "0.8.0"
