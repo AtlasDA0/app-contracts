@@ -28,7 +28,7 @@ serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.23" }
 strum = "0.24"
 strum_macros = "0.24"
-cw-orch = "0.23.0"
+cw-orch               = { workspace = true }
 utils = { version = "0.1.0", path = "../utils" }
 
 [dev-dependencies]

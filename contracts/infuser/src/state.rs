@@ -24,11 +24,11 @@ pub struct Infusion {
     pub infusion_id: u64,
 }
 
-pub const CONFIG: Item<Config> = Item::new("config");
-pub const COUNT: Item<i32> = Item::new("count");
-pub const INFUSION: Map<(Addr, u64), Infusion> = Map::new("infusion");
-pub const INFUSION_ID: Map<u64, (Addr, u64)> = Map::new("infusion_id");
-pub const INFUSION_INFO: Map<&Addr, InfusionInfo> = Map::new("infusion_info");
+pub const CONFIG: Item<Config> = Item::new("cfg");
+pub const COUNT: Item<i32> = Item::new("cnt");
+pub const INFUSION: Map<(Addr, u64), Infusion> = Map::new("i");
+pub const INFUSION_ID: Map<u64, (Addr, u64)> = Map::new("iid");
+pub const INFUSION_INFO: Map<&Addr, InfusionInfo> = Map::new("ii");
 
 #[cosmwasm_schema::cw_serde]
 pub struct InfusionParams {
