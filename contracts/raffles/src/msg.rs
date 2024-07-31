@@ -100,7 +100,7 @@ pub enum ExecuteMsg {
         locality_params: CreateLocalityParams,
     },
     #[cw_orch(payable)]
-    PurchaseLocalityTicket {
+    BuyLocalityTicket {
         id: u64,
         ticket_count: u32,
         assets: AssetInfo,
@@ -141,6 +141,8 @@ pub enum QueryMsg {
     },
     #[returns(u32)]
     TicketCount { owner: String, raffle_id: u64 },
+    #[returns(bool)]
+    InPhase { locality: u64},
 }
 
 #[cw_serde]

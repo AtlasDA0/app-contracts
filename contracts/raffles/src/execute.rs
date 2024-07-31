@@ -21,10 +21,10 @@ use crate::{
     msg::{AllLocalitiesResponse, ExecuteMsg, LocalityResponse, QueryFilters},
     query::{is_nft_owner, query_all_localities_raw},
     state::{
-        get_raffle_state, CreateLocalityParams, FeeDiscountMsg, LocalityInfo,
-        LocalityOptions, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState, CONFIG,
-        LOCALITY_ENABLED, LOCALITY_INFO, LOCALITY_TICKETS, MINIMUM_RAFFLE_DURATION, RAFFLE_INFO,
-        RAFFLE_TICKETS, USER_LOCALITY_TICKETS, USER_TICKETS,
+        get_raffle_state, CreateLocalityParams, FeeDiscountMsg, LocalityInfo, LocalityOptions,
+        RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState, CONFIG, LOCALITY_ENABLED,
+        LOCALITY_INFO, LOCALITY_TICKETS, MINIMUM_RAFFLE_DURATION, RAFFLE_INFO, RAFFLE_TICKETS,
+        USER_LOCALITY_TICKETS, USER_TICKETS,
     },
     utils::{
         buyer_can_buy_locality_ticket, buyer_can_buy_ticket, can_buy_locality_ticket,
@@ -497,14 +497,14 @@ pub fn _buy_locality_tickets(
     };
 
     // Then we check there are some ticket left to buy
-    if let Some(max_ticket_number) = locality_info.locality_options.max_ticket_number {
-        if locality_info.number_of_tickets + ticket_count > max_ticket_number {
-            return Err(ContractError::TooMuchTickets {
-                max: max_ticket_number,
-                nb_before: locality_info.number_of_tickets,
-                nb_after: locality_info.number_of_tickets + ticket_count,
-            });
-        }
+
+    if locality_info.number_of_tickets + ticket_count > locality_info.locality_options.total_to_mint
+    {
+        return Err(ContractError::TooMuchTickets {
+            max: locality_info.locality_options.total_to_mint,
+            nb_before: locality_info.number_of_tickets,
+            nb_after: locality_info.number_of_tickets + ticket_count,
+        });
     };
 
     // Then we save the sender to the bought tickets
@@ -526,14 +526,10 @@ pub fn _buy_locality_tickets(
     locality_info.number_of_tickets += ticket_count;
 
     let nois_message =
-        if let Some(max_ticket_number) = locality_info.locality_options.max_ticket_number {
-            if locality_info.number_of_tickets >= max_ticket_number {
-                locality_info.locality_options.duration = env.block.time.seconds()
-                    - locality_info.locality_options.start_timestamp.seconds();
-                Some(get_nois_randomness(deps.as_ref(), locality_id)?)
-            } else {
-                None
-            }
+        if locality_info.number_of_tickets >= locality_info.locality_options.total_to_mint {
+            locality_info.locality_options.duration =
+                env.block.time.seconds() - locality_info.locality_options.start_timestamp.seconds();
+            Some(get_nois_randomness(deps.as_ref(), locality_id)?)
         } else {
             None
         };
@@ -879,9 +875,10 @@ pub fn execute_create_locality(
             locality_options: LocalityOptions {
                 gating_locality: vec![],
                 duration: msg.init_msg.duration,
-                max_ticket_number: msg.init_msg.max_tickets,
+                ticket_limit: msg.init_msg.ticket_limit,
                 max_ticket_per_address: msg.init_msg.per_address_limit,
                 start_timestamp: msg.init_msg.start_time,
+                total_to_mint: msg.init_msg.num_tokens,
             },
         },
     )?;
@@ -1079,10 +1076,11 @@ pub fn execute_sudo_toggle_lock(
 
 pub fn handle_cron(mut deps: DepsMut, env: Env) -> Result<Response, ContractError> {
     let res = Response::new();
-    // let mut msgs = vec![];
+    let mut msgs = vec![];
 
     // get all active localities
-    println!("get all active localities");
+    // println!("get all active localities");
+
     let info: AllLocalitiesResponse = query_all_localities_raw(
         deps.as_ref(),
         env.clone(),
@@ -1097,29 +1095,27 @@ pub fn handle_cron(mut deps: DepsMut, env: Env) -> Result<Response, ContractErro
         }),
     )?;
 
-    println!("{:#?}", info.localities);
-    println!("Block height: {:#?}", env.block.height);
+    // println!("{:#?}", info.localities);
+    // println!("Block height: {:#?}", env.block.height);
+    // println!("filters for each locality in phase for minting");
 
-    println!("filters for each locality in phase for minting");
     for locality in info.localities {
-        let in_phase = determine_phase_alignment(env.clone(), locality.clone());
+        let in_phase = determine_phase_alignment(env.clone(), locality.clone().frequency);
 
         if in_phase {
-            println!("determine winners & return mint msgs");
+            // println!("determine winners & return mint msgs");
             let messages =
                 get_locality_minters(deps.branch(), &env, locality.id, locality.info.clone())?;
             // println!("{:?}", messages);
-            // msgs.extend(messages);
+            msgs.extend(messages);
         }
     }
 
-    Ok(
-        res, // .add_messages(msgs)
-    )
+    Ok(res.add_messages(msgs))
 }
 
-fn determine_phase_alignment(env: Env, instance: LocalityResponse) -> bool {
-    if env.block.height % instance.frequency != 0 {
+pub fn determine_phase_alignment(env: Env, freq: u64) -> bool {
+    if env.block.height % freq != 0 {
         return false;
     }
     true

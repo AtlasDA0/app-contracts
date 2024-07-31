@@ -225,10 +225,12 @@ pub struct LocalityInfo {
 
 #[cw_serde]
 pub struct LocalityOptions {
+    /// total
+    pub total_to_mint: u32,
     /// various options for advantages on localities
     pub gating_locality: Vec<AdvantageOptions>,
     /// max amount of tickets able to be purchased
-    pub max_ticket_number: Option<u32>,
+    pub ticket_limit: bool,
     /// max amount of tickets able to bought per address
     pub max_ticket_per_address: Option<u32>,
     /// start of minting for locality instance.
@@ -780,8 +782,8 @@ pub struct LocalityMinterParams {
     pub num_tokens: u32,
     /// price of token(ticket) for minting
     pub mint_price: Coin,
-    /// number of ticket able for purchase
-    pub max_tickets: Option<u32>,
+    /// if maximum tickets available should be the number of possible tokens
+    pub ticket_limit: bool,
     /// number of tickets an address can purchase
     pub per_address_limit: Option<u32>,
     /// length in seconds of the minting timeframe

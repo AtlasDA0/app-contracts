@@ -1,5 +1,6 @@
 use cosmwasm_std::{
-    coin, ensure, ensure_eq, entry_point, to_json_binary, Decimal, Deps, DepsMut, Env, MessageInfo, QueryResponse, Reply, StdResult, Uint128
+    coin, ensure, ensure_eq, entry_point, to_json_binary, Decimal, Deps, DepsMut, Env, MessageInfo,
+    QueryResponse, Reply, StdResult, Uint128,
 };
 
 use crate::{
@@ -13,7 +14,7 @@ use crate::{
     msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg, RaffleResponse},
     query::{
         add_raffle_winners, query_all_raffles, query_all_tickets, query_config, query_discount,
-        query_ticket_count,
+        query_phase_alignment, query_ticket_count,
     },
     state::{
         get_raffle_state, load_raffle, Config, CONFIG, LOCALITY_ENABLED, MAX_TICKET_NUMBER,
@@ -203,7 +204,7 @@ pub fn execute(
         ExecuteMsg::CreateLocality { locality_params } => {
             execute_create_locality(deps, info, env, locality_params)
         }
-        ExecuteMsg::PurchaseLocalityTicket {
+        ExecuteMsg::BuyLocalityTicket {
             id,
             ticket_count,
             assets,
@@ -246,6 +247,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<QueryResponse, Contr
             to_json_binary(&query_ticket_count(deps, env, raffle_id, owner)?)?
         }
         QueryMsg::FeeDiscount { user } => to_json_binary(&query_discount(deps, user)?)?,
+        QueryMsg::InPhase { locality } => {
+            to_json_binary(&query_phase_alignment(deps, env, locality)?)?
+        }
     };
     Ok(response)
 }

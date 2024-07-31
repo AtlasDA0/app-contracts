@@ -12,6 +12,7 @@ mod filters;
 
 use crate::{
     error::ContractError,
+    execute::determine_phase_alignment,
     msg::{
         AllLocalitiesResponse, AllRafflesResponse, ConfigResponse, FeeDiscountResponse,
         LocalityResponse, QueryFilters, RaffleResponse,
@@ -377,4 +378,12 @@ pub fn add_raffle_winners(
     }
 
     Ok(())
+}
+
+pub fn query_phase_alignment(deps: Deps, env: Env, locality: u64) -> StdResult<bool> {
+    let locality = LOCALITY_INFO.load(deps.storage, locality)?;
+    Ok(determine_phase_alignment(
+        env.clone(),
+        locality.clone().frequency,
+    ))
 }
