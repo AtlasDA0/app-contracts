@@ -32,7 +32,6 @@ pub const INFUSION_INFO: Map<&Addr, InfusionInfo> = Map::new("ii");
 
 #[cosmwasm_schema::cw_serde]
 pub struct InfusionParams {
-    pub amount_required: u64,
     pub params: BurnParams,
 }
 
@@ -45,6 +44,9 @@ pub struct NFT {
 #[cosmwasm_schema::cw_serde]
 pub struct NFTCollection {
     pub addr: Addr,
+    /// # of tokens required from this collection
+    pub min_wanted: u64,
+    pub max: Option<u64>,
 }
 
 #[cosmwasm_schema::cw_serde]

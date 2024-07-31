@@ -55,8 +55,8 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::CreateInfusion { collections } => {
-            execute_create_infusion(deps, info, env, collections)
+        ExecuteMsg::CreateInfusion { infusions } => {
+            execute_create_infusion(deps, info, env, infusions)
         }
         ExecuteMsg::Infuse {
             infusion_id,
@@ -85,9 +85,11 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::Infusion { addr, id } => to_json_binary(&query_infusion(deps, addr, id)?),
         QueryMsg::InfusionById { id } => to_json_binary(&query_infusion_by_id(deps, id)?),
         QueryMsg::Infusions { addr } => to_json_binary(&query_infusions(deps, addr)?),
-        QueryMsg::IsInBundle { collection_addr } => {
-            to_json_binary(&query_infusions(deps, collection_addr)?)
-        }
+        QueryMsg::IsInBundle {
+            id,
+            collection_addr,
+        } => to_json_binary(&query_is_in_infusion(deps, id, collection_addr)?),
+        QueryMsg::InfusedCollection { id } => to_json_binary(&query_infused_collection(deps, id)?),
     }
 }
 
@@ -147,27 +149,29 @@ pub fn execute_create_infusion(
     if infusions.len() > config.max_infusions.try_into().unwrap() {
         return Err(ContractError::TooManyInfusions {});
     }
-
-    let collection_checksum = deps
-        .querier
-        .query_wasm_code_info(config.code_id)?
-        .checksum;
+    // creates the infused collection salt via wasm blob checksum to accurately predict address before its instantiated
+    let collection_checksum = deps.querier.query_wasm_code_info(config.code_id)?.checksum;
     let salt1 = generate_instantiate_salt2(&collection_checksum);
 
-    // loop through each infusion
+    // loop through each infusion being created to assert its configuration
     for infusion in infusions {
-        let required = infusion.infusion_params.amount_required;
         // checks # of bundles
         if config.max_bundles < infusion.collections.len().try_into().unwrap() {
-            return Err(ContractError::NotEnoughNFTsInBundle {});
-        }
-        // checks # of nft required per bundle
-        if config.min_per_bundle > required || config.max_per_bundle < required {
-            return Err(ContractError::BadBundle {
-                have: required,
-                min: config.min_per_bundle,
-                max: config.max_per_bundle,
+            return Err(ContractError::TooManyBudlesDefined {
+                want: config.max_bundles,
+                got: infusion.collections.len().try_into().unwrap(),
             });
+        }
+        // check in each nft collections wanted amnt is within contract params
+        for c in infusion.collections.clone() {
+            // checks # of nft required per collection
+            if config.min_per_bundle > c.min_wanted || config.max_per_bundle < c.min_wanted {
+                return Err(ContractError::BadBundle {
+                    have: c.min_wanted,
+                    min: config.min_per_bundle,
+                    max: config.max_per_bundle,
+                });
+            }
         }
 
         // predict the contract address
@@ -221,7 +225,7 @@ pub fn execute_create_infusion(
             code_id: config.code_id,
             msg: to_json_binary(&init_msg)?,
             funds: vec![],
-            label: "Infused collection".to_string() + infusion.infused_collection.name.as_ref(),
+            label: "infused".to_string() + infusion.infused_collection.name.as_ref(),
             salt: salt1.clone(),
         };
 
@@ -320,21 +324,32 @@ fn check_bundles(
     let key = INFUSION_ID.load(storage, id)?;
     let infusion = INFUSION.load(storage, key)?;
 
-    println!(
-        "# sent: {:#?},# needed: {:#?}",
-        bundle.len().to_string(),
-        infusion.infusion_params.amount_required.to_string()
-    );
-
-    // verify correct # of nft's provided
-    if bundle.len().to_string() != infusion.infusion_params.amount_required.to_string() {
-        return Err(ContractError::NotEnoughNFTsInBundle);
-    }
-
     // verify that the bundle is include in i
     for nft in &infusion.collections {
-        if !bundle.iter().any(|b| nft.addr == b.addr.clone()) {
+        let mut count = 0u64;
+
+        bundle.iter().for_each(|t| {
+            if t.addr == nft.addr {
+                count = count + 1;
+            }
+        });
+
+        if count.eq(&0) {
             return Err(ContractError::BundleNotAccepted);
+        }
+
+        if count < nft.min_wanted {
+            return Err(ContractError::NotEnoughNFTsInBundle {
+                a: nft.addr.to_string(),
+            });
+        }
+
+        if let Some(max) = nft.max {
+            if count > max {
+                return Err(ContractError::TooManyNFTsInBundle {
+                    a: nft.addr.to_string(),
+                });
+            }
         }
     }
 
@@ -387,6 +402,22 @@ pub fn query_infusion_by_id(deps: Deps, id: u64) -> StdResult<Infusion> {
     let infusion = INFUSION.load(deps.storage, infuser)?;
     Ok(infusion)
 }
+pub fn query_infused_collection(deps: Deps, id: u64) -> StdResult<InfusedCollection> {
+    let infuser = INFUSION_ID.load(deps.storage, id)?;
+    let infusion = INFUSION.load(deps.storage, infuser)?;
+    Ok(infusion.infused_collection)
+}
+
+pub fn query_is_in_infusion(deps: Deps, id: u64, addr: Addr) -> StdResult<bool> {
+    let infuser = INFUSION_ID.load(deps.storage, id)?;
+    let infusion = INFUSION.load(deps.storage, infuser)?;
+    for nfts in infusion.collections {
+        if nfts.addr == addr {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
 
 pub fn query_infusions(deps: Deps, addr: Addr) -> StdResult<InfusionsResponse> {
     let mut infusions = vec![];
@@ -399,9 +430,7 @@ pub fn query_infusions(deps: Deps, addr: Addr) -> StdResult<InfusionsResponse> {
         infusions.push(state);
     }
 
-    Ok(InfusionsResponse {
-        infusions,
-    })
+    Ok(InfusionsResponse { infusions })
 }
 
 /// Generates the value used with instantiate2, via a hash of the infusers checksum.

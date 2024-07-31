@@ -21,9 +21,13 @@ pub enum ContractError {
 
     #[error("Bundle Not Accepted.")]
     BundleNotAccepted,
+    #[error("You are trying to create an infusion with more bundles than possible for this infusor. want {want}. got {got}")]
+    TooManyBudlesDefined { want: u64, got: u64 },
 
-    #[error("Not enough bundles in nft.")]
-    NotEnoughNFTsInBundle,
+    #[error("Not enough nfts in bundle collection {a}")]
+    NotEnoughNFTsInBundle { a: String },
+    #[error("Too many nfts in bundle")]
+    TooManyNFTsInBundle { a: String },
 
     #[error("Too many infusions specified. Have: {have}. Min: {min}, Max: {max}")]
     BadBundle { have: u64, min: u64, max: u64 },

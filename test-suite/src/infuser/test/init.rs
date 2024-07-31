@@ -1,4 +1,6 @@
-use abstract_cw_multi_test::Contract;
+use std::error::Error;
+
+use abstract_cw_multi_test::{Contract, IntoAddr};
 use cw_infuser::{
     msg::{ExecuteMsgFns, InstantiateMsg, QueryMsgFns},
     state::{
@@ -65,8 +67,6 @@ impl<Chain: CwEnv> InfuserSuite<Chain> {
             )?;
         }
 
-  
-
         // create cw-infsion app
         infuser.instantiate(
             &InstantiateMsg {
@@ -97,6 +97,8 @@ impl<Chain: CwEnv> InfuserSuite<Chain> {
         infuser.create_infusion(vec![Infusion {
             collections: vec![NFTCollection {
                 addr: cw721_a.clone(),
+                min_wanted: 2,
+                max: Some(2),
             }],
             infused_collection: InfusedCollection {
                 addr: Addr::unchecked("test"),
@@ -105,7 +107,6 @@ impl<Chain: CwEnv> InfuserSuite<Chain> {
                 symbol: "TEST".to_string(),
             },
             infusion_params: InfusionParams {
-                amount_required: 2,
                 params: BurnParams {
                     compatible_traits: None,
                 },
@@ -146,8 +147,9 @@ fn successful_install() -> anyhow::Result<()> {
 fn successful_infusion() -> anyhow::Result<()> {
     let env = InfuserSuite::<MockBech32>::setup()?;
     let app = env.infuser;
-    let sender = env.chain.sender();
+    let sender = env.chain.sender_addr();
 
+    // create first infusion.
     app.infuse(
         vec![Bundle {
             nfts: vec![
@@ -164,45 +166,61 @@ fn successful_infusion() -> anyhow::Result<()> {
         0,
     )?;
     // confirm infused collection mint
+    let res = app.infused_collection(0)?;
+    assert_eq!(res.symbol, "TEST");
 
     // error if too few nfts provided in bundle
-    let messages = app.infuse(
-        vec![Bundle {
-            nfts: vec![NFT {
-                addr: env.nfts[0].clone(),
-                token_id: 2,
-            }],
-        }],
-        0,
-    );
-
-    if messages.is_ok() {
-        panic!()
-    }
-    // error if too many nfts provided in bundle
-    let messages = app.infuse(
-        vec![Bundle {
-            nfts: vec![
-                NFT {
+    let err = app
+        .infuse(
+            vec![Bundle {
+                nfts: vec![NFT {
                     addr: env.nfts[0].clone(),
                     token_id: 2,
-                },
-                NFT {
-                    addr: env.nfts[0].clone(),
-                    token_id: 4,
-                },
-                NFT {
-                    addr: env.nfts[0].clone(),
-                    token_id: 6,
-                },
-            ],
-        }],
-        0,
+                }],
+            }],
+            0,
+        )
+        .unwrap_err();
+
+    assert_eq!(
+        err.source().unwrap().to_string(),
+        "Not enough nfts in bundle collection mock1uzyszmsnca8euusre35wuqj4el3hyj8jty84kwln7du5stwwxynsm6wxnq"
     );
 
+    // error if too many nfts provided in bundle
+    let err = app
+        .infuse(
+            vec![Bundle {
+                nfts: vec![
+                    NFT {
+                        addr: env.nfts[0].clone(),
+                        token_id: 2,
+                    },
+                    NFT {
+                        addr: env.nfts[0].clone(),
+                        token_id: 4,
+                    },
+                    NFT {
+                        addr: env.nfts[0].clone(),
+                        token_id: 6,
+                    },
+                ],
+            }],
+            0,
+        )
+        .unwrap_err();
+    assert_eq!(err.source().unwrap().to_string(), "Too many nfts in bundle");
+
     // assert queries
-    let res = app.infusion_by_id(0);
-    println!("{:#?}", res);
+    let res = app.infusion_by_id(0)?;
+    assert_eq!(res.collections.len(), 1);
+    assert_eq!(res.collections[0].min_wanted, 2);
+    assert_eq!(res.infusion_id, 0);
+    assert!(app.is_in_bundle(env.nfts[0].clone(), 0u64)?);
+    assert!(!app.is_in_bundle(
+        "mock1oqklo6g7ca7euusre35wuqj4el3hyj8jty84kwln7du5stwwxyns6h6h3f".into_addr(),
+        0u64
+    )?);
     Ok(())
 }
 

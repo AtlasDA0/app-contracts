@@ -55,4 +55,10 @@ fn test_locality_creation() {
         },
         &[],
     ).unwrap();
+
+    // purchase locality tickets 
+    // check first phase alignment mint works as expected 
+    // more ticket purchasers
+    // check mint while not in phase alignment 
+    // check mint during second phase alignment
 }

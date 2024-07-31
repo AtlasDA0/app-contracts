@@ -5,8 +5,11 @@ use cosmwasm_std::Addr;
 #[cw_serde]
 pub struct InstantiateMsg {
     pub admin: Option<String>,
+    /// Max # of bundles of nft collections in an infusion
     pub max_bundles: Option<u64>,
+    /// Max # of infusion options an infusion may have
     pub max_infusions: Option<u64>,
+    /// Max # of tokens to be required per bundle.
     pub max_token_in_bundle: Option<u64>,
     pub cw721_code_id: u64,
 }
@@ -19,12 +22,10 @@ pub enum ExecuteMsg {
         max_infusions: Option<u64>,
         min_infusions_per_bundle: Option<u64>,
         max_infusions_per_bundle: Option<u64>,
-
     },
     /// Increment count by 1
-    CreateInfusion {
-        collections: Vec<Infusion>,
-    },
+    CreateInfusion { infusions: Vec<Infusion> },
+    // Creates infusion by sending nft tokens
     Infuse {
         infusion_id: u64,
         bundle: Vec<Bundle>,
@@ -47,7 +48,10 @@ pub enum QueryMsg {
     Infusions { addr: Addr },
     /// boolean if collection address is in bundle
     #[returns(bool)]
-    IsInBundle { collection_addr: Addr },
+    IsInBundle { id: u64, collection_addr: Addr },
+    /// returns an infused collection address for a given infusion id.
+    #[returns(InfusedCollection)]
+    InfusedCollection { id: u64 },
 }
 
 #[cosmwasm_schema::cw_serde]
