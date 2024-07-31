@@ -1,15 +1,31 @@
-use crate::common_setup::{
-    app::StargazeApp, setup_accounts_and_block::setup_accounts,
-    setup_minter::common::constants::OWNER_ADDR, setup_raffle::proper_raffle_instantiate,
+use crate::raffle::tests::locality::nois_proxy::TEST_NOIS_PREFIX;
+use crate::{
+    common_setup::{
+        app::StargazeApp,
+        nois_proxy::{self, NOIS_AMOUNT, NOIS_DENOM},
+        setup_accounts_and_block::setup_accounts,
+        setup_minter::common::constants::{
+            CREATION_FEE_AMNT_NATIVE, CREATION_FEE_AMNT_STARS, OWNER_ADDR, RAFFLE_NAME,
+            TREASURY_ADDR,
+        },
+        setup_raffle::proper_raffle_instantiate,
+    },
+    raffle::setup::helpers::send_nois_ibc_message,
 };
-use cosmwasm_std::{Addr, BlockInfo, Coin};
-use cw_multi_test::Executor;
+use abstract_cw_multi_test::Contract;
+use cosmwasm_std::{coin, to_json_binary, Addr, BlockInfo, Coin, HexBinary, Timestamp};
+use cw721::{Cw721Query, Cw721QueryMsg, TokensResponse};
+use cw_multi_test::{Executor, SudoMsg, WasmSudo};
+use cw_orch::{mock::MockBech32, prelude::*};
+use nois::NoisCallback;
 use raffles::{
-    msg::{ExecuteMsg, QueryMsg},
+    msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
     state::{CollectionParams, CreateLocalityParams, LocalityMinterParams},
 };
+use scripts::raffles::Raffles;
 use sg721::CollectionInfo;
-use utils::state::AssetInfo;
+use sg721_base::QueryMsg as Sg721QueryMsg;
+use utils::state::{AssetInfo, RaffleSudoMsg, NATIVE_DENOM};
 
 #[test]
 fn test_locality_creation() {
@@ -79,7 +95,7 @@ fn test_locality_creation() {
         )
         .unwrap();
 
-    /// check first phase alignment mint works as expected
+    // check first phase alignment mint works as expected
     // move forward in time
     let current_time = app.block_info().time;
     let current_block = app.block_info().height;
@@ -95,8 +111,74 @@ fn test_locality_creation() {
         .wrap()
         .query_wasm_smart(raffles.clone(), &QueryMsg::InPhase { locality: 0u64 })
         .unwrap();
-    // verify
     assert!(res);
+
+    let time = app.block_info().time.minus_seconds(1);
+    // run sudo stuff to simulate cron job
+    // We send a nois message (that is automatic in the real world)
+    let response = app
+        .execute_contract(
+            contracts.nois.clone(),
+            contracts.raffle.clone(),
+            &ExecuteMsg::NoisReceive {
+                callback: NoisCallback {
+                    job_id: format!("locality-0"),
+                    published: time,
+                    randomness: HexBinary::from_hex(
+                        "0b86cdbf6bfaf5ecb2fcfe1c042ecebe2d324f7a359d03ba4a7a5230d47ed40e",
+                    )
+                    .unwrap(),
+                },
+            },
+            &[],
+        )
+        .unwrap();
+
+    app.sudo(SudoMsg::Wasm(WasmSudo {
+        contract_addr: raffles.clone(),
+        msg: to_json_binary(&RaffleSudoMsg::BeginBlock {}).unwrap(),
+    }))
+    .unwrap();
+
+    // assert not in phase anymore
+    let current_time = app.block_info().time;
+    let current_block = app.block_info().height;
+    app.set_block(BlockInfo {
+        height: current_block + 1,
+        time: current_time.clone().plus_seconds(6),
+        chain_id: chainid.clone(),
+    });
+    let res: bool = app
+        .wrap()
+        .query_wasm_smart(raffles.clone(), &QueryMsg::InPhase { locality: 0u64 })
+        .unwrap();
+    assert!(!res);
+
+    // retrieve locality collection address
+    let locality_collection: Option<Addr> = app
+        .wrap()
+        .query_wasm_smart(
+            raffles.clone(),
+            &QueryMsg::LocalityCollection { locality: 0u64 },
+        )
+        .unwrap();
+
+    println!("{:#?}", locality_collection);
+
+    // verify harmonics by confirming 3 tokens are minted to the 1 participant
+    let res: TokensResponse = app
+        .wrap()
+        .query_wasm_smart(
+            locality_collection.unwrap(),
+            &Sg721QueryMsg::AllTokens {
+                start_after: None,
+                limit: None,
+            },
+        )
+        .unwrap();
+
+    println!("{:#?}", res.tokens.len());
+
     // more ticket purchasers
 
     // check mint while not in phase alignment

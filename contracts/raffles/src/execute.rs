@@ -1,6 +1,7 @@
 use cosmwasm_std::{
-    ensure, ensure_eq, from_json, to_json_binary, Addr, BankMsg, Coin, Decimal, DepsMut, Empty,
-    Env, MessageInfo, ReplyOn, StdError, StdResult, Uint128, WasmMsg,
+    ensure, ensure_eq, from_json, instantiate2_address, to_json_binary, Addr, BankMsg, Binary,
+    Coin, Decimal, DepsMut, Empty, Env, HexBinary, MessageInfo, ReplyOn, StdError, StdResult,
+    Uint128, WasmMsg,
 };
 use cw721::{Cw721ExecuteMsg, Cw721ReceiveMsg};
 use cw721_base::Extension;
@@ -21,10 +22,10 @@ use crate::{
     msg::{AllLocalitiesResponse, ExecuteMsg, LocalityResponse, QueryFilters},
     query::{is_nft_owner, query_all_localities_raw},
     state::{
-        get_raffle_state, CreateLocalityParams, FeeDiscountMsg, LocalityInfo, LocalityOptions,
-        RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState, CONFIG, LOCALITY_ENABLED,
-        LOCALITY_INFO, LOCALITY_TICKETS, MINIMUM_RAFFLE_DURATION, RAFFLE_INFO, RAFFLE_TICKETS,
-        USER_LOCALITY_TICKETS, USER_TICKETS,
+        get_locality_state, get_raffle_state, CreateLocalityParams, FeeDiscountMsg, LocalityInfo,
+        LocalityOptions, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState, CONFIG,
+        LOCALITY_ENABLED, LOCALITY_INFO, LOCALITY_TICKETS, MINIMUM_RAFFLE_DURATION, RAFFLE_INFO,
+        RAFFLE_TICKETS, USER_LOCALITY_TICKETS, USER_TICKETS,
     },
     utils::{
         buyer_can_buy_locality_ticket, buyer_can_buy_ticket, can_buy_locality_ticket,
@@ -710,7 +711,6 @@ pub fn execute_receive_nois(
     callback: NoisCallback,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
-
     // callback should only be allowed to be called by the proxy contract
     // otherwise anyone can cut the randomness workflow and cheat the randomness by sending the randomness directly to this contract
     ensure_eq!(
@@ -726,28 +726,51 @@ pub fn execute_receive_nois(
 
     // extract participant address
     let job_id = callback.job_id;
-    let raffle_id = job_id
-        .strip_prefix("raffle-")
-        .expect("Strange, how is the job-id not prefixed with raffle-");
-    let raffle_id: u64 = raffle_id.parse().unwrap();
 
-    let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
-    let raffle_state = get_raffle_state(&env, &raffle_info);
+    match &job_id {
+        s if s.starts_with("locality-") => {
+            let locality_id = job_id
+                .strip_prefix("locality-")
+                .expect("Strange, how is the job-id not prefixed with locality-");
+            let locality_id: u64 = locality_id.parse().unwrap();
+            let mut locality_info = LOCALITY_INFO.load(deps.storage, locality_id)?;
+            let locality_state = get_locality_state(&env, &locality_info);
+            // if locality_state != LocalityState::Closed {
+            //     return Err(ContractError::WrongState {
+            //         status: locality_state,
+            //     });
+            // }
 
-    if raffle_state != RaffleState::Closed {
-        return Err(ContractError::WrongStateForClaim {
-            status: raffle_state,
-        });
+            // We update the global randomness state
+            locality_info.randomness = Some(randomness.into());
+
+            LOCALITY_INFO.save(deps.storage, locality_id, &locality_info)?;
+        }
+        s if s.starts_with("raffle-") => {
+            let raffle_id = job_id
+                .strip_prefix("raffle-")
+                .expect("Strange, how is the job-id not prefixed with raffle-");
+            let raffle_id: u64 = raffle_id.parse().unwrap();
+            let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
+            let raffle_state = get_raffle_state(&env, &raffle_info);
+            if raffle_state != RaffleState::Closed {
+                return Err(ContractError::WrongStateForClaim {
+                    status: raffle_state,
+                });
+            }
+            // We make sure the raffle has not updated the global randomness yet
+            if raffle_info.randomness.is_some() {
+                return Err(ContractError::RandomnessAlreadyProvided {});
+            } else {
+                raffle_info.randomness = Some(randomness.into());
+            };
+            RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
+        }
+        _ => {
+            // handle unknown job_id
+            return Err(ContractError::InvalidProxyCallID {});
+        }
     }
-
-    // We make sure the raffle has not updated the global randomness yet
-    if raffle_info.randomness.is_some() {
-        return Err(ContractError::RandomnessAlreadyProvided {});
-    } else {
-        raffle_info.randomness = Some(randomness.into());
-    };
-
-    RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 
     Ok(Response::new().add_attribute("action", "update_randomness"))
 }
@@ -837,6 +860,7 @@ pub fn execute_create_locality(
         .last_locality_id
         .unwrap();
     // maybe:  retrieve initial randomness source?
+
     // create new collection
     let submsg = SubMsg {
         msg: WasmMsg::Instantiate {
@@ -852,7 +876,7 @@ pub fn execute_create_locality(
             label: format!("SG721-Locality-{}", msg.collection_params.name.trim()),
         }
         .into(),
-        id: 21u64,
+        id: locality_id.clone(),
         gas_limit: None,
         reply_on: ReplyOn::Success,
     };
@@ -1079,8 +1103,7 @@ pub fn handle_cron(mut deps: DepsMut, env: Env) -> Result<Response, ContractErro
     let mut msgs = vec![];
 
     // get all active localities
-    // println!("get all active localities");
-
+    println!("get all active localities");
     let info: AllLocalitiesResponse = query_all_localities_raw(
         deps.as_ref(),
         env.clone(),
@@ -1095,23 +1118,25 @@ pub fn handle_cron(mut deps: DepsMut, env: Env) -> Result<Response, ContractErro
         }),
     )?;
 
-    // println!("{:#?}", info.localities);
-    // println!("Block height: {:#?}", env.block.height);
-    // println!("filters for each locality in phase for minting");
+    println!("{:#?}", info.localities);
+    println!("Block height: {:#?}", env.block.height);
 
+    println!("filters for each locality in phase for minting");
     for locality in info.localities {
         let in_phase = determine_phase_alignment(env.clone(), locality.clone().frequency);
 
         if in_phase {
-            // println!("determine winners & return mint msgs");
+            println!("determine winners & return mint msgs");
             let messages =
                 get_locality_minters(deps.branch(), &env, locality.id, locality.info.clone())?;
-            // println!("{:?}", messages);
+            println!("{:?}", messages);
             msgs.extend(messages);
         }
     }
 
-    Ok(res.add_messages(msgs))
+    Ok(
+        res.add_messages(msgs)
+    )
 }
 
 pub fn determine_phase_alignment(env: Env, freq: u64) -> bool {
@@ -1132,4 +1157,13 @@ pub fn execute_toggle_locality(
     ensure_eq!(info.sender, config.owner, ContractError::Unauthorized);
     LOCALITY_ENABLED.save(deps.storage, &bool)?;
     Ok(Response::new())
+}
+
+/// Generates the value used with instantiate2, via a hash of the infusers checksum.
+pub const SALT_POSTFIX: &[u8] = b"locality";
+pub fn generate_instantiate_salt2(checksum: &HexBinary) -> Binary {
+    let checksum_hash = <sha2::Sha256 as sha2::Digest>::digest(checksum.to_string());
+    let mut hash = checksum_hash.to_vec();
+    hash.extend(SALT_POSTFIX);
+    Binary(hash.to_vec())
 }

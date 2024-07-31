@@ -202,6 +202,10 @@ pub fn load_raffle(storage: &dyn Storage, raffle_id: u64) -> StdResult<RaffleInf
     RAFFLE_INFO.load(storage, raffle_id)
 }
 
+pub fn load_locality(storage: &dyn Storage, locality: u64) -> StdResult<LocalityInfo> {
+    LOCALITY_INFO.load(storage, locality)
+}
+
 #[cw_serde]
 pub struct LocalityInfo {
     /// owner of locality instance
@@ -809,7 +813,7 @@ pub struct CollectionParams {
 // increments the token index for each new locality collection
 pub fn increment_token_index(store: &mut dyn Storage, locality_id: u64) -> StdResult<u64> {
     let val = TOKEN_INDEX
-        .may_load(store, locality_id)?
+        .may_load(store, locality_id.clone())?
         .unwrap_or_default()
         + 1;
     TOKEN_INDEX.save(store, locality_id, &val)?;

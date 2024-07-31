@@ -1,8 +1,9 @@
 use crate::state::{
-    CreateLocalityParams, FeeDiscount, FeeDiscountMsg, LocalityInfo, LocalityState, RaffleInfo, RaffleOptionsMsg, RaffleState
+    CreateLocalityParams, FeeDiscount, FeeDiscountMsg, LocalityInfo, LocalityState, RaffleInfo,
+    RaffleOptionsMsg, RaffleState,
 };
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Coin, Decimal, HexBinary, StdError, StdResult};
+use cosmwasm_std::{Addr, Coin, Decimal, HexBinary, StdError, StdResult};
 use nois::NoisCallback;
 use utils::state::{is_valid_name, AssetInfo, Locks};
 
@@ -113,9 +114,9 @@ pub enum ExecuteMsg {
     ToggleLock {
         lock: bool,
     },
-    ToggleLocality{
+    ToggleLocality {
         on: bool,
-    }
+    },
 }
 
 #[cw_serde]
@@ -139,10 +140,28 @@ pub enum QueryMsg {
         start_after: Option<u32>,
         limit: Option<u32>,
     },
+    #[returns(Vec<String>)]
+    AllLocalityTickets {
+        locality_id: u64,
+        start_after: Option<u32>,
+        limit: Option<u32>,
+    },
     #[returns(u32)]
     TicketCount { owner: String, raffle_id: u64 },
     #[returns(bool)]
-    InPhase { locality: u64},
+    InPhase { locality: u64 },
+    #[returns(LocalityResponse)]
+    LocalityInfo { locality: u64 },
+    #[returns(LocalityResponse)]
+    AllLocalityInfo {
+        start_after: Option<u64>,
+        limit: Option<u32>,
+        filters: Option<QueryFilters>,
+    },
+    #[returns(Option<Addr>)]
+    LocalityCollection {
+        locality: u64
+    },
 }
 
 #[cw_serde]

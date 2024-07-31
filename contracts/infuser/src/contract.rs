@@ -153,6 +153,8 @@ pub fn execute_create_infusion(
     let collection_checksum = deps.querier.query_wasm_code_info(config.code_id)?.checksum;
     let salt1 = generate_instantiate_salt2(&collection_checksum);
 
+    println!("{:#?}", collection_checksum);
+
     // loop through each infusion being created to assert its configuration
     for infusion in infusions {
         // checks # of bundles

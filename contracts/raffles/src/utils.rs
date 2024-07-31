@@ -163,7 +163,7 @@ pub fn get_raffle_winners(
     let randomness: [u8; 32] = HexBinary::to_array(&raffle_info.randomness.unwrap())?;
 
     let nb_winners = if raffle_info.raffle_options.one_winner_per_asset {
-        raffle_info.assets.len()
+        raffle_info.assets.len().try_into().unwrap()
     } else {
         1
     };
@@ -198,7 +198,7 @@ pub fn get_raffle_winners(
 pub fn pick_m_single_winners_among_n(
     randomness: [u8; 32],
     n: u32,
-    nb_winners: usize, // m
+    nb_winners: u32, // m
 ) -> Result<Vec<u32>, ContractError> {
     let mut map = HashMap::new();
     let mut rng = make_prng(randomness);
@@ -400,11 +400,8 @@ pub fn get_locality_minters(
     println!("get the number of minters");
     let nb_winners = locality_info.harmonics;
     println!("get minters id");
-    let winner_ids = pick_m_single_winners_among_n(
-        randomness,
-        locality_info.number_of_tickets,
-        nb_winners.try_into().unwrap(),
-    )?;
+    let winner_ids =
+        pick_m_single_winners_among_n(randomness, locality_info.number_of_tickets, nb_winners)?;
     println!("{:#?}", winner_ids);
     println!("load winners from ticket map");
     let winners = winner_ids
@@ -412,14 +409,14 @@ pub fn get_locality_minters(
         .map(|winner_id| LOCALITY_TICKETS.load(deps.storage, (locality_id, winner_id)))
         .collect::<Result<Vec<_>, _>>()?;
 
+    let mut token_id = TOKEN_INDEX
+        .may_load(deps.storage, locality_id.clone())?
+        .unwrap_or(0);
     for minter in winners {
-        let mut token_id = TOKEN_INDEX.may_load(deps.storage, locality_id)?;
-        if token_id.is_none() {
-            token_id = Some(increment_token_index(deps.storage, locality_id)?);
-        }
+        token_id += 1;
         println!("mint-to-minter-address: {:#?}", minter);
         let mint = to_json_binary(&sg721_base::ExecuteMsg::Mint {
-            token_id: token_id.unwrap().to_string(),
+            token_id: token_id.to_string(),
             owner: minter.to_string(),
             token_uri: None,
             extension: None,
@@ -432,6 +429,7 @@ pub fn get_locality_minters(
         });
         res.push(msg)
     }
+    TOKEN_INDEX.save(deps.storage, locality_id, &token_id)?;
 
     Ok(res)
 }

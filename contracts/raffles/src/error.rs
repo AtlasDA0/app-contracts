@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use cosmwasm_std::{StdError, Timestamp};
+use cosmwasm_std::{Instantiate2AddressError, StdError, Timestamp};
 use utils::state::AssetInfo;
 
 use crate::state::{AdvantageOptions, LocalityState, RaffleState};
@@ -195,4 +195,15 @@ pub enum ContractError {
 
     #[error("This locality is not ready to start.  Current status : {status:?}")]
     WrongStateForClaimLocality { status: LocalityState },
+
+    #[error("{0}")]
+    Instantiate2AddressError(#[from] Instantiate2AddressError),
+
+    #[error("Invalid ID passed during call to proxy for randomness")]
+    InvalidProxyCallID {},
+
+    #[error("Instantiate sg721 error")]
+    InstantiateSg721Error {},
+    #[error("Invalid reply ID")]
+    InvalidReplyID {},
 }

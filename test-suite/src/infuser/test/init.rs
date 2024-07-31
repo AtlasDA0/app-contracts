@@ -24,6 +24,7 @@ pub struct InfuserSuite<Chain> {
     pub chain: MockBech32,
     pub infuser: CwInfuser<Chain>,
     pub nfts: Vec<Addr>,
+    
 }
 
 impl<Chain: CwEnv> InfuserSuite<Chain> {
