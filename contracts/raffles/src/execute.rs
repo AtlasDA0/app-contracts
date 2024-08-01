@@ -1,7 +1,6 @@
 use cosmwasm_std::{
-    ensure, ensure_eq, from_json, instantiate2_address, to_json_binary, Addr, BankMsg, Binary,
-    Coin, Decimal, DepsMut, Empty, Env, HexBinary, MessageInfo, ReplyOn, StdError, StdResult,
-    Uint128, WasmMsg,
+    ensure, ensure_eq, from_json, to_json_binary, Addr, BankMsg, Binary, Coin, Decimal, DepsMut,
+    Empty, Env, HexBinary, MessageInfo, ReplyOn, StdError, StdResult, Uint128, WasmMsg,
 };
 use cw721::{Cw721ExecuteMsg, Cw721ReceiveMsg};
 use cw721_base::Extension;
@@ -1134,9 +1133,7 @@ pub fn handle_cron(mut deps: DepsMut, env: Env) -> Result<Response, ContractErro
         }
     }
 
-    Ok(
-        res.add_messages(msgs)
-    )
+    Ok(res.add_messages(msgs))
 }
 
 pub fn determine_phase_alignment(env: Env, freq: u64) -> bool {
