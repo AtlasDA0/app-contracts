@@ -8,29 +8,37 @@ sg = ["sg-std", "sg721", "sg721-base"]
 vanilla = []
 
 [workspace.dependencies]
-raffles = { path = "../contracts/raffles", default = true }
+abstract-cw20 = "2.0.0"
+abstract-cw20-base = "2.0.0"
+anyhow = "1.0.79"
 cosmwasm-std = "1.4.0"
 cosmwasm-schema = "1.4.0"
+cw-controllers = "1.1.2"
 cw-storage-plus = "1.1.0"
 cw-utils = "1.0.3"
+cw1155 = "0.13.0"
 cw2 = "1.1.1"
+cw20 = "1.1.2"
+cw20-base = "1.1.2"
 cw721 = "0.18.0"
 cw721-base = "0.18.0"
+cw-asset = { version = "3.0.0" }
+cw-orch = { version = "0.24.1" }
 cw-multi-test = "0.16.0"
+dao-interface = "2.4.2"
 nois = "0.8.0"
-serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-sha2 = { version = "0.10.6", default-features = false }
+raffles = { path = "../contracts/raffles", default = true }
+cw-infuser = {version = "0.1.0", path = "/contracts/infuser", default = true }
 schemars = "0.8.8"
-thiserror = { version = "1.0.23" }
-utils = { path = "./packages/utils", version = "0.1.0" }
-anyhow = "1.0.79"
+sha2 = { version = "0.10.6", default-features = false }
 sg2 = "3.3.0"
-
-
 sg-std = "^3.2"
 sg721 = "^3.3"
 sg721-base = "^3.3"
 sg-multi-test = "3.1.0"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.23" }
+utils = { path = "./packages/utils", version = "0.1.0" }
 vending-minter = "3.3"
 vending-factory = "3.3.0"
 

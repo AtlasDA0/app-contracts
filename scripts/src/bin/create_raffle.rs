@@ -13,7 +13,7 @@ pub const NOIS_TOKEN: &str = "ibc/ACCAF790E082E772691A20B0208FB972AD3A01C2DE0D7E
 pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     env_logger::init();
-    let chain = Daemon::builder().chain(ELGAFAR_1).build()?;
+    let chain = Daemon::builder(ELGAFAR_1).build()?;
 
     let raffles = Raffles::new(chain.clone());
 
@@ -31,7 +31,7 @@ pub fn main() -> anyhow::Result<()> {
     // We send some NOIS funds to the contract to register raffle randomness
     chain.commit_any::<MsgSendResponse>(
         vec![MsgSend {
-            from_address: chain.sender().to_string().parse().unwrap(),
+            from_address: chain.sender_addr().to_string().parse().unwrap(),
             to_address: raffles.address()?.to_string().parse().unwrap(),
             amount: vec![cosmrs::Coin {
                 amount: 10000000,

@@ -6,11 +6,15 @@ use sg721::ExecuteMsg as Sg721ExecuteMsg;
 
 use crate::{
     error::ContractError,
-    state::{get_raffle_state, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO, RAFFLE_TICKETS},
+    state::{
+        get_locality_state, get_raffle_state, increment_token_index, LocalityInfo, LocalityState,
+        RaffleInfo, RaffleState, CONFIG, LOCALITY_TICKETS, RAFFLE_INFO, RAFFLE_TICKETS,
+        TOKEN_INDEX,
+    },
 };
 use cosmwasm_std::{
-    coins, to_json_binary, Addr, BankMsg, Coin, Decimal, Deps, Empty, Env, HexBinary, Order,
-    StdError, StdResult, Storage, Uint128, WasmMsg,
+    coins, to_json_binary, Addr, BankMsg, Coin, Decimal, Deps, DepsMut, Empty, Env, HexBinary,
+    Order, StdError, StdResult, Storage, Uint128, WasmMsg,
 };
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
@@ -159,7 +163,7 @@ pub fn get_raffle_winners(
     let randomness: [u8; 32] = HexBinary::to_array(&raffle_info.randomness.unwrap())?;
 
     let nb_winners = if raffle_info.raffle_options.one_winner_per_asset {
-        raffle_info.assets.len()
+        raffle_info.assets.len().try_into().unwrap()
     } else {
         1
     };
@@ -194,7 +198,7 @@ pub fn get_raffle_winners(
 pub fn pick_m_single_winners_among_n(
     randomness: [u8; 32],
     n: u32,
-    nb_winners: usize, // m
+    nb_winners: u32, // m
 ) -> Result<Vec<u32>, ContractError> {
     let mut map = HashMap::new();
     let mut rng = make_prng(randomness);
@@ -299,9 +303,33 @@ pub fn ticket_cost(raffle_info: RaffleInfo, ticket_count: u32) -> Result<AssetIn
     })
 }
 
+/// Computes the ticket cost for multiple tickets bought together
+pub fn locality_ticket_cost(
+    raffle_info: LocalityInfo,
+    ticket_count: u32,
+) -> Result<AssetInfo, ContractError> {
+    // enforces only Coin is a ticket cost currently.
+    Ok(match raffle_info.ticket_price {
+        AssetInfo::Coin(x) => AssetInfo::Coin(Coin {
+            denom: x.denom,
+            amount: Uint128::from(ticket_count) * x.amount,
+        }),
+        _ => return Err(ContractError::WrongAssetType {}),
+    })
+}
+
 /// Can only buy a ticket when the raffle has started and is not closed
 pub fn can_buy_ticket(env: Env, raffle_info: RaffleInfo) -> Result<(), ContractError> {
     if get_raffle_state(&env, &raffle_info) == RaffleState::Started {
+        Ok(())
+    } else {
+        Err(ContractError::CantBuyTickets {})
+    }
+}
+
+/// Can only buy a ticket when the raffle has started and is not closed
+pub fn can_buy_locality_ticket(env: Env, locality_info: LocalityInfo) -> Result<(), ContractError> {
+    if get_locality_state(&env, &locality_info) == LocalityState::Started {
         Ok(())
     } else {
         Err(ContractError::CantBuyTickets {})
@@ -328,6 +356,19 @@ pub fn buyer_can_buy_ticket(
         .try_for_each(|options| options.has_advantage(deps, buyer.clone()))
 }
 
+pub fn buyer_can_buy_locality_ticket(
+    deps: Deps,
+    locality_info: &LocalityInfo,
+    buyer: String,
+) -> Result<(), ContractError> {
+    // We also check if the raffle is token gated
+    locality_info
+        .locality_options
+        .gating_locality
+        .iter()
+        .try_for_each(|options| options.has_advantage(deps, buyer.clone()))
+}
+
 pub fn get_raffle_winner_messages(
     _deps: Deps,
     env: Env,
@@ -339,6 +380,59 @@ pub fn get_raffle_winner_messages(
 }
 
 // RAFFLE WINNER
+
+/// Picking the winner of the raffle
+pub fn get_locality_minters(
+    deps: DepsMut,
+    env: &Env,
+    locality_id: u64,
+    locality_info: LocalityInfo,
+) -> Result<Vec<CosmosMsg>, ContractError> {
+    println!("if randomness not has been provided then we expect an error");
+    if locality_info.randomness.is_none() {
+        return Err(ContractError::WrongStateForClaimLocality {
+            status: get_locality_state(env, &locality_info),
+        });
+    }
+    let mut res = vec![];
+    println!("We initiate the random number generator");
+    let randomness: [u8; 32] = HexBinary::to_array(&locality_info.randomness.unwrap())?;
+    println!("get the number of minters");
+    let nb_winners = locality_info.harmonics;
+    println!("get minters id");
+    let winner_ids =
+        pick_m_single_winners_among_n(randomness, locality_info.number_of_tickets, nb_winners)?;
+    println!("{:#?}", winner_ids);
+    println!("load winners from ticket map");
+    let winners = winner_ids
+        .into_iter()
+        .map(|winner_id| LOCALITY_TICKETS.load(deps.storage, (locality_id, winner_id)))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let mut token_id = TOKEN_INDEX
+        .may_load(deps.storage, locality_id.clone())?
+        .unwrap_or(0);
+    for minter in winners {
+        token_id += 1;
+        println!("mint-to-minter-address: {:#?}", minter);
+        let mint = to_json_binary(&sg721_base::ExecuteMsg::Mint {
+            token_id: token_id.to_string(),
+            owner: minter.to_string(),
+            token_uri: None,
+            extension: None,
+        })?;
+
+        let msg = CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: locality_info.collection.clone().unwrap().to_string(),
+            msg: mint,
+            funds: vec![],
+        });
+        res.push(msg)
+    }
+    TOKEN_INDEX.save(deps.storage, locality_id, &token_id)?;
+
+    Ok(res)
+}
 
 #[cfg(test)]
 pub mod test {

@@ -11,10 +11,7 @@ const MULTISIG_ADDRESS: &str = "stars1wk327tnqj03954zq2hzf36xzs656pmffzy0udsmjw2
 pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     env_logger::init();
-    let chain = Daemon::builder()
-        .chain(STARGAZE_1)
-        .authz_granter(MULTISIG_ADDRESS)
-        .build()?;
+    let chain = Daemon::builder(STARGAZE_1).build()?;
 
     let raffles = Raffles::new(chain.clone());
     raffles.upload()?;
@@ -29,7 +26,7 @@ pub fn main() -> anyhow::Result<()> {
     };
 
     // Then we do the migration proposal (no authz_granter this time)
-    let chain = Daemon::builder().chain(STARGAZE_1).build()?;
+    let chain = Daemon::builder(STARGAZE_1).build()?;
 
     let dao_proposal = DaoPreProposeSingle::new("atlas-dao-pre-proposal", chain.clone());
     // // New version is not compatible, use the old version of dao-dao and add cw-orch

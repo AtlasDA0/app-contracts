@@ -14,7 +14,7 @@ pub const TOKEN_ID: &str = "365";
 pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     env_logger::init();
-    let chain = Daemon::builder().chain(STARGAZE_1).build()?;
+    let chain = Daemon::builder(STARGAZE_1).build()?;
 
     let raffles = Raffles::new(chain.clone());
 
@@ -30,6 +30,6 @@ pub fn main() -> anyhow::Result<()> {
         &Addr::unchecked(TEST_NFT_ADDRESS),
     )?;
 
-    assert_eq!(owner.owner, chain.sender().to_string());
+    assert_eq!(owner.owner, chain.sender_addr().to_string());
     Ok(())
 }

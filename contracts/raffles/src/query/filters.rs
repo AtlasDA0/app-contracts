@@ -3,7 +3,7 @@ use utils::state::AssetInfo;
 
 use crate::{
     msg::QueryFilters,
-    state::{get_raffle_state, RaffleInfo},
+    state::{get_locality_state, get_raffle_state, LocalityInfo, RaffleInfo},
     utils::buyer_can_buy_ticket,
 };
 
@@ -39,6 +39,18 @@ pub fn has_gated_rights_filter(
 ) -> bool {
     match &filters.gated_rights_ticket_buyer {
         Some(buyer) => buyer_can_buy_ticket(deps, raffle_info, buyer.to_string()).is_ok(),
+        None => true,
+    }
+}
+
+// locality
+pub fn locality_state_filter(
+    env: &Env,
+    locality_info: &LocalityInfo,
+    filters: &QueryFilters,
+) -> bool {
+    match &filters.states {
+        Some(state) => state.contains(&get_locality_state(env, locality_info).to_string()),
         None => true,
     }
 }

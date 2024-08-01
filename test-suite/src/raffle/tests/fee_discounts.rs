@@ -70,6 +70,7 @@ mod tests {
                         },
                     },
                 ]),
+                locality_config: None,
             },
             &[],
         )

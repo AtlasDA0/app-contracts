@@ -9,7 +9,7 @@ pub const TICKET_NUMBER: u32 = 5;
 pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     env_logger::init();
-    let chain = Daemon::builder().chain(ELGAFAR_1).build()?;
+    let chain = Daemon::builder(ELGAFAR_1).build()?;
 
     let raffles = Raffles::new(chain.clone());
 

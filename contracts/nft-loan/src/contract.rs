@@ -7,7 +7,7 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 
 use utils::{
-    state::{is_valid_name, Locks, SudoMsg, NATIVE_DENOM},
+    state::{is_valid_name, LoanSudoMsg, Locks, NATIVE_DENOM},
     types::Response,
 };
 
@@ -245,9 +245,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
 
 // sudo entry point for governance override
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo(deps: DepsMut, env: Env, msg: SudoMsg) -> Result<Response, ContractError> {
+pub fn sudo(deps: DepsMut, env: Env, msg: LoanSudoMsg) -> Result<Response, ContractError> {
     match msg {
-        SudoMsg::ToggleLock { lock } => {
+        LoanSudoMsg::ToggleLock { lock } => {
             execute_sudo_toggle_lock(deps, env, lock).map_err(|_| ContractError::ContractBug {})
         }
     }

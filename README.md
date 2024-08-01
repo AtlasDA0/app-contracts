@@ -48,3 +48,13 @@ Thank you to the following teams for making this contract a reality ::)
 * [AtlasDAO](https://atlasdao.zone) Members & Contributors
 * [Nois Network](https://nois.network) Community Support
 * [Stargaze](https://stargaze.zone) Devs & Ambassadors
+
+
+
+## Locality Notes
+we have a max token supply for the infused collection, an optional maximum tickets 1 address can purchase, and an optional maximum tickets. 
+
+
+If there are no limits to tickets per address or tickets in infusion, tickets sold & winners are determined up until the max token supply is reached. 
+
+If there is a limit to the number of tickets, and it does not equal the max token supply then winners are chosen each epoch, and ommitted from being chosen until all tickets have been chosen once. If max tokens have not been minted, possible winners reset and winners are redetermined, until we reach the max token supply. 

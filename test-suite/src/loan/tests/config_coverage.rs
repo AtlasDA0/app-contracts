@@ -9,7 +9,7 @@ mod tests {
         msg::{ExecuteMsg, QueryMsg as LoanQueryMsg},
         state::Config,
     };
-    use utils::state::{Locks, SudoMsg as LoanSudoMsg};
+    use utils::state::{LoanSudoMsg, Locks};
 
     use crate::{
         common_setup::{

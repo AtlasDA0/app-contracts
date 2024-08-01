@@ -1,6 +1,9 @@
-use crate::state::{FeeDiscount, FeeDiscountMsg, RaffleInfo, RaffleOptionsMsg, RaffleState};
+use crate::state::{
+    CreateLocalityParams, FeeDiscount, FeeDiscountMsg, LocalityInfo, LocalityState, RaffleInfo,
+    RaffleOptionsMsg, RaffleState,
+};
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Coin, Decimal, HexBinary, StdError, StdResult};
+use cosmwasm_std::{Addr, Coin, Decimal, HexBinary, StdError, StdResult};
 use nois::NoisCallback;
 use utils::state::{is_valid_name, AssetInfo, Locks};
 
@@ -22,10 +25,12 @@ pub struct InstantiateMsg {
     pub max_ticket_number: Option<u32>,
     // % fee of raffle ticket sales to fee_addr
     pub raffle_fee: Decimal,
-
+    /// Coins required for creating a raffle
     pub creation_coins: Option<Vec<Coin>>,
-
+    /// Various discount scenarios for raffle participants
     pub fee_discounts: Vec<FeeDiscountMsg>,
+    /// global params for locality instances
+    pub locality_fee: Option<Decimal>,
 }
 
 impl InstantiateMsg {
@@ -49,7 +54,7 @@ impl InstantiateMsg {
 #[cw_serde]
 #[derive(cw_orch::ExecuteFns)]
 pub enum ExecuteMsg {
-    #[payable]
+    #[cw_orch(payable)]
     CreateRaffle {
         owner: Option<String>,
         assets: Vec<AssetInfo>,
@@ -73,13 +78,14 @@ pub enum ExecuteMsg {
         nois_proxy_coin: Option<Coin>,
         creation_coins: Option<Vec<Coin>>,
         fee_discounts: Option<Vec<FeeDiscountMsg>>,
+        locality_config: Option<Decimal>,
     },
     ModifyRaffle {
         raffle_id: u64,
         raffle_ticket_price: Option<AssetInfo>,
         raffle_options: RaffleOptionsMsg,
     },
-    #[payable]
+    #[cw_orch(payable)]
     BuyTicket {
         raffle_id: u64,
         ticket_count: u32,
@@ -90,7 +96,16 @@ pub enum ExecuteMsg {
     NoisReceive {
         callback: NoisCallback,
     },
-
+    #[cw_orch(payable)]
+    CreateLocality {
+        locality_params: CreateLocalityParams,
+    },
+    #[cw_orch(payable)]
+    BuyLocalityTicket {
+        id: u64,
+        ticket_count: u32,
+        assets: AssetInfo,
+    },
     // Admin messages
     /// Provide job_id for randomness contract
     UpdateRandomness {
@@ -98,6 +113,9 @@ pub enum ExecuteMsg {
     },
     ToggleLock {
         lock: bool,
+    },
+    ToggleLocality {
+        on: bool,
     },
 }
 
@@ -122,8 +140,28 @@ pub enum QueryMsg {
         start_after: Option<u32>,
         limit: Option<u32>,
     },
+    #[returns(Vec<String>)]
+    AllLocalityTickets {
+        locality_id: u64,
+        start_after: Option<u32>,
+        limit: Option<u32>,
+    },
     #[returns(u32)]
     TicketCount { owner: String, raffle_id: u64 },
+    #[returns(bool)]
+    InPhase { locality: u64 },
+    #[returns(LocalityResponse)]
+    LocalityInfo { locality: u64 },
+    #[returns(LocalityResponse)]
+    AllLocalityInfo {
+        start_after: Option<u64>,
+        limit: Option<u32>,
+        filters: Option<QueryFilters>,
+    },
+    #[returns(Option<Addr>)]
+    LocalityCollection {
+        locality: u64
+    },
 }
 
 #[cw_serde]
@@ -183,6 +221,19 @@ pub struct MerkleRootResponse {
 #[cw_serde]
 pub struct IsClaimedResponse {
     pub is_claimed: bool,
+}
+
+#[cw_serde]
+pub struct AllLocalitiesResponse {
+    pub localities: Vec<LocalityResponse>,
+}
+
+#[cw_serde]
+pub struct LocalityResponse {
+    pub id: u64,
+    pub state: LocalityState,
+    pub info: LocalityInfo,
+    pub frequency: u64,
 }
 
 #[cw_serde]
