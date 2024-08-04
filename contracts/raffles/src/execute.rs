@@ -856,7 +856,7 @@ pub fn execute_create_locality(
             label: format!("SG721-Locality-{}", msg.collection_params.name.trim()),
         }
         .into(),
-        id: locality_id.clone(), // increments for
+        id: 21u64,
         gas_limit: None,
         reply_on: ReplyOn::Success,
     };
@@ -1150,4 +1150,17 @@ fn determine_phase_alignment(env: Env, instance: LocalityResponse) -> bool {
         return false;
     }
     true
+}
+
+pub fn execute_toggle_locality(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    bool: bool,
+) -> Result<Response, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    // check the calling address is the authorised multisig
+    ensure_eq!(info.sender, config.owner, ContractError::Unauthorized);
+    LOCALITY_ENABLED.save(deps.storage, &bool)?;
+    Ok(Response::new())
 }

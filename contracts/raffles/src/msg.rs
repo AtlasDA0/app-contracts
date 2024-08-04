@@ -113,6 +113,9 @@ pub enum ExecuteMsg {
     ToggleLock {
         lock: bool,
     },
+    ToggleLocality{
+        on: bool,
+    }
 }
 
 #[cw_serde]

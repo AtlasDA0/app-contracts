@@ -18,7 +18,7 @@ fn cw721_contract() -> Box<dyn Contract<Empty>> {
     );
     Box::new(contract)
 }
-// minimal dao
+// minimal infuser
 pub struct InfuserSuite<Chain> {
     pub chain: MockBech32,
     pub infuser: CwInfuser<Chain>,

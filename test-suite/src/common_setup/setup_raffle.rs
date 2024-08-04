@@ -38,6 +38,7 @@ pub fn proper_raffle_instantiate_precise(
     setup_accounts(&mut app);
 
     let code_ids = raffle_template_code_ids(&mut app);
+    println!("code ids: {:?}", code_ids);
 
     // TODO: setup_factory_template
     let factory_addr = app

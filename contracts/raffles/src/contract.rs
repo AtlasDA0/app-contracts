@@ -1,6 +1,5 @@
 use cosmwasm_std::{
-    coin, ensure, ensure_eq, entry_point, to_json_binary, Decimal, Deps, DepsMut, Env, MessageInfo,
-    QueryResponse, StdResult, Uint128,
+    coin, ensure, ensure_eq, entry_point, to_json_binary, Decimal, Deps, DepsMut, Env, MessageInfo, QueryResponse, Reply, StdResult, Uint128
 };
 
 use crate::{
@@ -8,8 +7,8 @@ use crate::{
     execute::{
         execute_buy_locality_ticket, execute_buy_tickets, execute_cancel_raffle, execute_claim,
         execute_create_locality, execute_create_raffle, execute_modify_raffle, execute_receive,
-        execute_receive_nois, execute_sudo_toggle_lock, execute_toggle_lock, execute_update_config,
-        handle_cron,
+        execute_receive_nois, execute_sudo_toggle_lock, execute_toggle_locality,
+        execute_toggle_lock, execute_update_config, handle_cron,
     },
     msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg, RaffleResponse},
     query::{
@@ -17,8 +16,8 @@ use crate::{
         query_ticket_count,
     },
     state::{
-        get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
-        STATIC_RAFFLE_CREATION_FEE,
+        get_raffle_state, load_raffle, Config, CONFIG, LOCALITY_ENABLED, MAX_TICKET_NUMBER,
+        MINIMUM_RAFFLE_DURATION, STATIC_RAFFLE_CREATION_FEE,
     },
     utils::get_nois_randomness,
 };
@@ -28,6 +27,8 @@ use utils::{
 };
 
 use cw2::set_contract_version;
+
+const LOCALITY_COLLECTION_INIT_ID: u64 = 21;
 
 #[entry_point]
 pub fn instantiate(
@@ -92,6 +93,7 @@ pub fn instantiate(
         locality_fee: msg.locality_fee.unwrap_or(Decimal::zero()),
     };
 
+    LOCALITY_ENABLED.save(deps.storage, &false)?;
     CONFIG.save(deps.storage, &config)?;
     set_contract_version(
         deps.storage,
@@ -206,6 +208,7 @@ pub fn execute(
             ticket_count,
             assets,
         } => execute_buy_locality_ticket(deps, env, info, id, ticket_count, assets),
+        ExecuteMsg::ToggleLocality { on } => execute_toggle_locality(deps, env, info, on),
     }
 }
 
@@ -255,5 +258,17 @@ pub fn sudo(deps: DepsMut, env: Env, msg: RaffleSudoMsg) -> Result<Response, Con
             execute_sudo_toggle_lock(deps, env, lock).map_err(|_| ContractError::ContractBug {})
         }
         RaffleSudoMsg::BeginBlock {} => handle_cron(deps, env).map_err(|err| err),
+    }
+}
+
+pub fn reply(_deps: DepsMut, _env: Env, msg: Reply) -> StdResult<Response> {
+    match msg.id {
+        LOCALITY_COLLECTION_INIT_ID => match msg.result {
+            cosmwasm_std::SubMsgResult::Ok(_) => Ok(Response::new()),
+            cosmwasm_std::SubMsgResult::Err(err) => {
+                Ok(Response::new().add_attribute("infusion_creation_error", err.to_string()))
+            }
+        },
+        _ => panic!("unexpected reply id for locality collection creation"),
     }
 }
