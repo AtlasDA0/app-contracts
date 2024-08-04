@@ -14,7 +14,13 @@ pub struct InstantiateMsg {
 #[cw_serde]
 #[derive(cw_orch::ExecuteFns)]
 pub enum ExecuteMsg {
-    UpdateConfig {},
+    UpdateConfig {
+        admin: Option<String>,
+        max_infusions: Option<u64>,
+        min_infusions_per_bundle: Option<u64>,
+        max_infusions_per_bundle: Option<u64>,
+
+    },
     /// Increment count by 1
     CreateInfusion {
         collections: Vec<Infusion>,

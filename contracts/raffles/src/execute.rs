@@ -956,75 +956,67 @@ pub fn execute_update_config(
     fee_discounts: Option<Vec<FeeDiscountMsg>>,
     locality_config: Option<Decimal>,
 ) -> Result<Response, ContractError> {
-    let config = CONFIG.load(deps.storage)?;
+    let mut config = CONFIG.load(deps.storage)?;
     // ensure msg sender is admin
+
     ensure_eq!(info.sender, config.owner, ContractError::Unauthorized);
-    let name = match name {
-        Some(n) => {
-            if is_valid_name(&n) {
-                n
-            } else {
-                config.name
-            }
+
+    if let Some(new) = name {
+        if is_valid_name(&new) {
+            config.name = new
         }
-        None => config.name,
     };
-    let owner = match owner {
-        Some(ow) => deps.api.addr_validate(&ow)?,
-        None => config.owner,
+    if let Some(new) = owner {
+        config.owner = deps.api.addr_validate(&new)?;
     };
-    let fee_addr = match fee_addr {
-        Some(fea) => deps.api.addr_validate(&fea)?,
-        None => config.fee_addr,
+    if let Some(new) = fee_addr {
+        config.fee_addr = deps.api.addr_validate(&new)?;
     };
-    let minimum_raffle_duration = match minimum_raffle_duration {
-        Some(mrd) => mrd.max(MINIMUM_RAFFLE_DURATION),
-        None => config.minimum_raffle_duration,
+    if let Some(new) = minimum_raffle_duration {
+        if new >= MINIMUM_RAFFLE_DURATION {
+            config.minimum_raffle_duration = new;
+        }
     };
-    let raffle_fee = match raffle_fee {
-        Some(rf) => {
+    if let Some(new) = raffle_fee {
+        if (new >= Decimal::zero() && new <= Decimal::one()) {
+            config.raffle_fee = new;
+        }
+    };
+    if let Some(new) = raffle_fee {
+        if (new >= Decimal::zero() && new <= Decimal::one()) {
+            config.raffle_fee = new;
+        } else {
+            return Err(ContractError::InvalidFeeRate {});
+        }
+    };
+    if let Some(new) = nois_proxy_addr {
+        config.nois_proxy_addr = deps.api.addr_validate(&new)?;
+    };
+    if let Some(new) = nois_proxy_coin {
+        ensure!(
+            new.amount >= Uint128::zero(),
+            ContractError::InvalidProxyCoin
+        );
+        config.nois_proxy_coin = new;
+    };
+    if let Some(new) = creation_coins {
+        // verifies all provided coins are greater than 0
+        for coin in &mut new.clone() {
             ensure!(
-                rf >= Decimal::zero() && rf <= Decimal::one(),
+                coin.amount >= Uint128::zero(),
                 ContractError::InvalidFeeRate {}
-            );
-            rf
+            )
         }
-        None => config.raffle_fee,
+        config.creation_coins = new;
     };
 
-    let nois_proxy_addr = match nois_proxy_addr {
-        Some(prx) => deps.api.addr_validate(&prx)?,
-        None => config.nois_proxy_addr,
-    };
-    let nois_proxy_coin = match nois_proxy_coin {
-        Some(npc) => {
-            ensure!(
-                npc.amount >= Uint128::zero(),
-                ContractError::InvalidProxyCoin
-            );
-            npc
+    if let Some(new) = max_tickets_per_raffle {
+        if new == 0u32 {
+            config.max_tickets_per_raffle = None
+        } else {
+            config.max_tickets_per_raffle = Some(new);
         }
-        None => config.nois_proxy_coin,
     };
-
-    // verifies all provided coins are greater than 0
-    let creation_coins = match creation_coins {
-        Some(mut crc) => {
-            for coin in &mut crc {
-                ensure!(
-                    coin.amount >= Uint128::zero(),
-                    ContractError::InvalidFeeRate {}
-                )
-            }
-            crc
-        }
-        None => config.creation_coins,
-    };
-    let max_tickets_per_raffle = match max_tickets_per_raffle {
-        Some(mpn) => mpn,
-        None => config.max_tickets_per_raffle.unwrap(),
-    };
-
     let fee_discounts = match fee_discounts {
         Some(discounts) => discounts
             .into_iter()
@@ -1032,36 +1024,17 @@ pub fn execute_update_config(
             .collect::<Result<_, _>>()?,
         None => config.fee_discounts,
     };
-    let locality_fee = match locality_config {
-        Some(lrf) => {
-            ensure!(
-                lrf >= Decimal::zero() && lrf <= Decimal::one(),
-                ContractError::InvalidFeeRate {}
-            );
-            lrf
+    config.fee_discounts = fee_discounts;
+
+    if let Some(new) = locality_config {
+        if (new >= Decimal::zero() && new <= Decimal::one()) {
+            config.locality_fee = new;
+        } else {
+            return Err(ContractError::InvalidFeeRate {});
         }
-        None => config.locality_fee,
-    };
-    // we have a seperate function to lock a raffle, so we skip here
-
-    let new_config = Config {
-        name,
-        owner,
-        fee_addr,
-        minimum_raffle_duration,
-        raffle_fee,
-        locks: config.locks,
-        nois_proxy_addr,
-        nois_proxy_coin,
-        creation_coins,
-        max_tickets_per_raffle: max_tickets_per_raffle.into(),
-        last_raffle_id: config.last_raffle_id,
-        fee_discounts,
-        last_locality_id: config.last_locality_id,
-        locality_fee,
     };
 
-    CONFIG.save(deps.storage, &new_config)?;
+    CONFIG.save(deps.storage, &config)?;
 
     Ok(Response::new().add_attribute("action", "update_config"))
 }

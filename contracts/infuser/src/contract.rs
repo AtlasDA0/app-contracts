@@ -1,7 +1,9 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    instantiate2_address, to_json_binary, Addr, Binary, Coin, CosmosMsg, Deps, DepsMut, Empty, Env, HexBinary, MessageInfo, QueryRequest, Reply, Response, StdResult, Storage, SubMsg, WasmMsg, WasmQuery
+    instantiate2_address, to_json_binary, Addr, Binary, Coin, CosmosMsg, Deps, DepsMut, Empty, Env,
+    HexBinary, MessageInfo, QueryRequest, Reply, Response, StdResult, Storage, SubMsg, WasmMsg,
+    WasmQuery,
 };
 use cw2::set_contract_version;
 use cw721::{Cw721ExecuteMsg, Cw721QueryMsg, OwnerOfResponse};
@@ -60,7 +62,19 @@ pub fn execute(
             infusion_id,
             bundle,
         } => execute_infuse_bundle(deps, info, infusion_id, bundle),
-        ExecuteMsg::UpdateConfig {} => update_config(deps, info),
+        ExecuteMsg::UpdateConfig {
+            admin,
+            max_infusions,
+            min_infusions_per_bundle,
+            max_infusions_per_bundle,
+        } => update_config(
+            deps,
+            info,
+            admin,
+            max_infusions,
+            min_infusions_per_bundle,
+            max_infusions_per_bundle,
+        ),
     }
 }
 
@@ -90,11 +104,30 @@ pub fn reply(_deps: DepsMut, _env: Env, msg: Reply) -> StdResult<Response> {
 }
 
 /// Update the configuration of the app
-fn update_config(deps: DepsMut, msg_info: MessageInfo) -> Result<Response, ContractError> {
+fn update_config(
+    deps: DepsMut,
+    info: MessageInfo,
+    admin: Option<String>,
+    max_infusions: Option<u64>,
+    max_per_bundle: Option<u64>,
+    min_per_bundle: Option<u64>,
+) -> Result<Response, ContractError> {
     let mut config = CONFIG.load(deps.storage)?;
     // Only the admin should be able to call this
-    if config.admin != msg_info.sender {
+    if config.admin != info.sender {
         return Err(ContractError::Admin(AdminError::NotAdmin {}));
+    }
+    if let Some(new) = admin {
+        config.admin = deps.api.addr_validate(&new)?;
+    }
+    if let Some(new) = max_infusions {
+        config.max_infusions = new;
+    }
+    if let Some(new) = min_per_bundle {
+        config.min_per_bundle = new;
+    }
+    if let Some(new) = max_per_bundle {
+        config.max_per_bundle = new;
     }
 
     //todo: update configs
