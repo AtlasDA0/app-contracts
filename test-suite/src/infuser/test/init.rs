@@ -28,8 +28,9 @@ pub struct InfuserSuite<Chain> {
 impl<Chain: CwEnv> InfuserSuite<Chain> {
     fn setup() -> anyhow::Result<InfuserSuite<MockBech32>> {
         let mock = MockBech32::new("mock");
-        let sender = mock.sender();
+        let sender = mock.sender_addr();
         let infuser = CwInfuser::new(mock.clone());
+        infuser.upload()?;
 
         // store cw721
         let cw721 = cw721_contract();
@@ -64,6 +65,8 @@ impl<Chain: CwEnv> InfuserSuite<Chain> {
                 &cw721_a.clone(),
             )?;
         }
+
+  
 
         // create cw-infsion app
         infuser.instantiate(
@@ -128,8 +131,8 @@ fn successful_install() -> anyhow::Result<()> {
     assert_eq!(
         config,
         Config {
-            latest_infusion_id: None,
-            admin: env.chain.sender(),
+            latest_infusion_id: Some(0),
+            admin: env.chain.sender_addr(),
             max_infusions: 2u64,
             min_per_bundle: 1u64,
             max_per_bundle: 10u64,

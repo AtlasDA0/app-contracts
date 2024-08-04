@@ -1,8 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    instantiate2_address, to_json_binary, Addr, Binary, Coin, CosmosMsg, Deps, DepsMut, Empty, Env,
-    HexBinary, MessageInfo, QueryRequest, Response, StdResult, Storage, SubMsg, WasmMsg, WasmQuery,
+    instantiate2_address, to_json_binary, Addr, Binary, Coin, CosmosMsg, Deps, DepsMut, Empty, Env, HexBinary, MessageInfo, QueryRequest, Reply, Response, StdResult, Storage, SubMsg, WasmMsg, WasmQuery
 };
 use cw2::set_contract_version;
 use cw721::{Cw721ExecuteMsg, Cw721QueryMsg, OwnerOfResponse};
@@ -75,6 +74,18 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::IsInBundle { collection_addr } => {
             to_json_binary(&query_infusions(deps, collection_addr)?)
         }
+    }
+}
+
+pub fn reply(_deps: DepsMut, _env: Env, msg: Reply) -> StdResult<Response> {
+    match msg.id {
+        INFUSION_COLLECTION_INIT_MSG_ID => match msg.result {
+            cosmwasm_std::SubMsgResult::Ok(_) => Ok(Response::new()),
+            cosmwasm_std::SubMsgResult::Err(err) => {
+                Ok(Response::new().add_attribute("infusion_creation_error", err.to_string()))
+            }
+        },
+        _ => panic!("unexpected nois mock proxy reply"),
     }
 }
 

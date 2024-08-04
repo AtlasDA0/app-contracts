@@ -1,5 +1,5 @@
 use cw_orch::prelude::*;
-use cw_infuser::msg::*;
+use cw_infuser::{contract::{execute, instantiate,query,reply}, msg::*};
 
 #[cw_orch::interface(InstantiateMsg, ExecuteMsg, QueryMsg, Empty, id = "loans")]
 pub struct CwInfuser;
@@ -11,6 +11,8 @@ impl<Chain: CwEnv> Uploadable for CwInfuser<Chain> {
             .find_wasm_path("cw_infuser")
             .unwrap()
     }
-    // No wrapper because there is custom msgs and queries,
-    // Not supported by cw-orch
+  /// Returns a CosmWasm contract wrapper
+  fn wrapper() -> Box<dyn MockContract<Empty>> {
+    Box::new(ContractWrapper::new_with_empty(execute, instantiate, query,).with_reply(reply))
+}
 }
