@@ -150,7 +150,7 @@ pub fn execute_create_infusion(
 
     let collection_checksum = deps
         .querier
-        .query_wasm_code_info(config.code_id.clone())?
+        .query_wasm_code_info(config.code_id)?
         .checksum;
     let salt1 = generate_instantiate_salt2(&collection_checksum);
 
@@ -162,7 +162,7 @@ pub fn execute_create_infusion(
             return Err(ContractError::NotEnoughNFTsInBundle {});
         }
         // checks # of nft required per bundle
-        if config.min_per_bundle > required.clone() || config.max_per_bundle < required.clone() {
+        if config.min_per_bundle > required || config.max_per_bundle < required {
             return Err(ContractError::BadBundle {
                 have: required,
                 min: config.min_per_bundle,
@@ -172,7 +172,7 @@ pub fn execute_create_infusion(
 
         // predict the contract address
         let infusion_addr = match instantiate2_address(
-            &collection_checksum.as_slice(),
+            collection_checksum.as_slice(),
             &deps.api.addr_canonicalize(env.contract.address.as_str())?,
             salt1.as_slice(),
         ) {
@@ -393,14 +393,14 @@ pub fn query_infusions(deps: Deps, addr: Addr) -> StdResult<InfusionsResponse> {
     let current_id = INFUSION_INFO.load(deps.storage, &addr.clone())?.next_id;
 
     for i in 0..=current_id {
-        let id = i as u64;
+        let id = i;
         // return the response for each
         let state = INFUSION.load(deps.storage, (addr.clone(), id))?;
         infusions.push(state);
     }
 
     Ok(InfusionsResponse {
-        infusions: infusions,
+        infusions,
     })
 }
 
@@ -428,7 +428,7 @@ pub fn is_nft_owner(deps: Deps, sender: Addr, nfts: Vec<NFT>) -> Result<(), Cont
                 })?,
             }))?;
 
-        if owner_response.owner != sender.to_string() {
+        if owner_response.owner != sender {
             return Err(ContractError::SenderNotOwner {});
         }
     }

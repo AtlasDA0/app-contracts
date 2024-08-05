@@ -21,7 +21,7 @@ use crate::{
     msg::{AllLocalitiesResponse, ExecuteMsg, LocalityResponse, QueryFilters},
     query::{is_nft_owner, query_all_localities_raw},
     state::{
-        get_raffle_state, Config, CreateLocalityParams, FeeDiscountMsg, LocalityInfo,
+        get_raffle_state, CreateLocalityParams, FeeDiscountMsg, LocalityInfo,
         LocalityOptions, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState, CONFIG,
         LOCALITY_ENABLED, LOCALITY_INFO, LOCALITY_TICKETS, MINIMUM_RAFFLE_DURATION, RAFFLE_INFO,
         RAFFLE_TICKETS, USER_LOCALITY_TICKETS, USER_TICKETS,
@@ -978,12 +978,12 @@ pub fn execute_update_config(
         }
     };
     if let Some(new) = raffle_fee {
-        if (new >= Decimal::zero() && new <= Decimal::one()) {
+        if new >= Decimal::zero() && new <= Decimal::one() {
             config.raffle_fee = new;
         }
     };
     if let Some(new) = raffle_fee {
-        if (new >= Decimal::zero() && new <= Decimal::one()) {
+        if new >= Decimal::zero() && new <= Decimal::one() {
             config.raffle_fee = new;
         } else {
             return Err(ContractError::InvalidFeeRate {});
@@ -1027,7 +1027,7 @@ pub fn execute_update_config(
     config.fee_discounts = fee_discounts;
 
     if let Some(new) = locality_config {
-        if (new >= Decimal::zero() && new <= Decimal::one()) {
+        if new >= Decimal::zero() && new <= Decimal::one() {
             config.locality_fee = new;
         } else {
             return Err(ContractError::InvalidFeeRate {});

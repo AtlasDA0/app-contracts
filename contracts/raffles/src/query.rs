@@ -238,7 +238,7 @@ pub fn query_all_localities_raw(
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let start = start_after.map(Bound::exclusive);
 
-    let mut localities: Vec<LocalityResponse> = LOCALITY_INFO
+    let localities: Vec<LocalityResponse> = LOCALITY_INFO
         .range(deps.storage, None, start.clone(), Order::Descending)
         .take(BASE_LIMIT)
         .filter(|response| match response {
@@ -257,15 +257,15 @@ fn parse_localities(
     env: &Env,
     item: StdResult<(u64, LocalityInfo)>,
 ) -> Result<LocalityResponse, ContractError> {
-    item.map_err(Into::into).and_then(|(id, mut info)| {
+    item.map_err(Into::into).map(|(id, info)| {
         let state = get_locality_state(env, &info.clone());
         // add_raffle_winners(deps, env, raffle_id, &mut raffle)?;
-        Ok(LocalityResponse {
+        LocalityResponse {
             id,
             state,
             info: info.clone(),
             frequency: info.frequency,
-        })
+        }
     })
 }
 

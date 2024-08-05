@@ -807,7 +807,7 @@ pub struct CollectionParams {
 // increments the token index for each new locality collection
 pub fn increment_token_index(store: &mut dyn Storage, locality_id: u64) -> StdResult<u64> {
     let val = TOKEN_INDEX
-        .may_load(store, locality_id.clone())?
+        .may_load(store, locality_id)?
         .unwrap_or_default()
         + 1;
     TOKEN_INDEX.save(store, locality_id, &val)?;

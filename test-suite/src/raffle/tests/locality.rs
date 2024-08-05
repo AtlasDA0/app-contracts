@@ -1,7 +1,7 @@
 use crate::common_setup::{
     setup_accounts_and_block::setup_accounts,
     setup_minter::common::constants::OWNER_ADDR,
-    setup_raffle::{proper_raffle_instantiate, raffle_template_code_ids},
+    setup_raffle::proper_raffle_instantiate,
 };
 use cosmwasm_std::{Addr, Coin};
 use cw_multi_test::Executor;
@@ -9,7 +9,7 @@ use raffles::{
     msg::ExecuteMsg,
     state::{CollectionParams, CreateLocalityParams, LocalityMinterParams},
 };
-use sg721::{CollectionInfo, RoyaltyInfoResponse};
+use sg721::CollectionInfo;
 
 #[test]
 fn test_locality_creation() {

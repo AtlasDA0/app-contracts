@@ -413,7 +413,7 @@ pub fn get_locality_minters(
         .collect::<Result<Vec<_>, _>>()?;
 
     for minter in winners {
-        let mut token_id = TOKEN_INDEX.may_load(deps.storage, locality_id.clone())?;
+        let mut token_id = TOKEN_INDEX.may_load(deps.storage, locality_id)?;
         if token_id.is_none() {
             token_id = Some(increment_token_index(deps.storage, locality_id)?);
         }

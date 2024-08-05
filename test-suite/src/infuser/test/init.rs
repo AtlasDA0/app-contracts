@@ -1,5 +1,4 @@
 use abstract_cw_multi_test::Contract;
-use cosmwasm_std::coins;
 use cw_infuser::{
     msg::{ExecuteMsgFns, InstantiateMsg, QueryMsgFns},
     state::{
@@ -61,7 +60,7 @@ impl<Chain: CwEnv> InfuserSuite<Chain> {
                     token_uri: None,
                     extension: None,
                 },
-                &vec![],
+                &[],
                 &cw721_a.clone(),
             )?;
         }
@@ -89,7 +88,7 @@ impl<Chain: CwEnv> InfuserSuite<Chain> {
                     token_id: n.to_string(),
                     expires: None,
                 },
-                &vec![],
+                &[],
                 &cw721_a.clone(),
             )?;
         }
@@ -177,7 +176,7 @@ fn successful_infusion() -> anyhow::Result<()> {
         0,
     );
 
-    if !messages.is_err() {
+    if messages.is_ok() {
         panic!()
     }
     // error if too many nfts provided in bundle
