@@ -61,6 +61,13 @@ pub struct RaffleCodeIds {
     pub raffle_code_id: u64,
     pub nois_code_id: u64,
 }
+#[cw_serde]
+pub struct RaffleOrchCodeId {
+    pub minter_code_id: u64,
+    pub factory_code_id: u64,
+    pub sg721_code_id: u64,
+    pub nois_code_id: u64,
+}
 
 #[cw_serde]
 pub struct RaffleContracts {

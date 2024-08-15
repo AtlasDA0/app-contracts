@@ -1,32 +1,37 @@
 use cosmwasm_std::{
-    ensure, ensure_eq, from_json, to_json_binary, Addr, BankMsg, Coin, Decimal, DepsMut, Empty,
-    Env, MessageInfo, StdError, StdResult, Uint128, WasmMsg,
+    ensure, ensure_eq, from_json, to_json_binary, Addr, BankMsg, Binary, Coin, Decimal, DepsMut,
+    Empty, Env, HexBinary, MessageInfo, ReplyOn, StdError, StdResult, Uint128, WasmMsg,
 };
 use cw721::{Cw721ExecuteMsg, Cw721ReceiveMsg};
 use cw721_base::Extension;
 use nois::{NoisCallback, ProxyExecuteMsg};
+
+use sg721::InstantiateMsg as Sg721InitMsg;
 
 #[cfg(feature = "sg")]
 use {crate::query::is_sg721_owner, sg721::ExecuteMsg as Sg721ExecuteMsg};
 
 use utils::{
     state::{all_elements_unique, into_cosmos_msg, is_valid_comment, is_valid_name, AssetInfo},
-    types::{CosmosMsg, Response},
+    types::{CosmosMsg, Response, SubMsg},
 };
 
 use crate::{
     error::ContractError,
-    msg::ExecuteMsg,
-    query::is_nft_owner,
+    msg::{AllLocalitiesResponse, ExecuteMsg, LocalityResponse, QueryFilters},
+    query::{is_nft_owner, query_all_localities_raw},
     state::{
-        get_raffle_state, Config, FeeDiscountMsg, RaffleInfo, RaffleOptions, RaffleOptionsMsg,
-        RaffleState, CONFIG, MINIMUM_RAFFLE_DURATION, RAFFLE_INFO, RAFFLE_TICKETS, USER_TICKETS,
+        get_locality_state, get_raffle_state, CreateLocalityParams, FeeDiscountMsg, LocalityInfo,
+        LocalityOptions, RaffleInfo, RaffleOptions, RaffleOptionsMsg, RaffleState, CONFIG,
+        LOCALITY_ENABLED, LOCALITY_INFO, LOCALITY_TICKETS, MINIMUM_RAFFLE_DURATION, RAFFLE_INFO,
+        RAFFLE_TICKETS, USER_LOCALITY_TICKETS, USER_TICKETS,
     },
     utils::{
-        buyer_can_buy_ticket, can_buy_ticket, get_nois_randomness,
+        buyer_can_buy_locality_ticket, buyer_can_buy_ticket, can_buy_locality_ticket,
+        can_buy_ticket, get_locality_minters, get_nois_randomness,
         get_raffle_owner_funds_finished_messages, get_raffle_owner_messages,
         get_raffle_refund_funds_finished_messages, get_raffle_winner_messages, get_raffle_winners,
-        is_raffle_owner, ticket_cost,
+        is_raffle_owner, locality_ticket_cost, ticket_cost,
     },
 };
 
@@ -382,6 +387,56 @@ pub fn execute_buy_tickets(
         _ => return Err(ContractError::WrongAssetType {}),
     };
 
+    // pub fn execute_mint_locality(
+    //     deps: DepsMut,
+    //     env: Env,
+    //     info: MessageInfo,
+    //     id: u64,
+    //     recipient: Option<String>,
+    // ) -> Result<Response, ContractError> {
+    //     let locality = LOCALITY_INFO.load(deps.storage, id.clone())?;
+
+    //     // verify locality specifc params
+
+    //     // /// after start_time
+    //     // if env.block.time < locality.start_time {return Err(ContractError::BeforeMintStartTime {});}
+
+    //     // mint with sender as owner
+    //     let recipient_addr = match recipient {
+    //         Some(some_recipient) => deps.api.addr_validate(&some_recipient)?,
+    //         None => info.sender.clone(),
+    //     };
+
+    //     // let mint_price: Coin = mint_price(deps.as_ref(), is_admin)?;
+    //     // // Exact payment only accepted
+    //     // let payment = may_pay(&info, &mint_price.denom)?;
+    //     // if payment != mint_price.amount {
+    //     //     return Err(ContractError::IncorrectPaymentAmount(
+    //     //         coin(payment.u128(), &config.mint_price.denom),
+    //     //         mint_price,
+    //     //     ));
+    //     // }
+
+    //     let mut res = Response::new().add_attribute("action", "mint_locality");
+
+    //     let mint_msg = Sg721ExecuteMsg::<Extension, Empty>::Mint {
+    //         token_id: increment_token_index(deps.storage, id)?.to_string(),
+    //         owner: recipient_addr.to_string(),
+    //         token_uri: None, // todo: nft id support + randomly assigned via nois
+    //         extension: None,
+    //     };
+    //     let msg = CosmosMsg::Wasm(WasmMsg::Execute {
+    //         contract_addr: locality
+    //             .collection
+    //             .expect("no collection exists!")
+    //             .to_string(),
+    //         msg: to_json_binary(&mint_msg)?,
+    //         funds: vec![],
+    //     });
+    //     res = res.add_message(msg);
+    //     Ok(res)
+    // }
+
     // Then we verify the funds sent match the raffle conditions and we save the ticket that was bought
     let owner = on_behalf_of
         .map(|a| deps.as_ref().api.addr_validate(&a))
@@ -397,6 +452,91 @@ pub fn execute_buy_tickets(
         .add_attribute("purchaser", info.sender)
         .add_attribute("ticket_count", ticket_count.to_string())
         .add_attribute("timestamp", env.block.time.to_string()))
+}
+
+pub fn _buy_locality_tickets(
+    deps: DepsMut,
+    env: Env,
+    owner: Addr,
+    locality_id: u64,
+    ticket_count: u32,
+    assets: AssetInfo,
+) -> Result<Option<CosmosMsg>, ContractError> {
+    // load locality info from id if it exists
+    let mut locality_info = LOCALITY_INFO.load(deps.storage, locality_id)?;
+    // load ticket cost & verify payment is exact
+    let tc = locality_ticket_cost(locality_info.clone(), ticket_count)?;
+    if let AssetInfo::Coin(x) = tc.clone() {
+        if !x.amount.is_zero() && tc != assets {
+            return Err(ContractError::PaymentNotSufficient {
+                ticket_count,
+                assets_wanted: locality_info.ticket_price,
+                // TODO: print correct assets_wanted value
+                assets_received: assets,
+            });
+        }
+    }
+    // a. check if buyer has gated rights
+    buyer_can_buy_locality_ticket(deps.as_ref(), &locality_info.clone(), owner.to_string())?;
+
+    // b. check if buyer has gated rights
+    can_buy_locality_ticket(env.clone(), locality_info.clone())?;
+
+    // Then we check the user has the right to buy `ticket_count` more tickets
+    if let Some(max_ticket_per_address) = locality_info.locality_options.max_ticket_per_address {
+        let current_ticket_count = USER_LOCALITY_TICKETS
+            .load(deps.storage, (&owner, locality_id))
+            .unwrap_or(0);
+        if current_ticket_count + ticket_count > max_ticket_per_address {
+            return Err(ContractError::TooMuchTicketsForUser {
+                max: max_ticket_per_address,
+                nb_before: current_ticket_count,
+                nb_after: current_ticket_count + ticket_count,
+            });
+        }
+    };
+
+    // Then we check there are some ticket left to buy
+
+    if locality_info.number_of_tickets + ticket_count > locality_info.locality_options.total_to_mint
+    {
+        return Err(ContractError::TooMuchTickets {
+            max: locality_info.locality_options.total_to_mint,
+            nb_before: locality_info.number_of_tickets,
+            nb_after: locality_info.number_of_tickets + ticket_count,
+        });
+    };
+
+    // Then we save the sender to the bought tickets
+    for n in 0..ticket_count {
+        LOCALITY_TICKETS.save(
+            deps.storage,
+            (locality_id, locality_info.number_of_tickets + n),
+            &owner,
+        )?;
+        println!("{:#?},{:#?}", locality_info.number_of_tickets, n)
+    }
+
+    USER_LOCALITY_TICKETS.update::<_, ContractError>(deps.storage, (&owner, locality_id), |x| {
+        match x {
+            Some(current_ticket_count) => Ok(current_ticket_count + ticket_count),
+            None => Ok(ticket_count),
+        }
+    })?;
+    locality_info.number_of_tickets += ticket_count;
+
+    let nois_message =
+        if locality_info.number_of_tickets >= locality_info.locality_options.total_to_mint {
+            locality_info.locality_options.duration =
+                env.block.time.seconds() - locality_info.locality_options.start_timestamp.seconds();
+            Some(get_nois_randomness(deps.as_ref(), locality_id)?)
+        } else {
+            None
+        };
+
+    LOCALITY_INFO.save(deps.storage, locality_id, &locality_info)?;
+
+    Ok(nois_message)
 }
 
 /// Creates new raffle tickets and assigns them to the sender
@@ -570,7 +710,6 @@ pub fn execute_receive_nois(
     callback: NoisCallback,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
-
     // callback should only be allowed to be called by the proxy contract
     // otherwise anyone can cut the randomness workflow and cheat the randomness by sending the randomness directly to this contract
     ensure_eq!(
@@ -586,28 +725,51 @@ pub fn execute_receive_nois(
 
     // extract participant address
     let job_id = callback.job_id;
-    let raffle_id = job_id
-        .strip_prefix("raffle-")
-        .expect("Strange, how is the job-id not prefixed with raffle-");
-    let raffle_id: u64 = raffle_id.parse().unwrap();
 
-    let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
-    let raffle_state = get_raffle_state(&env, &raffle_info);
+    match &job_id {
+        s if s.starts_with("locality-") => {
+            let locality_id = job_id
+                .strip_prefix("locality-")
+                .expect("Strange, how is the job-id not prefixed with locality-");
+            let locality_id: u64 = locality_id.parse().unwrap();
+            let mut locality_info = LOCALITY_INFO.load(deps.storage, locality_id)?;
+            let locality_state = get_locality_state(&env, &locality_info);
+            // if locality_state != LocalityState::Closed {
+            //     return Err(ContractError::WrongState {
+            //         status: locality_state,
+            //     });
+            // }
 
-    if raffle_state != RaffleState::Closed {
-        return Err(ContractError::WrongStateForClaim {
-            status: raffle_state,
-        });
+            // We update the global randomness state
+            locality_info.randomness = Some(randomness.into());
+
+            LOCALITY_INFO.save(deps.storage, locality_id, &locality_info)?;
+        }
+        s if s.starts_with("raffle-") => {
+            let raffle_id = job_id
+                .strip_prefix("raffle-")
+                .expect("Strange, how is the job-id not prefixed with raffle-");
+            let raffle_id: u64 = raffle_id.parse().unwrap();
+            let mut raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
+            let raffle_state = get_raffle_state(&env, &raffle_info);
+            if raffle_state != RaffleState::Closed {
+                return Err(ContractError::WrongStateForClaim {
+                    status: raffle_state,
+                });
+            }
+            // We make sure the raffle has not updated the global randomness yet
+            if raffle_info.randomness.is_some() {
+                return Err(ContractError::RandomnessAlreadyProvided {});
+            } else {
+                raffle_info.randomness = Some(randomness.into());
+            };
+            RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
+        }
+        _ => {
+            // handle unknown job_id
+            return Err(ContractError::InvalidProxyCallID {});
+        }
     }
-
-    // We make sure the raffle has not updated the global randomness yet
-    if raffle_info.randomness.is_some() {
-        return Err(ContractError::RandomnessAlreadyProvided {});
-    } else {
-        raffle_info.randomness = Some(randomness.into());
-    };
-
-    RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
 
     Ok(Response::new().add_attribute("action", "update_randomness"))
 }
@@ -675,6 +837,128 @@ pub fn execute_claim(deps: DepsMut, env: Env, raffle_id: u64) -> Result<Response
         ))
 }
 
+pub fn execute_create_locality(
+    deps: DepsMut,
+    info: MessageInfo,
+    env: Env,
+    msg: CreateLocalityParams,
+) -> Result<Response, ContractError> {
+    if !LOCALITY_ENABLED.load(deps.storage)? {
+        return Err(ContractError::NotAvailable {});
+    }
+
+    // assert any fees
+    // todo()!
+
+    // create locality id key
+    let locality_id: u64 = CONFIG
+        .update(deps.storage, |mut c| -> StdResult<_> {
+            c.last_locality_id = c.last_locality_id.map_or(Some(0), |id| Some(id + 1));
+            Ok(c)
+        })?
+        .last_locality_id
+        .unwrap();
+    // maybe:  retrieve initial randomness source?
+
+    // create new collection
+    let submsg = SubMsg {
+        msg: WasmMsg::Instantiate {
+            code_id: msg.collection_params.code_id,
+            msg: to_json_binary(&Sg721InitMsg {
+                name: msg.collection_params.name.clone(),
+                symbol: msg.collection_params.symbol.clone(),
+                minter: env.contract.address.to_string(), // this contract as minter
+                collection_info: msg.collection_params.info.clone(),
+            })?,
+            funds: info.funds,
+            admin: None,
+            label: format!("SG721-Locality-{}", msg.collection_params.name.trim()),
+        }
+        .into(),
+        id: locality_id.clone(),
+        gas_limit: None,
+        reply_on: ReplyOn::Success,
+    };
+
+    // save locality
+    LOCALITY_INFO.save(
+        deps.storage,
+        locality_id,
+        &LocalityInfo {
+            owner: deps
+                .api
+                .addr_validate(&msg.collection_params.info.creator)?,
+            collection: None,
+            ticket_price: AssetInfo::Coin(msg.init_msg.mint_price),
+            is_cancelled: false,
+            frequency: msg.init_msg.frequency,
+            randomness: None,
+            number_of_tickets: 0,
+            harmonics: msg.init_msg.harmonics,
+            locality_options: LocalityOptions {
+                gating_locality: vec![],
+                duration: msg.init_msg.duration,
+                ticket_limit: msg.init_msg.ticket_limit,
+                max_ticket_per_address: msg.init_msg.per_address_limit,
+                start_timestamp: msg.init_msg.start_time,
+                total_to_mint: msg.init_msg.num_tokens,
+            },
+        },
+    )?;
+
+    Ok(Response::new()
+        .add_attribute("action", "create_locality")
+        .add_attribute("locality_id", locality_id.to_string())
+        .add_attribute("locality_creator", msg.collection_params.info.creator)
+        // .add_message(nois)
+        .add_submessage(submsg))
+}
+
+pub fn execute_buy_locality_ticket(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    locality_id: u64,
+    ticket_count: u32,
+    assets: AssetInfo,
+) -> Result<Response, ContractError> {
+    // First we physcially transfer the AssetInfo
+    let transfer_messages: Vec<cosmwasm_std::CosmosMsg<sg_std::StargazeMsgWrapper>> = match &assets
+    {
+        // verify the sent coins match the message coins.
+        AssetInfo::Coin(coin) => {
+            if coin.amount != Uint128::zero()
+                && (info.funds.len() != 1
+                    || info.funds[0].denom != coin.denom
+                    || info.funds[0].amount != coin.amount)
+            {
+                return Err(ContractError::AssetMismatch {});
+            }
+
+            vec![]
+        }
+        _ => return Err(ContractError::WrongAssetType {}),
+    };
+
+    let messages = _buy_locality_tickets(
+        deps,
+        env.clone(),
+        info.sender.clone(),
+        locality_id,
+        ticket_count,
+        assets,
+    )?;
+
+    Ok(Response::new()
+        .add_messages(messages)
+        .add_messages(transfer_messages)
+        .add_attribute("action", "buy_ticket")
+        .add_attribute("locality_id", locality_id.to_string())
+        .add_attribute("purchaser", info.sender)
+        .add_attribute("ticket_count", ticket_count.to_string())
+        .add_attribute("timestamp", env.block.time.to_string()))
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn execute_update_config(
     deps: DepsMut,
@@ -690,76 +974,69 @@ pub fn execute_update_config(
     nois_proxy_coin: Option<Coin>,
     creation_coins: Option<Vec<Coin>>,
     fee_discounts: Option<Vec<FeeDiscountMsg>>,
+    locality_config: Option<Decimal>,
 ) -> Result<Response, ContractError> {
-    let config = CONFIG.load(deps.storage)?;
+    let mut config = CONFIG.load(deps.storage)?;
     // ensure msg sender is admin
+
     ensure_eq!(info.sender, config.owner, ContractError::Unauthorized);
-    let name = match name {
-        Some(n) => {
-            if is_valid_name(&n) {
-                n
-            } else {
-                config.name
-            }
+
+    if let Some(new) = name {
+        if is_valid_name(&new) {
+            config.name = new
         }
-        None => config.name,
     };
-    let owner = match owner {
-        Some(ow) => deps.api.addr_validate(&ow)?,
-        None => config.owner,
+    if let Some(new) = owner {
+        config.owner = deps.api.addr_validate(&new)?;
     };
-    let fee_addr = match fee_addr {
-        Some(fea) => deps.api.addr_validate(&fea)?,
-        None => config.fee_addr,
+    if let Some(new) = fee_addr {
+        config.fee_addr = deps.api.addr_validate(&new)?;
     };
-    let minimum_raffle_duration = match minimum_raffle_duration {
-        Some(mrd) => mrd.max(MINIMUM_RAFFLE_DURATION),
-        None => config.minimum_raffle_duration,
+    if let Some(new) = minimum_raffle_duration {
+        if new >= MINIMUM_RAFFLE_DURATION {
+            config.minimum_raffle_duration = new;
+        }
     };
-    let raffle_fee = match raffle_fee {
-        Some(rf) => {
+    if let Some(new) = raffle_fee {
+        if new >= Decimal::zero() && new <= Decimal::one() {
+            config.raffle_fee = new;
+        }
+    };
+    if let Some(new) = raffle_fee {
+        if new >= Decimal::zero() && new <= Decimal::one() {
+            config.raffle_fee = new;
+        } else {
+            return Err(ContractError::InvalidFeeRate {});
+        }
+    };
+    if let Some(new) = nois_proxy_addr {
+        config.nois_proxy_addr = deps.api.addr_validate(&new)?;
+    };
+    if let Some(new) = nois_proxy_coin {
+        ensure!(
+            new.amount >= Uint128::zero(),
+            ContractError::InvalidProxyCoin
+        );
+        config.nois_proxy_coin = new;
+    };
+    if let Some(new) = creation_coins {
+        // verifies all provided coins are greater than 0
+        for coin in &mut new.clone() {
             ensure!(
-                rf >= Decimal::zero() && rf <= Decimal::one(),
+                coin.amount >= Uint128::zero(),
                 ContractError::InvalidFeeRate {}
-            );
-            rf
+            )
         }
-        None => config.raffle_fee,
+        config.creation_coins = new;
     };
 
-    let nois_proxy_addr = match nois_proxy_addr {
-        Some(prx) => deps.api.addr_validate(&prx)?,
-        None => config.nois_proxy_addr,
-    };
-    let nois_proxy_coin = match nois_proxy_coin {
-        Some(npc) => {
-            ensure!(
-                npc.amount >= Uint128::zero(),
-                ContractError::InvalidProxyCoin
-            );
-            npc
+    if let Some(new) = max_tickets_per_raffle {
+        if new == 0u32 {
+            config.max_tickets_per_raffle = None
+        } else {
+            config.max_tickets_per_raffle = Some(new);
         }
-        None => config.nois_proxy_coin,
     };
-
-    // verifies all provided coins are greater than 0
-    let creation_coins = match creation_coins {
-        Some(mut crc) => {
-            for coin in &mut crc {
-                ensure!(
-                    coin.amount >= Uint128::zero(),
-                    ContractError::InvalidFeeRate {}
-                )
-            }
-            crc
-        }
-        None => config.creation_coins,
-    };
-    let max_tickets_per_raffle = match max_tickets_per_raffle {
-        Some(mpn) => mpn,
-        None => config.max_tickets_per_raffle.unwrap(),
-    };
-
     let fee_discounts = match fee_discounts {
         Some(discounts) => discounts
             .into_iter()
@@ -767,24 +1044,17 @@ pub fn execute_update_config(
             .collect::<Result<_, _>>()?,
         None => config.fee_discounts,
     };
-    // we have a seperate function to lock a raffle, so we skip here
+    config.fee_discounts = fee_discounts;
 
-    let new_config = Config {
-        name,
-        owner,
-        fee_addr,
-        minimum_raffle_duration,
-        raffle_fee,
-        locks: config.locks,
-        nois_proxy_addr,
-        nois_proxy_coin,
-        creation_coins,
-        max_tickets_per_raffle: max_tickets_per_raffle.into(),
-        last_raffle_id: config.last_raffle_id,
-        fee_discounts,
+    if let Some(new) = locality_config {
+        if new >= Decimal::zero() && new <= Decimal::one() {
+            config.locality_fee = new;
+        } else {
+            return Err(ContractError::InvalidFeeRate {});
+        }
     };
 
-    CONFIG.save(deps.storage, &new_config)?;
+    CONFIG.save(deps.storage, &config)?;
 
     Ok(Response::new().add_attribute("action", "update_config"))
 }
@@ -825,4 +1095,72 @@ pub fn execute_sudo_toggle_lock(
         .add_attribute("action", "sudo_update_status")
         .add_attribute("parameter", "contract_lock")
         .add_attribute("value", lock.to_string()))
+}
+
+pub fn handle_cron(mut deps: DepsMut, env: Env) -> Result<Response, ContractError> {
+    let res = Response::new();
+    let mut msgs = vec![];
+
+    // get all active localities
+    println!("get all active localities");
+    let info: AllLocalitiesResponse = query_all_localities_raw(
+        deps.as_ref(),
+        env.clone(),
+        None,
+        Some(100),
+        Some(QueryFilters {
+            states: vec!["started".to_string()].into(),
+            owner: None,
+            ticket_depositor: None,
+            contains_token: None,
+            gated_rights_ticket_buyer: None,
+        }),
+    )?;
+
+    println!("{:#?}", info.localities);
+    println!("Block height: {:#?}", env.block.height);
+
+    println!("filters for each locality in phase for minting");
+    for locality in info.localities {
+        let in_phase = determine_phase_alignment(env.clone(), locality.clone().frequency);
+
+        if in_phase {
+            println!("determine winners & return mint msgs");
+            let messages =
+                get_locality_minters(deps.branch(), &env, locality.id, locality.info.clone())?;
+            println!("{:?}", messages);
+            msgs.extend(messages);
+        }
+    }
+
+    Ok(res.add_messages(msgs))
+}
+
+pub fn determine_phase_alignment(env: Env, freq: u64) -> bool {
+    if env.block.height % freq != 0 {
+        return false;
+    }
+    true
+}
+
+pub fn execute_toggle_locality(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    bool: bool,
+) -> Result<Response, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
+    // check the calling address is the authorised multisig
+    ensure_eq!(info.sender, config.owner, ContractError::Unauthorized);
+    LOCALITY_ENABLED.save(deps.storage, &bool)?;
+    Ok(Response::new())
+}
+
+/// Generates the value used with instantiate2, via a hash of the infusers checksum.
+pub const SALT_POSTFIX: &[u8] = b"locality";
+pub fn generate_instantiate_salt2(checksum: &HexBinary) -> Binary {
+    let checksum_hash = <sha2::Sha256 as sha2::Digest>::digest(checksum.to_string());
+    let mut hash = checksum_hash.to_vec();
+    hash.extend(SALT_POSTFIX);
+    Binary(hash.to_vec())
 }

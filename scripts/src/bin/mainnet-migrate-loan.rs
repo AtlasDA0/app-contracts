@@ -12,10 +12,7 @@ const MULTISIG_ADDRESS: &str = "stars1wk327tnqj03954zq2hzf36xzs656pmffzy0udsmjw2
 pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     env_logger::init();
-    let chain = Daemon::builder()
-        .chain(STARGAZE_1)
-        .authz_granter(MULTISIG_ADDRESS)
-        .build()?;
+    let chain = Daemon::builder(STARGAZE_1).build()?;
 
     let loans = Loans::new(chain.clone());
     // loans.upload()?;
@@ -28,7 +25,7 @@ pub fn main() -> anyhow::Result<()> {
         msg: to_json_binary(&MigrateMsg {})?,
     };
 
-    let chain = Daemon::builder().chain(STARGAZE_1).build()?;
+    let chain = Daemon::builder(STARGAZE_1).build()?;
 
     let contract_info = chain.wasm_querier().contract_info(loans.address()?)?;
     println!("{:?}", contract_info);

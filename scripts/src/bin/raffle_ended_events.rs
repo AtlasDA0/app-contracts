@@ -10,7 +10,7 @@ pub const TOKEN_ID: &str = "239";
 pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     env_logger::init();
-    let chain = Daemon::builder().chain(STARGAZE_1).build()?;
+    let chain = Daemon::builder(STARGAZE_1).build()?;
 
     let raffles = Raffles::new(chain.clone());
 

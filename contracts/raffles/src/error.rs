@@ -1,9 +1,9 @@
 use thiserror::Error;
 
-use cosmwasm_std::{StdError, Timestamp};
+use cosmwasm_std::{Instantiate2AddressError, StdError, Timestamp};
 use utils::state::AssetInfo;
 
-use crate::state::{AdvantageOptions, RaffleState};
+use crate::state::{AdvantageOptions, LocalityState, RaffleState};
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {
@@ -33,7 +33,6 @@ pub enum ContractError {
 
     #[error("Invalid input")]
     InvalidInput {},
-
     #[error("The Raffle Fee you have provided is invalid.")]
     InvalidRaffleFee {},
 
@@ -191,4 +190,20 @@ pub enum ContractError {
         condition: AdvantageOptions,
         user: String,
     },
+    #[error("Not Available.")]
+    NotAvailable {},
+
+    #[error("This locality is not ready to start.  Current status : {status:?}")]
+    WrongStateForClaimLocality { status: LocalityState },
+
+    #[error("{0}")]
+    Instantiate2AddressError(#[from] Instantiate2AddressError),
+
+    #[error("Invalid ID passed during call to proxy for randomness")]
+    InvalidProxyCallID {},
+
+    #[error("Instantiate sg721 error")]
+    InstantiateSg721Error {},
+    #[error("Invalid reply ID")]
+    InvalidReplyID {},
 }

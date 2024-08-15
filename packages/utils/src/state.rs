@@ -126,8 +126,14 @@ pub fn into_cosmos_msg<M: Serialize, T: Into<String>>(
 }
 
 #[cw_serde]
-pub enum SudoMsg {
+pub enum LoanSudoMsg {
     ToggleLock { lock: bool },
+}
+
+#[cw_serde]
+pub enum RaffleSudoMsg {
+    ToggleLock { lock: bool },
+    BeginBlock {},
 }
 
 #[cw_serde]

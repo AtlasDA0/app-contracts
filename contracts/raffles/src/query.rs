@@ -1,20 +1,28 @@
 use cosmwasm_std::{
-    to_json_binary, Addr, Decimal, Deps, Env, Order, QueryRequest, StdError, StdResult, WasmQuery,
+    to_json_binary, Addr, Decimal, Deps, Env, Order, QueryRequest, StdError, StdResult, Storage,
+    Timestamp, WasmQuery,
 };
 use cw721::{Cw721QueryMsg, OwnerOfResponse};
 use cw_storage_plus::Bound;
 
+use filters::locality_state_filter;
 #[cfg(feature = "sg")]
 use sg721_base::QueryMsg as Sg721QueryMsg;
+use utils::state::AssetInfo;
 
 mod filters;
 
 use crate::{
     error::ContractError,
-    msg::{AllRafflesResponse, ConfigResponse, FeeDiscountResponse, QueryFilters, RaffleResponse},
+    execute::determine_phase_alignment,
+    msg::{
+        AllLocalitiesResponse, AllRafflesResponse, ConfigResponse, FeeDiscountResponse,
+        LocalityResponse, QueryFilters, RaffleResponse,
+    },
     state::{
-        get_raffle_state, load_raffle, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO,
-        RAFFLE_TICKETS, USER_TICKETS,
+        get_locality_state, get_raffle_state, load_locality, load_raffle, LocalityInfo,
+        LocalityOptions, RaffleInfo, RaffleState, CONFIG, LOCALITY_INFO, LOCALITY_TICKETS,
+        RAFFLE_INFO, RAFFLE_TICKETS, USER_LOCALITY_TICKETS, USER_TICKETS,
     },
     utils::get_raffle_winners,
 };
@@ -89,6 +97,23 @@ pub fn query_all_raffles(
         query_all_raffles_raw(deps, env, start_after, limit, filters)
     }
 }
+pub fn query_all_localities(
+    deps: Deps,
+    env: Env,
+    start_after: Option<u64>,
+    limit: Option<u32>,
+    filters: Option<QueryFilters>,
+) -> Result<AllLocalitiesResponse, ContractError> {
+    if filters.is_some() && filters.clone().unwrap().ticket_depositor.is_some() {
+        query_all_localities_by_deposit(deps, env, start_after, limit, filters)
+    } else {
+        query_all_localities_raw(deps, env, start_after, limit, filters)
+    }
+}
+
+pub fn query_locality_collection(storage: &dyn Storage, locality: u64) -> StdResult<Option<Addr>> {
+    Ok(load_locality(storage, locality)?.collection)
+}
 
 /// Query all raffles in which a depositor bought a ticket
 /// Returns an empty raffle_info if none where found in the BASE_LIMIT first results
@@ -106,9 +131,9 @@ pub fn query_all_raffles_by_depositor(
     let ticket_depositor = deps.api.addr_validate(
         &filters
             .clone()
-            .ok_or_else(|| StdError::generic_err("unauthorized"))?
+            .ok_or_else(|| StdError::generic_err("no filters"))?
             .ticket_depositor
-            .ok_or_else(|| StdError::generic_err("unauthorized"))?,
+            .ok_or_else(|| StdError::generic_err("no ticket depositors"))?,
     )?;
 
     let mut raffles = USER_TICKETS
@@ -146,6 +171,81 @@ pub fn query_all_raffles_by_depositor(
     Ok(AllRafflesResponse { raffles })
 }
 
+/// Query all raffles in which a depositor bought a ticket
+/// Returns an empty raffle_info if none where found in the BASE_LIMIT first results
+pub fn query_all_localities_by_deposit(
+    deps: Deps,
+    env: Env,
+    start_after: Option<u64>,
+    limit: Option<u32>,
+    filters: Option<QueryFilters>,
+) -> Result<AllLocalitiesResponse, ContractError> {
+    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
+    let start = start_after.map(Bound::exclusive);
+
+    let ticket_depositor = deps.api.addr_validate(
+        &filters
+            .clone()
+            .ok_or_else(|| StdError::generic_err("no filters"))?
+            .ticket_depositor
+            .ok_or_else(|| StdError::generic_err("no ticket depositors"))?,
+    )?;
+
+    let mut localities = USER_LOCALITY_TICKETS
+        .prefix(&ticket_depositor)
+        .keys(deps.storage, None, start.clone(), Order::Descending)
+        .take(BASE_LIMIT)
+        .filter_map(|res| res.ok())
+        .map(|l_id| Ok((l_id, load_locality(deps.storage, l_id).unwrap()))) // This unwrap is safe if the data structure was respected
+        .filter(|res| match res {
+            Ok((_id, l_info)) => locality_filter(deps, env.clone(), l_info, &filters),
+            Err(_) => false,
+        })
+        .map(|kv_item| parse_localities(deps, &env, kv_item))
+        .take(limit)
+        .collect::<Result<Vec<LocalityResponse>, ContractError>>()?;
+
+    if localities.is_empty() {
+        let last_l_id = USER_LOCALITY_TICKETS
+            .prefix(&ticket_depositor)
+            .keys(deps.storage, None, start.clone(), Order::Descending)
+            .take(BASE_LIMIT)
+            .filter_map(|response| response.ok())
+            .last();
+
+        // dummy response
+        if let Some(l_id) = last_l_id {
+            if l_id != 0 {
+                localities = vec![LocalityResponse {
+                    id: l_id,
+                    state: crate::state::LocalityState::Finished,
+                    info: LocalityInfo {
+                        owner: Addr::unchecked("nan"),
+                        collection: None,
+                        frequency: 0,
+                        harmonics: 0u32,
+                        is_cancelled: true,
+                        locality_options: LocalityOptions {
+                            total_to_mint: 0u32,
+                            gating_locality: vec![],
+                            ticket_limit: true,
+                            max_ticket_per_address: None,
+                            start_timestamp: Timestamp::from_seconds(1),
+                            duration: 0u64,
+                        },
+                        number_of_tickets: 0u32,
+                        ticket_price: AssetInfo::coin(0, "nan"),
+                        randomness: None,
+                    },
+                    frequency: 0,
+                }]
+            }
+        }
+    }
+
+    Ok(AllLocalitiesResponse { localities })
+}
+
 // parse raffles to human readable format
 fn parse_raffles(
     deps: Deps,
@@ -164,8 +264,25 @@ fn parse_raffles(
         })
 }
 
+// parse localities to human readable format
+fn parse_localities(
+    deps: Deps,
+    env: &Env,
+    item: StdResult<(u64, LocalityInfo)>,
+) -> Result<LocalityResponse, ContractError> {
+    item.map_err(Into::into).map(|(id, info)| {
+        let state = get_locality_state(env, &info.clone());
+        // add_raffle_winners(deps, env, raffle_id, &mut raffle)?;
+        LocalityResponse {
+            id,
+            state,
+            info: info.clone(),
+            frequency: info.frequency,
+        }
+    })
+}
+
 /// Query all ticket onwers within a raffle
-///
 pub fn query_all_tickets(
     deps: Deps,
     _env: Env,
@@ -177,6 +294,24 @@ pub fn query_all_tickets(
     let start = start_after.map(Bound::exclusive);
 
     RAFFLE_TICKETS
+        .prefix(raffle_id)
+        .range(deps.storage, start.clone(), None, Order::Ascending)
+        .map(|kv_item| Ok(kv_item?.1.to_string()))
+        .take(limit)
+        .collect()
+}
+/// Query all ticket onwers within a raffle
+pub fn query_all_locality_tickets(
+    deps: Deps,
+    _env: Env,
+    raffle_id: u64,
+    start_after: Option<u32>,
+    limit: Option<u32>,
+) -> StdResult<Vec<String>> {
+    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
+    let start = start_after.map(Bound::exclusive);
+
+    LOCALITY_TICKETS
         .prefix(raffle_id)
         .range(deps.storage, start.clone(), None, Order::Ascending)
         .map(|kv_item| Ok(kv_item?.1.to_string()))
@@ -224,6 +359,29 @@ pub fn query_all_raffles_raw(
     Ok(AllRafflesResponse { raffles })
 }
 
+pub fn query_all_localities_raw(
+    deps: Deps,
+    env: Env,
+    start_after: Option<u64>,
+    limit: Option<u32>,
+    filters: Option<QueryFilters>,
+) -> Result<AllLocalitiesResponse, ContractError> {
+    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
+    let start = start_after.map(Bound::exclusive);
+
+    let localities: Vec<LocalityResponse> = LOCALITY_INFO
+        .range(deps.storage, None, start.clone(), Order::Descending)
+        .take(BASE_LIMIT)
+        .filter(|response| match response {
+            Ok((_id, raffle_info)) => locality_filter(deps, env.clone(), raffle_info, &filters),
+            Err(_) => false,
+        })
+        .map(|kv_item| parse_localities(deps, &env, kv_item))
+        .take(limit)
+        .collect::<Result<Vec<LocalityResponse>, ContractError>>()?;
+    Ok(AllLocalitiesResponse { localities })
+}
+
 pub fn raffle_filter(
     deps: Deps,
     env: Env,
@@ -235,6 +393,19 @@ pub fn raffle_filter(
             && owner_filter(raffle_info, filters)
             && contains_token_filter(raffle_info, filters)
             && has_gated_rights_filter(deps, raffle_info, filters)
+    } else {
+        true
+    }
+}
+
+pub fn locality_filter(
+    deps: Deps,
+    env: Env,
+    locality_info: &LocalityInfo,
+    filters: &Option<QueryFilters>,
+) -> bool {
+    if let Some(filters) = filters {
+        locality_state_filter(&env, locality_info, filters)
     } else {
         true
     }
@@ -319,4 +490,12 @@ pub fn add_raffle_winners(
     }
 
     Ok(())
+}
+
+pub fn query_phase_alignment(deps: Deps, env: Env, locality: u64) -> StdResult<bool> {
+    let locality = LOCALITY_INFO.load(deps.storage, locality)?;
+    Ok(determine_phase_alignment(
+        env.clone(),
+        locality.clone().frequency,
+    ))
 }

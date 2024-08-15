@@ -31,7 +31,7 @@ pub const SECOND_FUND_AMOUNT: u128 = 456;
 #[test]
 fn actual_nft() -> anyhow::Result<()> {
     let rt = Runtime::new()?;
-    let mut chain = CloneTesting::new(&rt, STARGAZE_1)?;
+    let mut chain = CloneTesting::new(STARGAZE_1)?;
     chain.set_sender(Addr::unchecked(OWNER));
 
     let treasury = chain.app.borrow().api().addr_make("treasury");
@@ -111,7 +111,7 @@ fn actual_nft() -> anyhow::Result<()> {
 #[test]
 fn sns() -> anyhow::Result<()> {
     let rt = Runtime::new()?;
-    let mut chain = CloneTesting::new(&rt, STARGAZE_1)?;
+    let mut chain = CloneTesting::new(STARGAZE_1)?;
     chain.set_sender(Addr::unchecked(OWNER));
 
     let nft: Cw721<CloneTesting> = Cw721::new("geckies", chain.clone());
@@ -194,7 +194,7 @@ fn sns() -> anyhow::Result<()> {
 #[test]
 fn with_funds() -> anyhow::Result<()> {
     let rt = Runtime::new()?;
-    let mut chain = CloneTesting::new(&rt, STARGAZE_1)?;
+    let mut chain = CloneTesting::new(STARGAZE_1)?;
     chain.set_sender(Addr::unchecked(OWNER));
 
     let treasury = chain.app.borrow().api().addr_make("treasury");

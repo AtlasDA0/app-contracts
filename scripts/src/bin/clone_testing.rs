@@ -1,12 +1,7 @@
 use std::collections::HashSet;
 use std::io::Read;
-
 use cosmwasm_std::coins;
 use cosmwasm_std::Addr;
-use cw_orch::daemon::Daemon;
-use cw_orch::daemon::RUNTIME;
-use cw_orch::prelude::QueryHandler;
-use cw_orch::prelude::TxHandler;
 use cw_orch::prelude::*;
 use cw_orch_clone_testing::cw_multi_test::wasm_emulation::contract::{
     LocalWasmContract, WasmContract,
@@ -24,7 +19,7 @@ pub const TOKEN_ID: &str = "239";
 pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     env_logger::init();
-    let chain = CloneTesting::new(&RUNTIME, STARGAZE_1)?;
+    let chain = CloneTesting::new(STARGAZE_1)?;
 
     let raffles = Raffles::new(chain.clone());
 
@@ -55,7 +50,7 @@ fn migrate(raffles: &Raffles<CloneTesting>) -> anyhow::Result<()> {
     file.read_to_end(&mut wasm)?;
 
     let new_code_id = raffles
-        .get_chain()
+        .environment()
         .app
         .borrow_mut()
         .store_wasm_code(WasmContract::Local(LocalWasmContract { code: wasm }));

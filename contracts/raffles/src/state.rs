@@ -6,19 +6,25 @@ use cosmwasm_std::{
 use cw20::{Cw20Coin, Cw20CoinVerified};
 use cw_storage_plus::{Item, Map};
 use dao_interface::voting::VotingPowerAtHeightResponse;
+use sg721::{CollectionInfo, RoyaltyInfoResponse};
 use utils::state::{AssetInfo, Locks};
 
 use crate::error::ContractError;
 
 pub const CONFIG_KEY: &str = "config";
 pub const CONFIG: Item<Config> = Item::new(CONFIG_KEY);
+pub const LOCALITY_INFO: Map<u64, LocalityInfo> = Map::new("li");
+pub const LOCALITY_TICKETS: Map<(u64, u32), Addr> = Map::new("lt");
+pub const USER_LOCALITY_TICKETS: Map<(&Addr, u64), u32> = Map::new("ult");
 pub const OLD_CONFIG: Item<OldConfig> = Item::new(CONFIG_KEY);
 pub const MAX_TICKET_NUMBER: u32 = 100000; // The maximum amount of tickets () that can be in a raffle
 pub const MINIMUM_RAFFLE_DURATION: u64 = 1; // default minimum raffle duration, in seconds
-pub const RAFFLE_INFO: Map<u64, RaffleInfo> = Map::new("raffle_info");
-pub const RAFFLE_TICKETS: Map<(u64, u32), Addr> = Map::new("raffle_tickets");
+pub const RAFFLE_INFO: Map<u64, RaffleInfo> = Map::new("ri");
+pub const RAFFLE_TICKETS: Map<(u64, u32), Addr> = Map::new("rt");
 pub const STATIC_RAFFLE_CREATION_FEE: u128 = 100; // default static tokens required to create raffle
-pub const USER_TICKETS: Map<(&Addr, u64), u32> = Map::new("user_tickets");
+pub const USER_TICKETS: Map<(&Addr, u64), u32> = Map::new("ut");
+pub const LOCALITY_ENABLED: Item<bool> = Item::new("le");
+pub const TOKEN_INDEX: Map<u64, u64> = Map::new("tidx");
 
 pub const NFT_TOKEN_LIMIT: u32 = 20;
 
@@ -32,6 +38,8 @@ pub struct Config {
     pub fee_addr: Addr,
     /// The most recent raffle id
     pub last_raffle_id: Option<u64>,
+    /// The most recent locality id
+    pub last_locality_id: Option<u64>,
     /// The minimum duration, in seconds, in which users can buy raffle tickets
     pub minimum_raffle_duration: u64,
     // The maximum number of participants available to participate in any 1 raffle
@@ -45,7 +53,7 @@ pub struct Config {
     /// The expected fee token denomination of the nois_proxy contract
     pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,
-
+    pub locality_fee: Decimal,
     /// Fee discounts applied
     pub fee_discounts: Vec<FeeDiscount>,
 }
@@ -194,6 +202,57 @@ pub fn load_raffle(storage: &dyn Storage, raffle_id: u64) -> StdResult<RaffleInf
     RAFFLE_INFO.load(storage, raffle_id)
 }
 
+pub fn load_locality(storage: &dyn Storage, locality: u64) -> StdResult<LocalityInfo> {
+    LOCALITY_INFO.load(storage, locality)
+}
+
+#[cw_serde]
+pub struct LocalityInfo {
+    /// owner of locality instance
+    pub owner: Addr,
+    /// address of new collection being minted
+    pub collection: Option<Addr>,
+    /// interval between contract minting to new harmonics group
+    pub frequency: u64,
+    /// number of minters chosen every phase alignment
+    pub harmonics: u32,
+    pub is_cancelled: bool,
+    /// available options of a locality instance
+    pub locality_options: LocalityOptions,
+    /// current number of tickets purchased
+    pub number_of_tickets: u32,
+    /// price of ticket for a locality instance
+    pub ticket_price: AssetInfo,
+    /// randomness value used to provide
+    pub randomness: Option<HexBinary>, // randomness seed provided by nois_proxy
+}
+
+#[cw_serde]
+pub struct LocalityOptions {
+    /// total
+    pub total_to_mint: u32,
+    /// various options for advantages on localities
+    pub gating_locality: Vec<AdvantageOptions>,
+    /// max amount of tickets able to be purchased
+    pub ticket_limit: bool,
+    /// max amount of tickets able to bought per address
+    pub max_ticket_per_address: Option<u32>,
+    /// start of minting for locality instance.
+    pub start_timestamp: Timestamp,
+    /// timeframe from mint start until end
+    pub duration: u64,
+}
+
+#[cw_serde]
+pub enum LocalityState {
+    Created,
+    Started,
+    Closed,
+    Finished,
+    Cancelled,
+    SoldOut,
+}
+
 #[cw_serde]
 pub struct RaffleInfo {
     pub owner: Addr,                    // owner/admin of the raffle
@@ -229,6 +288,19 @@ impl std::fmt::Display for RaffleState {
     }
 }
 
+impl std::fmt::Display for LocalityState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LocalityState::Created => write!(f, "created"),
+            LocalityState::Started => write!(f, "started"),
+            LocalityState::Closed => write!(f, "closed"),
+            LocalityState::Finished => write!(f, "finished"),
+            LocalityState::Cancelled => write!(f, "cancelled"),
+            LocalityState::SoldOut => write!(f, "soldout"),
+        }
+    }
+}
+
 /// Queries the raffle state
 /// This function depends on the block time to return the RaffleState.
 /// As actions can only happen in certain time-periods, you have to be careful when testing off-chain
@@ -251,6 +323,23 @@ pub fn get_raffle_state(env: &Env, raffle_info: &RaffleInfo) -> RaffleState {
         RaffleState::Finished
     } else {
         RaffleState::Claimed
+    }
+}
+
+pub fn get_locality_state(env: &Env, locality_info: &LocalityInfo) -> LocalityState {
+    if locality_info.is_cancelled {
+        LocalityState::Cancelled
+    } else if env.block.time < locality_info.locality_options.start_timestamp {
+        LocalityState::Created
+    } else if env.block.time
+        < locality_info
+            .locality_options
+            .start_timestamp
+            .plus_seconds(locality_info.locality_options.duration)
+    {
+        LocalityState::Started
+    } else {
+        LocalityState::Finished
     }
 }
 
@@ -679,4 +768,54 @@ impl RaffleOptions {
                 .collect::<Result<Vec<_>, _>>()?,
         })
     }
+}
+
+/// params for how the locality instance functions
+#[cw_serde]
+pub struct CreateLocalityParams {
+    pub init_msg: LocalityMinterParams,
+    pub collection_params: CollectionParams,
+}
+
+/// msg for creating new collection minter.
+#[cw_serde]
+pub struct LocalityMinterParams {
+    /// the time trading will be available
+    pub start_time: Timestamp,
+    /// number of tokens of the new collection that will be minted
+    pub num_tokens: u32,
+    /// price of token(ticket) for minting
+    pub mint_price: Coin,
+    /// if maximum tickets available should be the number of possible tokens
+    pub ticket_limit: bool,
+    /// number of tickets an address can purchase
+    pub per_address_limit: Option<u32>,
+    /// length in seconds of the minting timeframe
+    pub duration: u64,
+    /// frequency in blocks for the minting of new tokens
+    pub frequency: u64,
+    /// number of winners determined in phase alignment
+    pub harmonics: u32,
+    /// address for routing payments
+    pub payment_address: Option<String>,
+    // pub whitelist: Option<String>,
+}
+
+/// params for collection to be minted
+#[cw_serde]
+pub struct CollectionParams {
+    pub code_id: u64,
+    pub name: String,
+    pub symbol: String,
+    pub info: CollectionInfo<RoyaltyInfoResponse>,
+}
+
+// increments the token index for each new locality collection
+pub fn increment_token_index(store: &mut dyn Storage, locality_id: u64) -> StdResult<u64> {
+    let val = TOKEN_INDEX
+        .may_load(store, locality_id.clone())?
+        .unwrap_or_default()
+        + 1;
+    TOKEN_INDEX.save(store, locality_id, &val)?;
+    Ok(val)
 }

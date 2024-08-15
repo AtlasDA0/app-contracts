@@ -350,7 +350,7 @@ pub fn withdraw_assets_while_creating(
 /// The counter_trader will withdraw assets from the trade
 pub fn withdraw_successful_trade(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     trade_id: u64,
 ) -> Result<Response, ContractError> {
@@ -423,13 +423,13 @@ pub fn withdraw_successful_trade(
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::state::load_trade;
+    
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{coins, Addr, Attribute, BankMsg, Coin, Decimal, Uint128};
-    use cw1155::Cw1155ExecuteMsg;
-    use cw20::Cw20ExecuteMsg;
-    use cw721::Cw721ExecuteMsg;
-    use p2p_trading_export::msg::into_cosmos_msg;
+    use cosmwasm_std::{coins, Coin, Decimal};
+    
+    
+    
+    
 
     fn init_helper(deps: DepsMut) {
         let instantiate_msg = InstantiateMsg {

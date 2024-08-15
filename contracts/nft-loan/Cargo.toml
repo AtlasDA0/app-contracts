@@ -30,20 +30,20 @@ backtraces = ["cosmwasm-std/backtraces"]
 library = []
 
 [dependencies]
-cosmwasm-std        = "1.4.0"
-cosmwasm-schema     = "1.4.0"
-cw-storage-plus     = "1.2.0"
-cw2                 = "1.1.1"
-cw721               = "0.18.0"
-cw721-base          = "0.18.0"
-nois                = "0.8.0"
-schemars            = "0.8.8"
+cosmwasm-std        = { workspace = true }
+cosmwasm-schema     = { workspace = true }
+cw-storage-plus     = { workspace = true }
+cw2                 = { workspace = true }
+cw721               = { workspace = true }
+cw721-base          = { workspace = true }
+nois                = { workspace = true }
+schemars            = { workspace = true }
 serde               = { version = "1.0.137", default-features = false, features = ["derive"] }
-thiserror           = { version = "1.0.31" }
+thiserror           = { workspace = true }
 
 # Stargaze libs
-sg-std = {version= "^3.2", optional = true }
-sg721 = {version= "^3.3", optional = true }
-sg721-base = {version= "^3.3", optional = true }
+sg-std              = { workspace = true , optional = true }
+sg721               = { workspace = true , optional = true }
+sg721-base          = {workspace = true , optional = true }
 
 utils = { path = "../../packages/utils", version = "0.1.0"}

@@ -1,32 +1,37 @@
 use cosmwasm_std::{
     coin, ensure, ensure_eq, entry_point, to_json_binary, Decimal, Deps, DepsMut, Env, MessageInfo,
-    QueryResponse, StdResult, Uint128,
+    QueryResponse, Reply, StdResult, Uint128,
 };
+use cw_utils::parse_reply_instantiate_data;
 
 use crate::{
     error::ContractError,
     execute::{
-        execute_buy_tickets, execute_cancel_raffle, execute_claim, execute_create_raffle,
-        execute_modify_raffle, execute_receive, execute_receive_nois, execute_sudo_toggle_lock,
-        execute_toggle_lock, execute_update_config,
+        execute_buy_locality_ticket, execute_buy_tickets, execute_cancel_raffle, execute_claim,
+        execute_create_locality, execute_create_raffle, execute_modify_raffle, execute_receive,
+        execute_receive_nois, execute_sudo_toggle_lock, execute_toggle_locality,
+        execute_toggle_lock, execute_update_config, handle_cron,
     },
     msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg, RaffleResponse},
     query::{
-        add_raffle_winners, query_all_raffles, query_all_tickets, query_config, query_discount,
-        query_ticket_count,
+        add_raffle_winners, query_all_localities, query_all_locality_tickets, query_all_raffles,
+        query_all_tickets, query_config, query_discount, query_locality_collection,
+        query_phase_alignment, query_ticket_count,
     },
     state::{
-        get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
-        STATIC_RAFFLE_CREATION_FEE,
+        get_raffle_state, load_locality, load_raffle, Config, CONFIG, LOCALITY_ENABLED,
+        LOCALITY_INFO, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION, STATIC_RAFFLE_CREATION_FEE,
     },
     utils::get_nois_randomness,
 };
 use utils::{
-    state::{is_valid_name, Locks, SudoMsg, NATIVE_DENOM},
+    state::{is_valid_name, Locks, RaffleSudoMsg, NATIVE_DENOM},
     types::Response,
 };
 
 use cw2::set_contract_version;
+
+pub const LOCALITY_COLLECTION_INIT_ID: u64 = 21;
 
 #[entry_point]
 pub fn instantiate(
@@ -87,8 +92,11 @@ pub fn instantiate(
             .into_iter()
             .map(|d| d.check(deps.api))
             .collect::<Result<_, _>>()?,
+        last_locality_id: None,
+        locality_fee: msg.locality_fee.unwrap_or(Decimal::zero()),
     };
 
+    LOCALITY_ENABLED.save(deps.storage, &false)?;
     CONFIG.save(deps.storage, &config)?;
     set_contract_version(
         deps.storage,
@@ -172,6 +180,7 @@ pub fn execute(
             nois_proxy_coin,
             creation_coins,
             fee_discounts,
+            locality_config,
         } => execute_update_config(
             deps,
             env,
@@ -186,6 +195,7 @@ pub fn execute(
             nois_proxy_coin,
             creation_coins,
             fee_discounts,
+            locality_config,
         ),
         ExecuteMsg::UpdateRandomness { raffle_id } => {
             let config = CONFIG.load(deps.storage)?;
@@ -193,6 +203,15 @@ pub fn execute(
             let msg = get_nois_randomness(deps.as_ref(), raffle_id)?;
             Ok(Response::new().add_message(msg))
         }
+        ExecuteMsg::CreateLocality { locality_params } => {
+            execute_create_locality(deps, info, env, locality_params)
+        }
+        ExecuteMsg::BuyLocalityTicket {
+            id,
+            ticket_count,
+            assets,
+        } => execute_buy_locality_ticket(deps, env, info, id, ticket_count, assets),
+        ExecuteMsg::ToggleLocality { on } => execute_toggle_locality(deps, env, info, on),
     }
 }
 
@@ -226,20 +245,74 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<QueryResponse, Contr
             start_after,
             limit,
         )?)?,
+        QueryMsg::AllLocalityTickets {
+            locality_id,
+            start_after,
+            limit,
+        } => to_json_binary(&query_all_locality_tickets(
+            deps,
+            env,
+            locality_id,
+            start_after,
+            limit,
+        )?)?,
         QueryMsg::TicketCount { owner, raffle_id } => {
             to_json_binary(&query_ticket_count(deps, env, raffle_id, owner)?)?
         }
         QueryMsg::FeeDiscount { user } => to_json_binary(&query_discount(deps, user)?)?,
+        QueryMsg::InPhase { locality } => {
+            to_json_binary(&query_phase_alignment(deps, env, locality)?)?
+        }
+        QueryMsg::LocalityInfo { locality } => {
+            to_json_binary(&load_locality(deps.storage, locality)?)?
+        }
+        QueryMsg::AllLocalityInfo {
+            start_after,
+            limit,
+            filters,
+        } => to_json_binary(&query_all_localities(
+            deps,
+            env,
+            start_after,
+            limit,
+            filters,
+        )?)?,
+        QueryMsg::LocalityCollection { locality } => {
+            to_json_binary(&query_locality_collection(deps.storage, locality)?)?
+        }
     };
     Ok(response)
 }
 
 // sudo entry point for governance override
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo(deps: DepsMut, env: Env, msg: SudoMsg) -> Result<Response, ContractError> {
+pub fn sudo(deps: DepsMut, env: Env, msg: RaffleSudoMsg) -> Result<Response, ContractError> {
     match msg {
-        SudoMsg::ToggleLock { lock } => {
+        RaffleSudoMsg::ToggleLock { lock } => {
             execute_sudo_toggle_lock(deps, env, lock).map_err(|_| ContractError::ContractBug {})
         }
+        RaffleSudoMsg::BeginBlock {} => handle_cron(deps, env).map_err(|err| err),
+    }
+}
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
+    if msg.id.clone() > CONFIG.load(deps.storage)?.last_locality_id.expect("msg") {
+        return Err(ContractError::InvalidReplyID {});
+    }
+    let mut info = LOCALITY_INFO.load(deps.storage, msg.id.clone())?;
+
+    let reply = parse_reply_instantiate_data(msg.clone());
+
+    match reply {
+        Ok(res) => {
+            let sg721_address = res.contract_address;
+            info.collection = Some(deps.api.addr_validate(&sg721_address)?);
+            LOCALITY_INFO.save(deps.storage, msg.id, &info)?;
+            Ok(Response::default()
+                .add_attribute("action", "instantiate_sg721_reply")
+                .add_attribute("sg721_address", sg721_address))
+        }
+        Err(_) => Err(ContractError::InstantiateSg721Error {}),
     }
 }
