@@ -961,6 +961,15 @@
                 "type": "null"
               }
             ]
+          },
+          "whitelist": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         },
         "additionalProperties": false
@@ -1568,6 +1577,15 @@
             },
             "raffle_start_timestamp": {
               "$ref": "#/definitions/Timestamp"
+            },
+            "whitelist": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/definitions/Addr"
+              }
             }
           },
           "additionalProperties": false
@@ -2518,6 +2536,15 @@
             },
             "raffle_start_timestamp": {
               "$ref": "#/definitions/Timestamp"
+            },
+            "whitelist": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/definitions/Addr"
+              }
             }
           },
           "additionalProperties": false
