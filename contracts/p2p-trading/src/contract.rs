@@ -13,6 +13,7 @@ use crate::error::ContractError;
 use crate::state::{
     is_owner, load_counter_trade, load_trade, CONTRACT_INFO, COUNTER_TRADE_INFO, TRADE_INFO,
 };
+use crate::trade_steps::direct_buy::direct_buy;
 use p2p_trading_export::msg::{AddAssetAction, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use p2p_trading_export::state::{ContractInfo, TradeState};
 
@@ -175,13 +176,14 @@ pub fn execute(
             trade_id,
             counter_id,
         } => withdraw_all_from_counter(deps, env, info, trade_id, counter_id),
+        ExecuteMsg::WithdrawSuccessfulTrade { trade_id } => {
+            withdraw_successful_trade(deps, env, info, trade_id)
+        }
+        ExecuteMsg::DirectBuy { trade_id } => direct_buy(deps, env, info, trade_id),
         ExecuteMsg::SetNewOwner { owner } => set_new_owner(deps, env, info, owner),
         ExecuteMsg::SetNewTreasury { treasury } => set_new_treasury(deps, env, info, treasury),
         ExecuteMsg::SetNewAcceptFee { accept_fee } => {
             set_new_accept_fee(deps, env, info, accept_fee)
-        }
-        ExecuteMsg::WithdrawSuccessfulTrade { trade_id } => {
-            withdraw_successful_trade(deps, env, info, trade_id)
         }
     }
 }

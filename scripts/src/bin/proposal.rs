@@ -2,34 +2,31 @@ use cosmwasm_std::{to_json_binary, WasmMsg};
 use cw_orch::{contract::interface_traits::CwOrchUpload, prelude::*};
 use dao_cw_orch::DaoPreProposeSingle;
 use dao_pre_propose_base::msg::ExecuteMsgFns;
-use raffles::msg::{MigrateMsg, QueryMsgFns};
+use raffles::msg::{ExecuteMsg, MigrateMsg};
 use scripts::raffles::Raffles;
 use scripts::STARGAZE_1;
 
 const MULTISIG_ADDRESS: &str = "stars1wk327tnqj03954zq2hzf36xzs656pmffzy0udsmjw2gjxrthh6qqfsvr4v";
+pub const RAFFLE_ID: u64 = 272;
 
 pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     env_logger::init();
-    let chain = Daemon::builder()
-        .chain(STARGAZE_1)
-        .authz_granter(MULTISIG_ADDRESS)
-        .build()?;
 
-    let raffles = Raffles::new(chain.clone());
-    raffles.upload()?;
-
-    let proposal_title = "Migrate Raffles to 0.5.2";
-    let proposal_description =
-        "This migrates the raffle contract to allow for whitelisting raffles to certain addresses";
-    let msg = WasmMsg::Migrate {
-        contract_addr: raffles.address()?.to_string(),
-        new_code_id: raffles.code_id()?,
-        msg: to_json_binary(&MigrateMsg {})?,
-    };
+    let proposal_title = "Unlock raffle 272";
+    let proposal_description = "This allows asking randomness for raffle 272 to unlock it";
 
     // Then we do the migration proposal (no authz_granter this time)
     let chain = Daemon::builder().chain(STARGAZE_1).build()?;
+    let raffles = Raffles::new(chain.clone());
+
+    let msg = WasmMsg::Execute {
+        contract_addr: raffles.address()?.to_string(),
+        msg: to_json_binary(&ExecuteMsg::UpdateRandomness {
+            raffle_id: RAFFLE_ID,
+        })?,
+        funds: vec![],
+    };
 
     let dao_proposal = DaoPreProposeSingle::new("atlas-dao-pre-proposal", chain.clone());
     // // New version is not compatible, use the old version of dao-dao and add cw-orch
