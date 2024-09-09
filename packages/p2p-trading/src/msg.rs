@@ -1,7 +1,6 @@
 use crate::state::{Comment, CounterTradeInfo, TradeInfo, TradeState};
 use cosmwasm_std::{
-    from_json, to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, StdError, StdResult,
-    Timestamp, WasmMsg,
+    to_json_binary, Addr, Binary, Coin, CosmosMsg, Decimal, StdError, StdResult, Timestamp, WasmMsg,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -116,15 +115,15 @@ pub enum ExecuteMsg {
 
     AddTokensWanted {
         trade_id: Option<u64>,
-        tokens_wanted: Vec<AssetInfo>,
+        tokens_wanted: Vec<Coin>,
     },
     RemoveTokensWanted {
         trade_id: u64,
-        tokens_wanted: Vec<AssetInfo>,
+        tokens_wanted: Vec<Coin>,
     },
     SetTokensWanted {
         trade_id: Option<u64>,
-        tokens_wanted: Vec<AssetInfo>,
+        tokens_wanted: Vec<Coin>,
     },
     FlushTokensWanted {
         trade_id: u64,
@@ -192,6 +191,13 @@ pub enum ExecuteMsg {
         trade_id: u64,
         counter_id: u64,
     },
+
+    /// Direct Buy
+    DirectBuy {
+        trade_id: u64,
+    },
+
+    // Admin operations //
     SetNewOwner {
         owner: String,
     },
@@ -252,7 +258,7 @@ pub struct AdditionalTradeInfoResponse {
     pub owner_comment: Option<Comment>,
     pub trader_comment: Option<Comment>,
     pub nfts_wanted: Vec<Addr>,
-    pub tokens_wanted: Vec<AssetInfo>, // The tokens wanted can only be a coin of a cw20
+    pub tokens_wanted: Vec<Coin>, // The tokens wanted can only be a coin
     pub trade_preview: Option<AssetInfo>, // The preview can only be a CW1155 or a CW721 token.
 }
 
@@ -284,12 +290,7 @@ impl TryFrom<TradeInfo> for TradeInfoResponse {
                 owner_comment: trade_info.additional_info.owner_comment,
                 trader_comment: trade_info.additional_info.trader_comment,
                 nfts_wanted: Vec::from_iter(trade_info.additional_info.nfts_wanted),
-                tokens_wanted: trade_info
-                    .additional_info
-                    .tokens_wanted
-                    .iter()
-                    .map(from_json)
-                    .collect::<Result<Vec<AssetInfo>, StdError>>()?,
+                tokens_wanted: trade_info.additional_info.tokens_wanted,
                 trade_preview: trade_info.additional_info.trade_preview,
             },
             accepted_info: trade_info.accepted_info,

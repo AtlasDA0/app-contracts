@@ -51,7 +51,7 @@ pub fn suggest_counter_trade(
     }
     TRADE_INFO.save(deps.storage, trade_id, &trade_info)?;
 
-    let counter_id = trade_info.last_counter_id.unwrap(); // This is safe, as we just created a ast_counter_id` if it didn't exist.
+    let counter_id = trade_info.last_counter_id.unwrap(); // This is safe, as we just created a `last_counter_id` if it didn't exist.
 
     COUNTER_TRADE_INFO.update(
         deps.storage,
