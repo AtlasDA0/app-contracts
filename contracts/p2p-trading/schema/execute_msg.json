@@ -324,7 +324,7 @@
             "tokens_wanted": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/AssetInfo"
+                "$ref": "#/definitions/Coin"
               }
             },
             "trade_id": {
@@ -356,7 +356,7 @@
             "tokens_wanted": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/AssetInfo"
+                "$ref": "#/definitions/Coin"
               }
             },
             "trade_id": {
@@ -384,7 +384,7 @@
             "tokens_wanted": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/AssetInfo"
+                "$ref": "#/definitions/Coin"
               }
             },
             "trade_id": {
@@ -745,6 +745,29 @@
               "format": "uint64",
               "minimum": 0.0
             },
+            "trade_id": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "description": "Direct Buy",
+      "type": "object",
+      "required": [
+        "direct_buy"
+      ],
+      "properties": {
+        "direct_buy": {
+          "type": "object",
+          "required": [
+            "trade_id"
+          ],
+          "properties": {
             "trade_id": {
               "type": "integer",
               "format": "uint64",
