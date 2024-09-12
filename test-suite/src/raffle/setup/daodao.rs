@@ -1,6 +1,7 @@
 // Clone of https://github.com/DA0-DA0/dao-contracts/tree/ef21c637de7069e84f6221094dea22872930fd9a/packages/dao-testing
 // Because this is not importable
 
+use crate::common_setup::app::StargazeApp;
 use cosmwasm_std::{to_json_binary, Addr, Decimal, Empty, Uint128};
 use cw20::Cw20Coin;
 use cw_multi_test::Executor;
@@ -10,11 +11,10 @@ use dao_interface::state::{Admin, ModuleInstantiateInfo};
 use dao_pre_propose_single as cpps;
 use dao_voting::deposit::DepositRefundPolicy;
 use dao_voting::deposit::UncheckedDepositInfo;
+use dao_voting::deposit::VotingModuleTokenType;
 use dao_voting::pre_propose::PreProposeInfo;
 use dao_voting::threshold::PercentageThreshold;
 use dao_voting::threshold::Threshold::ThresholdQuorum;
-
-use crate::common_setup::app::StargazeApp;
 
 pub const CREATOR_ADDR: &str = "dao-creator";
 
@@ -97,12 +97,15 @@ pub fn instantiate_with_staked_balances_governance(
                 pre_propose_info: get_pre_propose_info(
                     app,
                     Some(UncheckedDepositInfo {
-                        denom: dao_voting::deposit::DepositToken::VotingModuleToken {},
+                        denom: dao_voting::deposit::DepositToken::VotingModuleToken {
+                            token_type: VotingModuleTokenType::Native,
+                        },
                         amount: Uint128::new(10_000_000),
                         refund_policy: DepositRefundPolicy::OnlyPassed,
                     }),
                     false,
                 ),
+                veto: None,
                 close_proposal_on_execution_failure: true,
             })
             .unwrap(),

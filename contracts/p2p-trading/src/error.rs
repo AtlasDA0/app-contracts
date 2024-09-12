@@ -51,7 +51,7 @@ pub enum ContractError {
     #[error("Can change the state of the trade from {from:?} to {to:?}")]
     CantChangeTradeState { from: TradeState, to: TradeState },
 
-    #[error("Sorry, you can't accept a counter trade that is not published yet")]
+    #[error("Sorry, this trade is already accepted")]
     TradeAlreadyAccepted {},
 
     #[error("Sorry, the trade is published, you can't modify it. You can cancel it if you're not satisfied")]

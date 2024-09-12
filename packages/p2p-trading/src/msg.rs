@@ -193,6 +193,7 @@ pub enum ExecuteMsg {
     },
 
     /// Direct Buy
+    #[cw_orch(payable)]
     DirectBuy {
         trade_id: u64,
     },
