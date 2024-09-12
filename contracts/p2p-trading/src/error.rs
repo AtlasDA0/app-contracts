@@ -1,4 +1,4 @@
-use cosmwasm_std::{OverflowError, StdError};
+use cosmwasm_std::{Coin, OverflowError, StdError};
 use p2p_trading_export::state::TradeState;
 use thiserror::Error;
 
@@ -9,6 +9,9 @@ pub enum ContractError {
 
     #[error("{0}")]
     Overflow(#[from] OverflowError),
+
+    #[error(transparent)]
+    CoinsError(#[from] cosmwasm_std::CoinsError),
 
     #[error("Unauthorized")]
     Unauthorized {},
@@ -48,7 +51,7 @@ pub enum ContractError {
     #[error("Can change the state of the trade from {from:?} to {to:?}")]
     CantChangeTradeState { from: TradeState, to: TradeState },
 
-    #[error("Sorry, you can't accept a counter trade that is not published yet")]
+    #[error("Sorry, this trade is already accepted")]
     TradeAlreadyAccepted {},
 
     #[error("Sorry, the trade is published, you can't modify it. You can cancel it if you're not satisfied")]
@@ -101,4 +104,10 @@ pub enum ContractError {
 
     #[error("You can't set a preview of an asset not associated with the trade")]
     AssetNotInTrade {},
+
+    #[error("You need to pay the exact amount to be able to buy this trade proposal. Missing funds: {missing_funds:?}")]
+    NotEnoughPaiement { missing_funds: Vec<Coin> },
+
+    #[error("You can't buy this trade directly, the owner doesn't authorize it")]
+    NotBuyableDirectly {},
 }

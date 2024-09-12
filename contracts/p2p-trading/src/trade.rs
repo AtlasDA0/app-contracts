@@ -1,11 +1,12 @@
 use cosmwasm_std::{
-    coin, coins, to_json_binary, Addr, Api, BankMsg, Binary, Decimal, Deps, DepsMut, Empty, Env,
-    MessageInfo, Response, StdError, StdResult, Storage, Uint128,
+    coin, coins, to_json_binary, Addr, Api, BankMsg, Binary, Coin, Coins, Decimal, Deps, DepsMut,
+    Empty, Env, MessageInfo, Response, StdError, StdResult, Storage, Uint128,
 };
 use sg721_base::msg::CollectionInfoResponse;
 use utils::state::AssetInfo;
 
 use std::collections::HashSet;
+use std::convert::{TryFrom, TryInto};
 use std::iter::FromIterator;
 
 use cw721::Cw721ExecuteMsg;
@@ -732,34 +733,19 @@ pub fn add_tokens_wanted(
     _env: Env,
     info: MessageInfo,
     trade_id: Option<u64>,
-    tokens_wanted: Vec<AssetInfo>,
+    tokens_wanted: Vec<Coin>,
 ) -> Result<Response, ContractError> {
     // We verify the trade can be modified
     let (trade_id, mut trade_info) =
         prepare_harmless_trade_modifications(deps.as_ref(), info.sender.clone(), trade_id)?;
 
-    // We validate the tokens_wanted structure
-    for token in tokens_wanted.clone() {
-        match token {
-            AssetInfo::Coin(_) => Ok(()),
-            _ => Err(ContractError::WrongTokenType {}),
-        }?
+    let mut old_tokens_wanted: Coins = trade_info.additional_info.tokens_wanted.try_into()?;
+
+    for token in tokens_wanted {
+        old_tokens_wanted.add(token)?;
     }
 
-    // We modify the nfts wanted
-    let hash_set: HashSet<Binary> = HashSet::from_iter(
-        tokens_wanted
-            .iter()
-            .map(to_json_binary)
-            .collect::<Result<Vec<Binary>, StdError>>()?,
-    );
-
-    trade_info.additional_info.tokens_wanted = trade_info
-        .additional_info
-        .tokens_wanted
-        .union(&hash_set)
-        .cloned()
-        .collect();
+    trade_info.additional_info.tokens_wanted = old_tokens_wanted.into();
 
     TRADE_INFO.save(deps.storage, trade_id, &trade_info)?;
 
@@ -777,19 +763,20 @@ pub fn remove_tokens_wanted(
     _env: Env,
     info: MessageInfo,
     trade_id: u64,
-    tokens_wanted: Vec<AssetInfo>,
+    tokens_wanted: Vec<Coin>,
 ) -> Result<Response, ContractError> {
     // We verify the trade can be modified
     let mut trade_info = is_trader(deps.storage, &info.sender, trade_id)?;
     // We modify the whitelist
-    let parse_nfts_wanted = tokens_wanted
-        .iter()
-        .map(to_json_binary)
-        .collect::<Result<Vec<Binary>, StdError>>()?;
 
-    for token in &parse_nfts_wanted {
-        trade_info.additional_info.tokens_wanted.remove(token);
+    let mut old_tokens_wanted: Coins = trade_info.additional_info.tokens_wanted.try_into()?;
+
+    for token in tokens_wanted {
+        old_tokens_wanted.sub(token)?;
     }
+
+    trade_info.additional_info.tokens_wanted = old_tokens_wanted.into();
+
     TRADE_INFO.save(deps.storage, trade_id, &trade_info)?;
 
     Ok(Response::new()
@@ -806,27 +793,15 @@ pub fn set_tokens_wanted(
     _env: Env,
     info: MessageInfo,
     trade_id: Option<u64>,
-    tokens_wanted: Vec<AssetInfo>,
+    tokens_wanted: Vec<Coin>,
 ) -> Result<Response, ContractError> {
     // We verify the trade can be modified
     let (trade_id, mut trade_info) =
         prepare_harmless_trade_modifications(deps.as_ref(), info.sender.clone(), trade_id)?;
 
-    // We validate the tokens_wanted structure
-    for token in tokens_wanted.clone() {
-        match token {
-            AssetInfo::Coin(_) => Ok(()),
-            _ => Err(ContractError::WrongTokenType {}),
-        }?
-    }
-
-    // We modify the nfts wanted
-    trade_info.additional_info.tokens_wanted = HashSet::from_iter(
-        tokens_wanted
-            .iter()
-            .map(to_json_binary)
-            .collect::<Result<Vec<Binary>, StdError>>()?,
-    );
+    // We modify the coins wanted
+    let validated_coins: Coins = tokens_wanted.try_into()?;
+    trade_info.additional_info.tokens_wanted = validated_coins.into();
 
     TRADE_INFO.save(deps.storage, trade_id, &trade_info)?;
 
@@ -848,7 +823,7 @@ pub fn flush_tokens_wanted(
     // We verify the trade can be modified
     let mut trade_info = is_trader(deps.storage, &info.sender, trade_id)?;
     // We flush the wanted tokens
-    trade_info.additional_info.tokens_wanted = HashSet::new();
+    trade_info.additional_info.tokens_wanted = vec![];
 
     TRADE_INFO.save(deps.storage, trade_id, &trade_info)?;
 

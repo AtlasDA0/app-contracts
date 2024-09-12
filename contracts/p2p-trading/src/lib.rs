@@ -5,6 +5,7 @@ pub mod messages;
 pub mod query;
 pub mod state;
 pub mod trade;
+pub mod trade_steps;
 
 pub use crate::error::ContractError;
 

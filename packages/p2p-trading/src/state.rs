@@ -1,4 +1,4 @@
-use cosmwasm_std::{Binary, Decimal};
+use cosmwasm_std::Decimal;
 use strum_macros;
 
 use cosmwasm_std::{Addr, Coin, Timestamp};
@@ -43,7 +43,7 @@ pub struct AdditionalTradeInfo {
     pub owner_comment: Option<Comment>,
     pub trader_comment: Option<Comment>,
     pub nfts_wanted: HashSet<Addr>,
-    pub tokens_wanted: HashSet<Binary>, // The tokens wanted can only be a coin of a cw20
+    pub tokens_wanted: Vec<Coin>, // The tokens wanted can only be a coin
     pub trade_preview: Option<AssetInfo>, // The preview can only be a CW1155 or a CW721 token.
 }
 

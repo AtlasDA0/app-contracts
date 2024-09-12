@@ -6,27 +6,11 @@ use p2p_trading::P2PTrading;
 use p2p_trading_export::msg::{AddAssetAction, ExecuteMsgFns, InstantiateMsg};
 use utils::state::{AssetInfo, Sg721Token};
 
+use crate::trading::{
+    COUNTER_ID, COUNTER_TRADER, FEE_AMOUNT, FEE_DENOM, FIRST_FUND_AMOUNT, FUND_FEE, GECKIES_ADDRESS, GECKIES_ID, NICOCO_FEE_AMOUNT, OWNER, SECOND_FUND_AMOUNT, SNS, SNS_ADDRESS
+};
+
 use super::STARGAZE_1;
-
-pub const SNS_ADDRESS: &str = "stars1fx74nkqkw2748av8j7ew7r3xt9cgjqduwn8m0ur5lhe49uhlsasszc5fhr";
-pub const GECKIES_ADDRESS: &str =
-    "stars166kqwcu8789xh7nk07fcrdzek54205u8gzas684lnas2kzalksqsg5xhqf";
-pub const GECKIES_ID: &str = "790";
-
-pub const SNS: &str = "jacobremy";
-pub const OWNER: &str = "stars1f4fqgj2htmpff6qe5nnhgl42pevekl34ykdah9";
-
-pub const COUNTER_TRADER: &str = "stars14kr4pdxuy8xfgutz3xvmlwdlmuhh6jwq42p20p";
-pub const COUNTER_ID: &str = "2887";
-
-pub const NICOCO_FEE_AMOUNT: u128 = 498579754654;
-pub const FEE_AMOUNT: u128 = 4514987;
-pub const FEE_DENOM: &str = "ustars";
-
-pub const FUND_FEE: Decimal = Decimal::percent(3);
-
-pub const FIRST_FUND_AMOUNT: u128 = 485;
-pub const SECOND_FUND_AMOUNT: u128 = 456;
 
 #[test]
 fn actual_nft() -> anyhow::Result<()> {
