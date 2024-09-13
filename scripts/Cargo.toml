@@ -21,12 +21,12 @@ sg721-base.workspace = true
 utils = { version = "0.1.0", path = "../packages/utils" }
 
 # Dao-Dao
-dao-cw-orch = { git = "https://github.com/Kayanski/dao-contracts", version = "2.4.2", branch = "development" }
-dao-pre-propose-base = { git = "https://github.com/Kayanski/dao-contracts", version = "2.4.2", branch = "development" }
-dao-pre-propose-single = { git = "https://github.com/Kayanski/dao-contracts", version = "2.4.2", branch = "development" }
-# dao-cw-orch = { path = "../../../abstract/dao-contracts/packages/cw-orch" }
-# dao-pre-propose-base = { path = "../../../abstract/dao-contracts/packages/dao-pre-propose-base" }
-# dao-pre-propose-single = { path = "../../../abstract/dao-contracts/contracts/pre-propose/dao-pre-propose-single" }
+# dao-cw-orch = { git = "https://github.com/Kayanski/dao-contracts", version = "2.4.2", branch = "development" }
+# dao-pre-propose-base = { git = "https://github.com/Kayanski/dao-contracts", version = "2.4.2", branch = "development" }
+# dao-pre-propose-single = { git = "https://github.com/Kayanski/dao-contracts", version = "2.4.2", branch = "development" }
+dao-cw-orch = { path = "../../../abstract/dao-contracts/packages/cw-orch" }
+dao-pre-propose-base = { path = "../../../abstract/dao-contracts/packages/dao-pre-propose-base" }
+dao-pre-propose-single = { path = "../../../abstract/dao-contracts/contracts/pre-propose/dao-pre-propose-single" }
 
 p2p-trading = { version = "0.9.0", path = "../contracts/p2p-trading" }
 p2p-trading-export = { version = "0.1.0", path = "../packages/p2p-trading" }
