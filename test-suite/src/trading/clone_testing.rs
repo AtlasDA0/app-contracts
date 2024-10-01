@@ -7,7 +7,8 @@ use p2p_trading_export::msg::{AddAssetAction, ExecuteMsgFns, InstantiateMsg};
 use utils::state::{AssetInfo, Sg721Token};
 
 use crate::trading::{
-    COUNTER_ID, COUNTER_TRADER, FEE_AMOUNT, FEE_DENOM, FIRST_FUND_AMOUNT, FUND_FEE, GECKIES_ADDRESS, GECKIES_ID, NICOCO_FEE_AMOUNT, OWNER, SECOND_FUND_AMOUNT, SNS, SNS_ADDRESS
+    COUNTER_ID, COUNTER_TRADER, FEE_AMOUNT, FEE_DENOM, FIRST_FUND_AMOUNT, FUND_FEE,
+    GECKIES_ADDRESS, GECKIES_ID, NICOCO_FEE_AMOUNT, OWNER, SECOND_FUND_AMOUNT, SNS, SNS_ADDRESS,
 };
 
 use super::STARGAZE_1;
@@ -85,10 +86,9 @@ fn actual_nft() -> anyhow::Result<()> {
     let counter_id = 0;
     p2p.accept_trade(counter_id, trade_id, None)?;
     p2p.withdraw_successful_trade(trade_id, &coins(FEE_AMOUNT, FEE_DENOM))?;
-    counter_p2p.withdraw_successful_trade(trade_id, &coins(FEE_AMOUNT, FEE_DENOM))?;
 
     let treasury_balance = chain.balance(treasury, Some(FEE_DENOM.to_string()))?;
-    assert_eq!(treasury_balance, coins(2 * FEE_AMOUNT, FEE_DENOM));
+    assert_eq!(treasury_balance, coins(FEE_AMOUNT, FEE_DENOM));
     Ok(())
 }
 
@@ -167,10 +167,9 @@ fn sns() -> anyhow::Result<()> {
     let counter_id = 0;
     p2p.accept_trade(counter_id, trade_id, None)?;
     p2p.withdraw_successful_trade(trade_id, &coins(FEE_AMOUNT, FEE_DENOM))?;
-    counter_p2p.withdraw_successful_trade(trade_id, &coins(FEE_AMOUNT, FEE_DENOM))?;
 
     let treasury_balance = chain.balance(treasury, Some(FEE_DENOM.to_string()))?;
-    assert_eq!(treasury_balance, coins(2 * FEE_AMOUNT, FEE_DENOM));
+    assert_eq!(treasury_balance, coins(FEE_AMOUNT, FEE_DENOM));
 
     Ok(())
 }
@@ -284,14 +283,12 @@ fn with_funds() -> anyhow::Result<()> {
 
     let counter_id = 0;
     p2p.accept_trade(counter_id, trade_id, None)?;
-    let response1 = p2p.withdraw_successful_trade(trade_id, &coins(FEE_AMOUNT, FEE_DENOM))?;
-    let response2 =
-        counter_p2p.withdraw_successful_trade(trade_id, &coins(FEE_AMOUNT, FEE_DENOM))?;
+    p2p.withdraw_successful_trade(trade_id, &coins(FEE_AMOUNT, FEE_DENOM))?;
 
     let treasury_balance = chain.balance(treasury, None)?;
 
     let mut expected_coins = Coins::default();
-    expected_coins.add(coin(2 * FEE_AMOUNT, FEE_DENOM))?;
+    expected_coins.add(coin(FEE_AMOUNT, FEE_DENOM))?;
     expected_coins.add(coin(
         (FUND_FEE * Uint128::from(FIRST_FUND_AMOUNT)).u128(),
         "uarch",

@@ -352,7 +352,7 @@ pub fn withdraw_assets_while_creating(
 /// The counter_trader will withdraw assets from the trade
 pub fn withdraw_successful_trade(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     trade_id: u64,
 ) -> Result<Response, ContractError> {
@@ -374,48 +374,40 @@ pub fn withdraw_successful_trade(
         .counter_id;
     let mut counter_info = load_counter_trade(deps.storage, trade_id, counter_id)?;
 
-    let (res, trade_type);
+    // We withdraw the funds that the trader gets from the counter trade (the counter_info object)
+    let royalties = gather_royalties(deps.as_ref(), &trade_info)?;
+    let trader_res = check_and_create_withdraw_messages(
+        deps.as_ref(),
+        &trade_info.owner,
+        &counter_info,
+        Some(royalties),
+        Some(contract_info.fund_fee),
+    )?;
 
-    // We indentify who the transaction sender is (trader or counter-trader)
-    if trade_info.owner == info.sender {
-        // In case the trader wants to withdraw the exchanged funds (from the counter_info object)
-        let royalties = gather_royalties(deps.as_ref(), &trade_info)?;
-        res = check_and_create_withdraw_messages(
-            deps.as_ref(),
-            &info.sender,
-            &counter_info,
-            Some(royalties),
-            Some(contract_info.fund_fee),
-        )?;
+    // We withdraw the funds that the vounter trader gets from the trade (the trade_info object)
+    let royalties = gather_royalties(deps.as_ref(), &counter_info)?;
+    let counter_trader_res = check_and_create_withdraw_messages(
+        deps.as_ref(),
+        &counter_info.owner,
+        &trade_info,
+        Some(royalties),
+        Some(contract_info.fund_fee),
+    )?;
 
-        trade_type = "counter";
-        counter_info.assets_withdrawn = true;
-        COUNTER_TRADE_INFO.save(deps.storage, (trade_id, counter_id), &counter_info)?;
-    } else if counter_info.owner == info.sender {
-        // In case the counter_trader wants to withdraw the exchanged funds (from the trade_info object)
-        let royalties = gather_royalties(deps.as_ref(), &counter_info)?;
-        res = check_and_create_withdraw_messages(
-            deps.as_ref(),
-            &info.sender,
-            &trade_info,
-            Some(royalties),
-            Some(contract_info.fund_fee),
-        )?;
+    counter_info.assets_withdrawn = true;
+    trade_info.assets_withdrawn = true;
+    COUNTER_TRADE_INFO.save(deps.storage, (trade_id, counter_id), &counter_info)?;
+    TRADE_INFO.save(deps.storage, trade_id, &trade_info)?;
 
-        trade_type = "trade";
-        trade_info.assets_withdrawn = true;
-        TRADE_INFO.save(deps.storage, trade_id, &trade_info)?;
-    } else {
-        return Err(ContractError::NotWithdrawableByYou {});
-    }
-
-    Ok(res
+    Ok(trader_res
+        .add_submessages(counter_trader_res.messages)
+        .add_events(counter_trader_res.events)
+        .add_attributes(counter_trader_res.attributes)
         .add_message(BankMsg::Send {
             to_address: contract_info.treasury.to_string(),
             amount: vec![funds],
         })
         .add_attribute("action", "withdraw_funds")
-        .add_attribute("type", trade_type)
         .add_attribute("trade_id", trade_id.to_string())
         .add_attribute("counter_id", counter_id.to_string())
         .add_attribute("trader", trade_info.owner)
@@ -425,13 +417,13 @@ pub fn withdraw_successful_trade(
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::state::load_trade;
     use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
-    use cosmwasm_std::{coins, Addr, Attribute, BankMsg, Coin, Decimal, Uint128};
-    use cw1155::Cw1155ExecuteMsg;
-    use cw20::Cw20ExecuteMsg;
-    use cw721::Cw721ExecuteMsg;
-    use p2p_trading_export::msg::into_cosmos_msg;
+    use cosmwasm_std::{coins, Coin, Decimal};
+    // use crate::state::load_trade;
+    // use cw1155::Cw1155ExecuteMsg;
+    // use cw20::Cw20ExecuteMsg;
+    // use cw721::Cw721ExecuteMsg;
+    // use p2p_trading_export::msg::into_cosmos_msg;
 
     fn init_helper(deps: DepsMut) {
         let instantiate_msg = InstantiateMsg {

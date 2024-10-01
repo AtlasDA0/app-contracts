@@ -81,9 +81,9 @@ fn direct_buy_init() -> anyhow::Result<TradingTestEnv> {
 #[test]
 fn direct_buy_works() -> anyhow::Result<()> {
     let TradingTestEnv {
-        rt,
-        nft,
-        sns,
+        rt: _,
+        nft: _,
+        sns: _,
         p2p,
         chain,
         treasury,
@@ -106,12 +106,11 @@ fn direct_buy_works() -> anyhow::Result<()> {
     counter_p2p.direct_buy(0, &coins(FIRST_FUND_AMOUNT, "ujuno"))?;
 
     p2p.withdraw_successful_trade(trade_id, &coins(FEE_AMOUNT, FEE_DENOM))?;
-    counter_p2p.withdraw_successful_trade(trade_id, &coins(FEE_AMOUNT, FEE_DENOM))?;
 
     let treasury_balance = chain.balance(treasury, None)?;
 
     let mut expected_coins = Coins::default();
-    expected_coins.add(coin(2 * FEE_AMOUNT, FEE_DENOM))?;
+    expected_coins.add(coin(FEE_AMOUNT, FEE_DENOM))?;
     expected_coins.add(coin(
         (FUND_FEE * Uint128::from(FIRST_FUND_AMOUNT)).u128(),
         "ujuno",
@@ -125,12 +124,12 @@ fn direct_buy_works() -> anyhow::Result<()> {
 #[test]
 fn direct_buy_insufficient_funds() -> anyhow::Result<()> {
     let TradingTestEnv {
-        rt,
-        nft,
-        sns,
+        rt: _,
+        nft: _,
+        sns: _,
         p2p,
-        chain,
-        treasury,
+        chain: _,
+        treasury: _,
     } = direct_buy_init()?;
 
     p2p.add_tokens_wanted(coins(FIRST_FUND_AMOUNT, "ujuno"), None)?;
@@ -157,12 +156,12 @@ fn direct_buy_insufficient_funds() -> anyhow::Result<()> {
 #[test]
 fn direct_buy_cant_counter_after() -> anyhow::Result<()> {
     let TradingTestEnv {
-        rt,
-        nft,
-        sns,
+        rt: _,
+        nft: _,
+        sns: _,
         p2p,
-        chain,
-        treasury,
+        chain: _,
+        treasury: _,
     } = direct_buy_init()?;
 
     p2p.add_tokens_wanted(coins(FIRST_FUND_AMOUNT, "ujuno"), None)?;
@@ -191,12 +190,12 @@ fn direct_buy_cant_counter_after() -> anyhow::Result<()> {
 #[test]
 fn direct_buy_respects_royalties() -> anyhow::Result<()> {
     let TradingTestEnv {
-        rt,
+        rt: _,
         nft,
-        sns,
+        sns: _,
         p2p,
         chain,
-        treasury,
+        treasury: _,
     } = direct_buy_init()?;
 
     let nft_collection_info: CollectionInfoResponse = chain.query(
@@ -227,7 +226,6 @@ fn direct_buy_respects_royalties() -> anyhow::Result<()> {
     counter_p2p.direct_buy(0, &coins(FIRST_FUND_AMOUNT, "ujuno"))?;
 
     p2p.withdraw_successful_trade(trade_id, &coins(FEE_AMOUNT, FEE_DENOM))?;
-    counter_p2p.withdraw_successful_trade(trade_id, &coins(FEE_AMOUNT, FEE_DENOM))?;
 
     let royalty_balance_after =
         chain.balance(royalty_info.payment_address, Some("ujuno".to_string()))?;
