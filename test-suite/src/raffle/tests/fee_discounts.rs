@@ -9,6 +9,7 @@ mod tests {
     use std::vec;
     use utils::state::{AssetInfo, Sg721Token, NATIVE_DENOM};
 
+    use crate::common_setup::setup_raffle::DRAND_TIMEOUT;
     use crate::{
         common_setup::{
             app::StargazeApp,
@@ -28,7 +29,7 @@ mod tests {
         max_ticket_number: Option<u32>,
         nft_owner: String,
     ) -> (StargazeApp, RaffleContracts) {
-        let (mut app, contracts) = proper_raffle_instantiate_precise(max_ticket_number, None);
+        let (mut app, contracts) = proper_raffle_instantiate_precise(max_ticket_number);
         let nft = mint_one_token(&mut app, &contracts);
 
         app.execute_contract(
@@ -52,8 +53,7 @@ mod tests {
                 minimum_raffle_duration: None,
                 max_tickets_per_raffle: None,
                 raffle_fee: None,
-                nois_proxy_addr: None,
-                nois_proxy_coin: None,
+                drand_config: None,
                 creation_coins: None,
                 fee_discounts: Some(vec![
                     FeeDiscountMsg {
@@ -156,7 +156,7 @@ mod tests {
             &mut app,
             &contracts,
             0,
-            MINIMUM_RAFFLE_DURATION + NOIS_TIMEOUT,
+            MINIMUM_RAFFLE_DURATION + DRAND_TIMEOUT,
         )
         .unwrap();
 

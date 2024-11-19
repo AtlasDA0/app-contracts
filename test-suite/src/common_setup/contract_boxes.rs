@@ -12,16 +12,18 @@ pub fn contract_raffles() -> Box<dyn Contract<StargazeMsgWrapper>> {
         raffles::contract::instantiate,
         raffles::contract::query,
     )
-    .with_sudo(raffles::contract::sudo);
+    .with_migrate(raffles::contract::migrate)
+    .with_sudo(raffles::contract::sudo)
+    .with_reply(raffles::contract::reply);
     Box::new(contract)
 }
-pub fn contract_fake_nois() -> Box<dyn Contract<StargazeMsgWrapper>> {
-    let contract = ContractWrapper::new(
-        super::nois_proxy::execute,
-        super::nois_proxy::instantiate,
-        super::nois_proxy::query,
-    )
-    .with_reply(super::nois_proxy::reply);
+
+pub fn contract_randomness_verifier() -> Box<dyn Contract<StargazeMsgWrapper>> {
+    let contract = ContractWrapper::new_with_empty(
+        randomness_verifier::contract::execute,
+        randomness_verifier::contract::instantiate,
+        randomness_verifier::contract::query,
+    );
     Box::new(contract)
 }
 

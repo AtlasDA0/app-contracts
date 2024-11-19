@@ -1,17 +1,16 @@
-use crate::state::{FeeDiscount, FeeDiscountMsg, RaffleInfo, RaffleOptionsMsg, RaffleState};
+use crate::{
+    error::ContractError,
+    state::{FeeDiscount, FeeDiscountMsg, RaffleInfo, RaffleOptionsMsg, RaffleState},
+};
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Coin, Decimal, HexBinary, StdError, StdResult};
-use nois::NoisCallback;
+use cosmwasm_std::{Addr, Binary, Coin, Decimal, Deps, HexBinary, StdError, StdResult};
+use randomness::DrandRandomness;
 use utils::state::{is_valid_name, AssetInfo, Locks};
 
 #[cw_serde]
 pub struct InstantiateMsg {
     // Name of the raffle contract
     pub name: String,
-    // Address of the nois_proxy
-    pub nois_proxy_addr: String,
-    // Coin expected for the randomness source
-    pub nois_proxy_coin: Coin,
     // Admin of Contract
     pub owner: Option<String>,
     // Destination of Fee Streams
@@ -26,22 +25,45 @@ pub struct InstantiateMsg {
     pub creation_coins: Option<Vec<Coin>>,
 
     pub fee_discounts: Vec<FeeDiscountMsg>,
+
+    pub drand_config: DrandConfig,
 }
 
 impl InstantiateMsg {
-    pub fn validate(&self) -> StdResult<()> {
+    pub fn validate(&self, deps: Deps) -> Result<(), ContractError> {
         // Check name
         if !is_valid_name(&self.name) {
-            return Err(StdError::generic_err(
+            Err(StdError::generic_err(
                 "Name is not in the expected format (3-50 UTF-8 bytes)",
-            ));
+            ))?;
         }
 
         // Check the fee distribution
         if self.raffle_fee >= Decimal::one() {
-            return Err(StdError::generic_err("The Fee rate should be lower than 1"));
+            return Err(ContractError::InvalidFeeRate {});
         }
 
+        self.drand_config.validate(deps)?;
+
+        Ok(())
+    }
+}
+
+#[cw_serde]
+pub struct DrandConfig {
+    pub random_pubkey: Binary,
+    /// The drand provider url (to find the right entropy provider)
+    pub drand_url: String,
+    /// The contract that can verify the entropy signature
+    pub verify_signature_contract: Addr,
+    /// Duration of the randomness providing round
+    pub timeout: u64,
+}
+
+impl DrandConfig {
+    pub fn validate(&self, deps: Deps) -> StdResult<()> {
+        deps.api
+            .addr_validate(self.verify_signature_contract.as_ref())?;
         Ok(())
     }
 }
@@ -49,7 +71,7 @@ impl InstantiateMsg {
 #[cw_serde]
 #[derive(cw_orch::ExecuteFns)]
 pub enum ExecuteMsg {
-    #[payable]
+    #[cw_orch(payable)]
     CreateRaffle {
         owner: Option<String>,
         assets: Vec<AssetInfo>,
@@ -69,33 +91,30 @@ pub enum ExecuteMsg {
         minimum_raffle_duration: Option<u64>,
         max_tickets_per_raffle: Option<u32>,
         raffle_fee: Option<Decimal>,
-        nois_proxy_addr: Option<String>,
-        nois_proxy_coin: Option<Coin>,
         creation_coins: Option<Vec<Coin>>,
         fee_discounts: Option<Vec<FeeDiscountMsg>>,
+        drand_config: Option<DrandConfig>,
     },
     ModifyRaffle {
         raffle_id: u64,
         raffle_ticket_price: Option<AssetInfo>,
         raffle_options: RaffleOptionsMsg,
     },
-    #[payable]
+    #[cw_orch(payable)]
     BuyTicket {
         raffle_id: u64,
         ticket_count: u32,
         sent_assets: AssetInfo,
         on_behalf_of: Option<String>,
     },
-    Receive(cw721::Cw721ReceiveMsg),
-    NoisReceive {
-        callback: NoisCallback,
+    /// Provide job_id for randomness contract
+    /// Provide randomness from drand
+    UpdateRandomness {
+        raffle_id: u64,
+        randomness: DrandRandomness,
     },
 
     // Admin messages
-    /// Provide job_id for randomness contract
-    UpdateRandomness {
-        raffle_id: u64,
-    },
     ToggleLock {
         lock: bool,
     },
@@ -145,10 +164,9 @@ pub struct ConfigResponse {
     pub max_tickets_per_raffle: Option<u32>,
     pub raffle_fee: Decimal, // The percentage of the resulting ticket-tokens that will go to the treasury
     pub locks: Locks,        // Wether the contract can accept new raffles
-    pub nois_proxy_addr: String,
-    pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,
     pub fee_discounts: Vec<FeeDiscount>,
+    pub drand_config: DrandConfig,
 }
 
 #[cw_serde]
@@ -186,4 +204,13 @@ pub struct IsClaimedResponse {
 }
 
 #[cw_serde]
-pub struct MigrateMsg {}
+pub struct MigrateMsg {
+    pub drand_config: DrandConfig,
+}
+
+impl MigrateMsg {
+    pub fn validate(&self, deps: Deps) -> StdResult<()> {
+        self.drand_config.validate(deps)?;
+        Ok(())
+    }
+}

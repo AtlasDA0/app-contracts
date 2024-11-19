@@ -10,6 +10,9 @@ pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
 
+    #[error(transparent)]
+    CoinsError(#[from] cosmwasm_std::CoinsError),
+
     #[error("Unauthorized.")]
     Unauthorized,
 

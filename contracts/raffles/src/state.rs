@@ -6,9 +6,10 @@ use cosmwasm_std::{
 use cw20::{Cw20Coin, Cw20CoinVerified};
 use cw_storage_plus::{Item, Map};
 use dao_interface::voting::VotingPowerAtHeightResponse;
+use randomness::Randomness;
 use utils::state::{AssetInfo, Locks};
 
-use crate::error::ContractError;
+use crate::{error::ContractError, msg::DrandConfig};
 
 pub const CONFIG_KEY: &str = "config";
 pub const CONFIG: Item<Config> = Item::new(CONFIG_KEY);
@@ -40,14 +41,12 @@ pub struct Config {
     pub raffle_fee: Decimal,
     /// locks the contract from new raffles being created
     pub locks: Locks,
-    /// The nois_proxy contract address
-    pub nois_proxy_addr: Addr,
-    /// The expected fee token denomination of the nois_proxy contract
-    pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,
 
     /// Fee discounts applied
     pub fee_discounts: Vec<FeeDiscount>,
+
+    pub drand_config: DrandConfig,
 }
 
 #[cw_serde]
@@ -73,6 +72,9 @@ pub struct OldConfig {
     /// The expected fee token denomination of the nois_proxy contract
     pub nois_proxy_coin: Coin,
     pub creation_coins: Vec<Coin>,
+
+    /// Fee discounts applied
+    pub fee_discounts: Vec<FeeDiscount>,
 }
 
 #[cw_serde]
@@ -204,6 +206,7 @@ pub struct RaffleInfo {
     pub winners: Vec<Addr>,             // winner is determined here
     pub is_cancelled: bool,
     pub raffle_options: RaffleOptions,
+    pub drand_randomness: Option<Randomness>, // This for drand now, migrating away from nois
 }
 
 #[cw_serde]
@@ -233,7 +236,7 @@ impl std::fmt::Display for RaffleState {
 /// This function depends on the block time to return the RaffleState.
 /// As actions can only happen in certain time-periods, you have to be careful when testing off-chain
 /// If the chains stops or the block time is not accurate we might get some errors (let's hope it never happens)
-pub fn get_raffle_state(env: &Env, raffle_info: &RaffleInfo) -> RaffleState {
+pub fn get_raffle_state(env: &Env, config: &Config, raffle_info: &RaffleInfo) -> RaffleState {
     if raffle_info.is_cancelled {
         RaffleState::Cancelled
     } else if env.block.time < raffle_info.raffle_options.raffle_start_timestamp {
@@ -245,7 +248,14 @@ pub fn get_raffle_state(env: &Env, raffle_info: &RaffleInfo) -> RaffleState {
             .plus_seconds(raffle_info.raffle_options.raffle_duration)
     {
         RaffleState::Started
-    } else if raffle_info.randomness.is_none() {
+    } else if env.block.time
+        < raffle_info
+            .raffle_options
+            .raffle_start_timestamp
+            .plus_seconds(raffle_info.raffle_options.raffle_duration)
+            .plus_seconds(config.drand_config.timeout)
+        || raffle_info.drand_randomness.is_none()
+    {
         RaffleState::Closed
     } else if raffle_info.winners.is_empty() {
         RaffleState::Finished

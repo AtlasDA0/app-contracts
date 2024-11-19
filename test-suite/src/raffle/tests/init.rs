@@ -5,12 +5,11 @@ mod tests {
 
     use crate::common_setup::{
         contract_boxes::custom_mock_app,
-        nois_proxy::{NOIS_AMOUNT, NOIS_DENOM},
         setup_minter::common::constants::{OWNER_ADDR, RAFFLE_NAME},
-        setup_raffle::{proper_raffle_instantiate, raffle_template_code_ids},
+        setup_raffle::{default_drand_config, proper_raffle_instantiate, raffle_template_code_ids},
     };
     use cw_multi_test::Executor;
-    use raffles::msg::InstantiateMsg;
+    use raffles::{error::ContractError, msg::InstantiateMsg};
 
     #[test]
     fn test_i() {
@@ -28,8 +27,6 @@ mod tests {
                 Addr::unchecked(OWNER_ADDR),
                 &InstantiateMsg {
                     name: RAFFLE_NAME.to_string(),
-                    nois_proxy_addr: "nois-addr-placeholder".to_string(),
-                    nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM),
                     owner: Some(OWNER_ADDR.to_string()),
                     fee_addr: Some("atlas-treasury-placeholder".to_owned()),
                     minimum_raffle_duration: None,
@@ -41,6 +38,7 @@ mod tests {
                     ]
                     .into(),
                     fee_discounts: vec![],
+                    drand_config: default_drand_config(&Addr::unchecked("any")),
                 },
                 &[],
                 "raffle",
@@ -50,7 +48,7 @@ mod tests {
 
         assert_eq!(
             res.root_cause().to_string(),
-            "The fee_rate you provided is not greater than 0, or less than 1"
+            ContractError::InvalidFeeRate {}.to_string()
         )
     }
 }

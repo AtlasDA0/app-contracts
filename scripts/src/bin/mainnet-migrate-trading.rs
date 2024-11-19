@@ -11,10 +11,8 @@ pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     env_logger::init();
 
-    let chain = Daemon::builder()
-        .chain(STARGAZE_1)
-        .authz_granter(MULTISIG_ADDRESS)
-        .build()?;
+    let mut chain = Daemon::builder(STARGAZE_1).build()?;
+    chain.authz_granter(MULTISIG_ADDRESS);
 
     let trading = P2PTrading::new(chain.clone());
     // trading.upload()?;
@@ -29,7 +27,7 @@ pub fn main() -> anyhow::Result<()> {
     };
 
     // Then we do the migration proposal (no authz_granter this time)
-    let chain = Daemon::builder().chain(STARGAZE_1).build()?;
+    let chain = Daemon::builder(STARGAZE_1).build()?;
 
     let dao_proposal = DaoPreProposeSingle::new("atlas-dao-pre-proposal", chain.clone());
     // // New version is not compatible, use the old version of dao-dao and add cw-orch

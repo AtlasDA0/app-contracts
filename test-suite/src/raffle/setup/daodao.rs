@@ -98,12 +98,14 @@ pub fn instantiate_with_staked_balances_governance(
                     app,
                     Some(UncheckedDepositInfo {
                         denom: dao_voting::deposit::DepositToken::VotingModuleToken {
-                            token_type: VotingModuleTokenType::Native,
+                            token_type: VotingModuleTokenType::Cw20,
                         },
                         amount: Uint128::new(10_000_000),
                         refund_policy: DepositRefundPolicy::OnlyPassed,
                     }),
-                    false,
+                    dao_voting::pre_propose::PreProposeSubmissionPolicy::Anyone {
+                        denylist: vec![],
+                    },
                 ),
                 veto: None,
                 close_proposal_on_execution_failure: true,
@@ -232,7 +234,7 @@ pub fn pre_propose_single_contract() -> Box<dyn Contract<sg_std::StargazeMsgWrap
 pub(crate) fn get_pre_propose_info(
     app: &mut StargazeApp,
     deposit_info: Option<UncheckedDepositInfo>,
-    open_proposal_submission: bool,
+    pre_proposal_policy: dao_voting::pre_propose::PreProposeSubmissionPolicy,
 ) -> PreProposeInfo {
     let pre_propose_contract = app.store_code(pre_propose_single_contract());
     PreProposeInfo::ModuleMayPropose {
@@ -240,7 +242,7 @@ pub(crate) fn get_pre_propose_info(
             code_id: pre_propose_contract,
             msg: to_json_binary(&cpps::InstantiateMsg {
                 deposit_info,
-                open_proposal_submission,
+                submission_policy: pre_proposal_policy,
                 extension: Empty::default(),
             })
             .unwrap(),

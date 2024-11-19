@@ -15,6 +15,19 @@ pub fn setup_block_time(router: &mut StargazeApp, nanos: u64, height: Option<u64
     router.set_block(block);
 }
 
+pub fn plus_block_seconds(router: &mut StargazeApp, secs: u64) {
+    let current_time = router.block_info().time;
+    let current_block = router.block_info().height;
+    let chainid = router.block_info().chain_id.clone();
+
+    setup_block_time(
+        router,
+        current_time.clone().plus_seconds(secs).nanos(),
+        Some(current_block + secs / 10),
+        &chainid.clone(),
+    );
+}
+
 pub fn assert_error(res: Result<AppResponse, Error>, expected: String) {
     assert_eq!(res.unwrap_err().source().unwrap().to_string(), expected);
 }

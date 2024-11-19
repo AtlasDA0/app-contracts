@@ -13,11 +13,12 @@ mod tests {
 
     use utils::state::{AssetInfo, Locks, Sg721Token, NATIVE_DENOM};
 
-    use crate::common_setup::nois_proxy::{NOIS_AMOUNT, NOIS_DENOM};
     use crate::common_setup::setup_minter::common::constants::{
         CREATION_FEE_AMNT_NATIVE, CREATION_FEE_AMNT_STARS, TREASURY_ADDR,
     };
-    use crate::common_setup::setup_raffle::proper_raffle_instantiate_precise;
+    use crate::common_setup::setup_raffle::{
+        default_drand_config, proper_raffle_instantiate_precise,
+    };
     use crate::common_setup::{
         contract_boxes::contract_raffles,
         helpers::assert_error,
@@ -30,7 +31,7 @@ mod tests {
     #[test]
     fn finished_when_all_tickets_sold() {
         // create testing app
-        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(80), None);
+        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(80));
         let token = mint_one_token(&mut app, &contracts);
 
         let _current_time = app.block_info().time;
@@ -144,7 +145,7 @@ mod tests {
     #[test]
     fn can_init() {
         // create testing app
-        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(80), None);
+        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(80));
 
         let query_config: raffles::msg::ConfigResponse = app
             .wrap()
@@ -164,14 +165,13 @@ mod tests {
                     lock: false,
                     sudo_lock: false,
                 },
-                nois_proxy_addr: contracts.nois.to_string(),
-                nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM),
                 creation_coins: vec![
                     coin(CREATION_FEE_AMNT_NATIVE, NATIVE_DENOM.to_string()),
                     coin(CREATION_FEE_AMNT_STARS, "ustars".to_string())
                 ],
                 fee_discounts: vec![],
                 max_tickets_per_raffle: Some(80),
+                drand_config: default_drand_config(&contracts.randomness_verifier)
             }
         );
 
@@ -292,6 +292,7 @@ mod tests {
                 raffle_ticket_price: AssetInfo::Coin(Coin::new(100, "ustars".to_string())),
                 number_of_tickets: 0,
                 randomness: None,
+                drand_randomness: None,
                 winners: vec![],
                 is_cancelled: false,
                 raffle_options: RaffleOptions {

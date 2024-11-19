@@ -1,30 +1,32 @@
 use cosmwasm_std::{
-    coin, ensure, ensure_eq, entry_point, to_json_binary, Decimal, Deps, DepsMut, Env, MessageInfo,
-    QueryResponse, StdResult, Uint128,
+    coin, ensure, entry_point, to_json_binary, Decimal, Deps, DepsMut, Env, MessageInfo,
+    QueryResponse, Reply, StdResult,
 };
 
 use crate::{
     error::ContractError,
     execute::{
         execute_buy_tickets, execute_cancel_raffle, execute_claim, execute_create_raffle,
-        execute_modify_raffle, execute_receive, execute_receive_nois, execute_sudo_toggle_lock,
-        execute_toggle_lock, execute_update_config,
+        execute_modify_raffle, execute_sudo_toggle_lock, execute_toggle_lock,
+        execute_update_config,
     },
     msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg, RaffleResponse},
     query::{
         add_raffle_winners, query_all_raffles, query_all_tickets, query_config, query_discount,
         query_ticket_count,
     },
+    randomness::{execute_update_randomness, verify_randomness},
     state::{
         get_raffle_state, load_raffle, Config, CONFIG, MAX_TICKET_NUMBER, MINIMUM_RAFFLE_DURATION,
-        STATIC_RAFFLE_CREATION_FEE,
+        OLD_CONFIG, STATIC_RAFFLE_CREATION_FEE,
     },
-    utils::get_nois_randomness,
 };
 use utils::{
     state::{is_valid_name, Locks, SudoMsg, NATIVE_DENOM},
     types::Response,
 };
+
+pub const VERIFY_RANDOMNESS_REPLY_ID: u64 = 34;
 
 use cw2::set_contract_version;
 
@@ -35,10 +37,7 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    let nois_proxy_addr = deps
-        .api
-        .addr_validate(&msg.nois_proxy_addr)
-        .map_err(|_| ContractError::InvalidProxyAddress)?;
+    msg.validate(deps.as_ref())?;
 
     // define the accepted fee coins
     let creation_coins = match msg.creation_coins {
@@ -50,10 +49,6 @@ pub fn instantiate(
     ensure!(
         msg.raffle_fee >= Decimal::zero() && msg.raffle_fee <= Decimal::one(),
         ContractError::InvalidFeeRate {}
-    );
-    ensure!(
-        msg.nois_proxy_coin.amount >= Uint128::zero(),
-        ContractError::InvalidProxyCoin
     );
     // valid name
     if !is_valid_name(&msg.name) {
@@ -78,8 +73,6 @@ pub fn instantiate(
             lock: false,
             sudo_lock: false,
         },
-        nois_proxy_addr,
-        nois_proxy_coin: msg.nois_proxy_coin,
         creation_coins,
         max_tickets_per_raffle: Some(msg.max_ticket_number.unwrap_or(MAX_TICKET_NUMBER)),
         fee_discounts: msg
@@ -87,6 +80,8 @@ pub fn instantiate(
             .into_iter()
             .map(|d| d.check(deps.api))
             .collect::<Result<_, _>>()?,
+
+        drand_config: msg.drand_config,
     };
 
     CONFIG.save(deps.storage, &config)?;
@@ -99,7 +94,25 @@ pub fn instantiate(
 }
 
 #[cfg_attr(not(feature = "library"), ::cosmwasm_std::entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Response> {
+pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> StdResult<Response> {
+    msg.validate(deps.as_ref())?;
+    let old_config = OLD_CONFIG.load(deps.storage)?;
+    let config = Config {
+        name: old_config.name,
+        owner: old_config.owner,
+        fee_addr: old_config.fee_addr,
+        last_raffle_id: old_config.last_raffle_id,
+        minimum_raffle_duration: old_config.minimum_raffle_duration,
+        max_tickets_per_raffle: old_config.max_tickets_per_raffle,
+        raffle_fee: old_config.raffle_fee,
+        locks: old_config.locks,
+        creation_coins: old_config.creation_coins,
+        fee_discounts: old_config.fee_discounts,
+        drand_config: msg.drand_config,
+    };
+
+    CONFIG.save(deps.storage, &config)?;
+
     set_contract_version(
         deps.storage,
         env!("CARGO_PKG_NAME"),
@@ -157,8 +170,6 @@ pub fn execute(
             sent_assets,
             on_behalf_of,
         ),
-        ExecuteMsg::Receive(msg) => execute_receive(deps, env, info, msg),
-        ExecuteMsg::NoisReceive { callback } => execute_receive_nois(deps, env, info, callback),
         ExecuteMsg::ClaimRaffle { raffle_id } => execute_claim(deps, env, raffle_id),
         ExecuteMsg::ToggleLock { lock } => execute_toggle_lock(deps, env, info, lock),
         ExecuteMsg::UpdateConfig {
@@ -168,8 +179,7 @@ pub fn execute(
             minimum_raffle_duration,
             max_tickets_per_raffle,
             raffle_fee,
-            nois_proxy_addr,
-            nois_proxy_coin,
+            drand_config,
             creation_coins,
             fee_discounts,
         } => execute_update_config(
@@ -182,17 +192,25 @@ pub fn execute(
             minimum_raffle_duration,
             max_tickets_per_raffle,
             raffle_fee,
-            nois_proxy_addr,
-            nois_proxy_coin,
+            drand_config,
             creation_coins,
             fee_discounts,
         ),
-        ExecuteMsg::UpdateRandomness { raffle_id } => {
-            let config = CONFIG.load(deps.storage)?;
-            ensure_eq!(info.sender, config.owner, ContractError::Unauthorized);
-            let msg = get_nois_randomness(deps.as_ref(), raffle_id)?;
-            Ok(Response::new().add_message(msg))
-        }
+        ExecuteMsg::UpdateRandomness {
+            raffle_id,
+            randomness,
+        } => execute_update_randomness(deps, env, info, raffle_id, randomness),
+    }
+}
+
+/// Messages triggered after random validation.
+/// We wrap the random validation in a message to make sure the transaction goes through.
+/// This may require too much gas for query
+#[entry_point]
+pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractError> {
+    match msg.id {
+        VERIFY_RANDOMNESS_REPLY_ID => Ok(verify_randomness(deps, env, msg.result)?),
+        _ => Err(ContractError::Unauthorized {}),
     }
 }
 
@@ -201,8 +219,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<QueryResponse, Contr
     let response = match msg {
         QueryMsg::Config {} => to_json_binary(&query_config(deps)?)?,
         QueryMsg::RaffleInfo { raffle_id } => {
+            let config = CONFIG.load(deps.storage)?;
             let mut raffle_info = load_raffle(deps.storage, raffle_id)?;
-            let raffle_state = get_raffle_state(&env, &raffle_info);
+            let raffle_state = get_raffle_state(&env, &config, &raffle_info);
             add_raffle_winners(deps, &env, raffle_id, &mut raffle_info)?;
             to_json_binary(&RaffleResponse {
                 raffle_id,

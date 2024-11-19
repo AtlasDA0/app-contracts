@@ -10,13 +10,16 @@ mod tests {
     use crate::{
         common_setup::{
             helpers::{assert_error, setup_block_time},
-            nois_proxy::DEFAULT_RANDOMNESS_SEED,
             setup_accounts_and_block::{setup_accounts, setup_raffle_participants},
-            setup_raffle::{proper_raffle_instantiate, proper_raffle_instantiate_precise},
+            setup_raffle::{
+                proper_raffle_instantiate, proper_raffle_instantiate_precise, DRAND_TIMEOUT,
+            },
         },
         raffle::setup::{
             execute_msg::{buy_tickets_template, create_raffle_setup},
-            helpers::{finish_raffle_timeout, mint_one_token, raffle_info, send_nois_ibc_message},
+            helpers::{
+                finish_raffle_timeout, mint_one_token, raffle_info, send_update_randomness_message,
+            },
             test_msgs::{CreateRaffleParams, PurchaseTicketsParams},
         },
     };
@@ -49,24 +52,11 @@ mod tests {
 
         // skip purchasing tickets
 
-        // try to determine winner before raffle ends
-        let err = app
-            .execute_contract(
-                contracts.nois.clone(),
-                contracts.raffle.clone(),
-                &RaffleExecuteMsg::NoisReceive {
-                    callback: NoisCallback {
-                        job_id: "raffle-0".to_string(),
-                        published: mock_env().block.time,
-                        randomness: HexBinary::from_hex(DEFAULT_RANDOMNESS_SEED).unwrap(),
-                    },
-                },
-                &[],
-            )
-            .unwrap_err();
+        // try to provide randomness before raffle ends
+        let err = send_update_randomness_message(&mut app, &contracts, 0, 0).unwrap_err();
         assert_error(
             Err(err),
-            ContractError::WrongStateForClaim {
+            ContractError::WrongStateForRandomness {
                 status: RaffleState::Started,
             }
             .to_string(),
@@ -84,36 +74,14 @@ mod tests {
             &chainid.clone(),
         );
 
-        // ensure only nois_proxy provides randomness
-        let bad_recieve_randomness = app
-            .execute_contract(
-                one.clone(),
-                contracts.raffle.clone(),
-                &RaffleExecuteMsg::NoisReceive {
-                    callback: NoisCallback {
-                        job_id: "raffle-0".to_string(),
-                        published: current_time,
-                        randomness: HexBinary::from_hex(
-                            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
-                        )
-                        .unwrap(),
-                    },
-                },
-                &[],
-            )
-            .unwrap_err();
-        assert_error(
-            Err(bad_recieve_randomness),
-            ContractError::UnauthorizedReceive.to_string(),
-        );
         // simulates the response from nois_proxy
-        finish_raffle_timeout(&mut app, &contracts, 0, 0).unwrap();
+        finish_raffle_timeout(&mut app, &contracts, 0, 0 + DRAND_TIMEOUT).unwrap();
 
         // queries the raffle
         let res = raffle_info(&app, &contracts, 0).raffle_info.unwrap();
         // verify randomness state has been updated
         assert!(
-            res.randomness.is_some(),
+            res.drand_randomness.is_some(),
             "randomness should have been updated into the raffle state"
         );
 
@@ -199,23 +167,12 @@ mod tests {
         let _purchase_tickets = buy_tickets_template(params).unwrap();
 
         // try to determine winner before raffle ends
-        let claim_but_no_randomness_yet = app
-            .execute_contract(
-                contracts.nois.clone(),
-                contracts.raffle.clone(),
-                &RaffleExecuteMsg::NoisReceive {
-                    callback: NoisCallback {
-                        job_id: "raffle-0".to_string(),
-                        published: mock_env().block.time,
-                        randomness: HexBinary::from_hex(DEFAULT_RANDOMNESS_SEED).unwrap(),
-                    },
-                },
-                &[],
-            )
-            .unwrap_err();
+        let claim_but_no_randomness_yet =
+            send_update_randomness_message(&mut app, &contracts, 0, 0).unwrap_err();
+
         assert_error(
             Err(claim_but_no_randomness_yet),
-            ContractError::WrongStateForClaim {
+            ContractError::WrongStateForRandomness {
                 status: RaffleState::Started,
             }
             .to_string(),
@@ -234,13 +191,13 @@ mod tests {
         );
 
         let owner_balance_before = app.wrap().query_balance(&owner_addr, "ustars").unwrap();
-        finish_raffle_timeout(&mut app, &contracts, 0, 0).unwrap();
+        finish_raffle_timeout(&mut app, &contracts, 0, 0 + DRAND_TIMEOUT).unwrap();
 
         // queries the raffle
         let res = raffle_info(&app, &contracts, 0).raffle_info.unwrap();
         // verify randomness state has been updated
         assert!(
-            res.randomness.is_some(),
+            res.drand_randomness.is_some(),
             "randomness should have been updated into the raffle state"
         );
 
@@ -276,7 +233,7 @@ mod tests {
 
     #[test]
     fn close_after_all_tickets_sold() {
-        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10), None);
+        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10));
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, two, three, _, _, _) = setup_raffle_participants(&mut app);
         let token = mint_one_token(&mut app, &contracts);
@@ -353,13 +310,13 @@ mod tests {
         );
 
         let owner_balance_before = app.wrap().query_balance(&owner_addr, "ustars").unwrap();
-        finish_raffle_timeout(&mut app, &contracts, 0, 1).unwrap();
+        finish_raffle_timeout(&mut app, &contracts, 0, 1 + DRAND_TIMEOUT).unwrap();
 
         // queries the raffle
         let res = raffle_info(&app, &contracts, 0).raffle_info.unwrap();
         // verify randomness state has been updated
         assert!(
-            res.randomness.is_some(),
+            res.drand_randomness.is_some(),
             "randomness should have been updated into the raffle state"
         );
 
@@ -395,7 +352,7 @@ mod tests {
 
     #[test]
     fn close_after_minimum_tickets_sold() {
-        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10), None);
+        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10));
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
         let token = mint_one_token(&mut app, &contracts);
@@ -434,7 +391,7 @@ mod tests {
         let one_balance_before = app.wrap().query_balance(&one, "ustars").unwrap().amount;
         let owner_balance_before = app.wrap().query_balance(&owner_addr, "ustars").unwrap();
 
-        finish_raffle_timeout(&mut app, &contracts, 0, 130).unwrap();
+        finish_raffle_timeout(&mut app, &contracts, 0, 130 + DRAND_TIMEOUT).unwrap();
 
         let one_balance_after = app.wrap().query_balance(&one, "ustars").unwrap().amount;
 
@@ -442,7 +399,7 @@ mod tests {
         let res = raffle_info(&app, &contracts, 0).raffle_info.unwrap();
         // verify randomness state has been updated
         assert!(
-            res.randomness.is_some(),
+            res.drand_randomness.is_some(),
             "randomness should have been updated into the raffle state"
         );
 
@@ -479,65 +436,8 @@ mod tests {
     }
 
     #[test]
-    fn admin_randomness() {
-        let (mut app, contracts) = proper_raffle_instantiate();
-        let (owner_addr, _, _) = setup_accounts(&mut app);
-        let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
-        let token = mint_one_token(&mut app, &contracts);
-        // create raffle
-        let params = CreateRaffleParams {
-            app: &mut app,
-            raffle_contract_addr: contracts.raffle.clone(),
-            owner_addr: owner_addr.clone(),
-            creation_fee: vec![coin(4, NATIVE_DENOM)],
-            ticket_price: Uint128::new(4),
-            max_ticket_per_addr: None,
-            raffle_start_timestamp: None,
-            raffle_nfts: vec![AssetInfo::Sg721Token(Sg721Token {
-                address: token.nft.to_string(),
-                token_id: token.token_id.to_string(),
-            })],
-            duration: None,
-            min_ticket_number: None,
-            max_tickets: None,
-            gating: vec![],
-        };
-        create_raffle_setup(params).unwrap();
-
-        // Purchasing tickets for 3 people
-        // ensure error if max tickets per address set is reached
-        let params = PurchaseTicketsParams {
-            app: &mut app,
-            raffle_contract_addr: contracts.raffle.clone(),
-            msg_senders: vec![one.clone()],
-            raffle_id: 0,
-            num_tickets: 3,
-            funds_send: vec![coin(12, "ustars")],
-        };
-        let _purchase_tickets = buy_tickets_template(params).unwrap();
-
-        app.execute_contract(
-            Addr::unchecked("bad-person"),
-            contracts.raffle.clone(),
-            &RaffleExecuteMsg::UpdateRandomness { raffle_id: 0 },
-            &[],
-        )
-        .unwrap_err();
-
-        app.execute_contract(
-            owner_addr,
-            contracts.raffle.clone(),
-            &RaffleExecuteMsg::UpdateRandomness { raffle_id: 0 },
-            &[],
-        )
-        .unwrap();
-
-        finish_raffle_timeout(&mut app, &contracts, 0, 130).unwrap();
-    }
-
-    #[test]
     fn claim_no_randomness() {
-        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10), None);
+        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10));
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
         let token = mint_one_token(&mut app, &contracts);
@@ -584,7 +484,7 @@ mod tests {
         )
         .unwrap_err();
 
-        finish_raffle_timeout(&mut app, &contracts, 0, 130).unwrap();
+        finish_raffle_timeout(&mut app, &contracts, 0, 130 + DRAND_TIMEOUT).unwrap();
 
         let one_balance_after = app.wrap().query_balance(&one, "ustars").unwrap().amount;
 
@@ -592,7 +492,7 @@ mod tests {
         let res = raffle_info(&app, &contracts, 0).raffle_info.unwrap();
         // verify randomness state has been updated
         assert!(
-            res.randomness.is_some(),
+            res.drand_randomness.is_some(),
             "randomness should have been updated into the raffle state"
         );
 
@@ -630,7 +530,7 @@ mod tests {
 
     #[test]
     fn randomness_no_claim_query() {
-        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10), None);
+        let (mut app, contracts) = proper_raffle_instantiate_precise(Some(10));
         let (owner_addr, _, _) = setup_accounts(&mut app);
         let (one, _, _, _, _, _) = setup_raffle_participants(&mut app);
         let token = mint_one_token(&mut app, &contracts);
@@ -675,14 +575,19 @@ mod tests {
         });
 
         // We send a nois message (that is automatic in the real world)
-        send_nois_ibc_message(&mut app, &contracts, 0).unwrap();
-
+        send_update_randomness_message(&mut app, &contracts, 0, 0).unwrap();
+        let block = app.block_info();
+        app.set_block(BlockInfo {
+            height: block.height,
+            time: block.time.plus_seconds(DRAND_TIMEOUT),
+            chain_id: block.chain_id,
+        });
         // queries the raffle
         let res = raffle_info(&app, &contracts, 0);
         let raffle_info = res.raffle_info.unwrap();
         // verify randomness state has been updated
         assert!(
-            raffle_info.randomness.is_some(),
+            raffle_info.drand_randomness.is_some(),
             "randomness should have been updated into the raffle state"
         );
 

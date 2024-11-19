@@ -3,13 +3,18 @@ use utils::state::AssetInfo;
 
 use crate::{
     msg::QueryFilters,
-    state::{get_raffle_state, RaffleInfo},
+    state::{get_raffle_state, Config, RaffleInfo},
     utils::buyer_can_buy_ticket,
 };
 
-pub fn state_filter(env: &Env, raffle_info: &RaffleInfo, filters: &QueryFilters) -> bool {
+pub fn state_filter(
+    env: &Env,
+    config: &Config,
+    raffle_info: &RaffleInfo,
+    filters: &QueryFilters,
+) -> bool {
     match &filters.states {
-        Some(state) => state.contains(&get_raffle_state(env, raffle_info).to_string()),
+        Some(state) => state.contains(&get_raffle_state(env, config, raffle_info).to_string()),
         None => true,
     }
 }

@@ -1,0 +1,89 @@
+{
+  "contract_name": "randomness_verifier",
+  "contract_version": "0.9.0",
+  "idl_version": "1.0.0",
+  "instantiate": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "InstantiateMsg",
+    "type": "object",
+    "additionalProperties": false
+  },
+  "execute": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "ExecuteMsg",
+    "oneOf": [
+      {
+        "type": "object",
+        "required": [
+          "verify"
+        ],
+        "properties": {
+          "verify": {
+            "type": "object",
+            "required": [
+              "owner",
+              "pubkey",
+              "raffle_id",
+              "randomness"
+            ],
+            "properties": {
+              "owner": {
+                "type": "string"
+              },
+              "pubkey": {
+                "$ref": "#/definitions/Binary"
+              },
+              "raffle_id": {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
+              },
+              "randomness": {
+                "$ref": "#/definitions/DrandRandomness"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    ],
+    "definitions": {
+      "Binary": {
+        "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
+        "type": "string"
+      },
+      "DrandRandomness": {
+        "type": "object",
+        "required": [
+          "previous_signature",
+          "round",
+          "signature"
+        ],
+        "properties": {
+          "previous_signature": {
+            "$ref": "#/definitions/Binary"
+          },
+          "round": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0.0
+          },
+          "signature": {
+            "$ref": "#/definitions/Binary"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "query": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "QueryMsg",
+    "type": "string",
+    "enum": []
+  },
+  "migrate": null,
+  "sudo": null,
+  "responses": {}
+}

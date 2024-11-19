@@ -9,15 +9,13 @@ const MULTISIG_ADDRESS: &str = "stars1wk327tnqj03954zq2hzf36xzs656pmffzy0udsmjw2
 pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     env_logger::init();
-    let chain = Daemon::builder()
-        .chain(STARGAZE_1)
-        .authz_granter(MULTISIG_ADDRESS)
-        .build()?;
+    let mut chain = Daemon::builder(STARGAZE_1).build()?;
+    chain.authz_granter(MULTISIG_ADDRESS);
 
     let trading = Trading::new(chain.clone());
     trading.upload()?;
 
-    let chain = Daemon::builder().chain(STARGAZE_1).build()?;
+    let chain = Daemon::builder(STARGAZE_1).build()?;
 
     let trading = Trading::new(chain.clone());
     trading.instantiate(

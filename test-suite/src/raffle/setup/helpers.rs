@@ -1,11 +1,10 @@
 use crate::common_setup::app::StargazeApp;
-use crate::common_setup::nois_proxy::{ERROR_ON_NOIS_EXEC, TEST_NOIS_PREFIX};
 use crate::common_setup::{msg::RaffleContracts, setup_minter::common::constants::OWNER_ADDR};
-use anyhow::bail;
-use cosmwasm_std::{coin, Addr, BlockInfo, Coin, Empty, Uint128};
+use cosmwasm_std::{coin, Addr, Binary, BlockInfo, Coin, Empty, Uint128};
 use cw_multi_test::Executor;
-use nois::ProxyExecuteMsg;
 use raffles::msg::{ExecuteMsg, QueryMsg, RaffleResponse};
+use randomness::DrandRandomness;
+use rustc_serialize::hex::FromHex;
 use sg721::CollectionInfo;
 use utils::state::NATIVE_DENOM;
 use vending_factory::msg::VendingMinterCreateMsg;
@@ -181,11 +180,12 @@ pub fn mint_additional_token(
     }
 }
 
-pub fn finish_raffle_timeout(
+pub fn finish_raffle_timeout_generic(
     app: &mut StargazeApp,
     contracts: &RaffleContracts,
     raffle_id: u64,
     timeout: u64,
+    randomness_id: u8,
 ) -> anyhow::Result<()> {
     // We advance time to be able to send the nois message
     let block = app.block_info();
@@ -195,8 +195,9 @@ pub fn finish_raffle_timeout(
         chain_id: block.chain_id,
     });
 
-    // We send a nois message (that is automatic in the real world)
-    send_nois_ibc_message(app, contracts, raffle_id)?;
+    // We send a randomness message, to update it
+    send_update_randomness_message(app, contracts, raffle_id, randomness_id)?;
+
     app.execute_contract(
         contracts.raffle.clone(),
         contracts.raffle.clone(),
@@ -206,38 +207,68 @@ pub fn finish_raffle_timeout(
 
     Ok(())
 }
-
-pub fn send_nois_ibc_message(
+pub fn finish_raffle_timeout(
     app: &mut StargazeApp,
     contracts: &RaffleContracts,
     raffle_id: u64,
+    timeout: u64,
+) -> anyhow::Result<()> {
+    finish_raffle_timeout_generic(app, contracts, raffle_id, timeout, 0)
+}
+pub struct DrandRandomnessConst<'a> {
+    pub round: u64,
+    pub previous_signature: &'a str,
+    pub signature: &'a str,
+}
+
+pub const RANDOMNESS_1: DrandRandomnessConst = DrandRandomnessConst{
+    round: 4552804u64,
+    previous_signature: "90cf2fb5a6b126d0b42e1c1446f23d3dff4986fbe99b10d88f822432e672586ee9cc56ec8174b849f2f6c9d3774ed2380f77d9cb4239bc1a1e00b30933bb22d758d3ef1a148e219676ff17081f4ab21ea4debe58707611bcc8a2486b7ed8b36f",
+    signature: "97e13842ed58f082e0e3f264e55e99c3c233cd750a4c2b62473549c9cacba7a430433f0d9060a7bda42d45cc04d5544f1419bee036090d636e9573dea76f77b6583c2c9e5cd2322df9ba4cef9cdc4c11c08d0492b9ec787259aba276bf5a5fbf"
+};
+
+pub const RANDOMNESS_2: DrandRandomnessConst = DrandRandomnessConst{
+    round: 4552808u64,
+    previous_signature: "87b33c2f096ddb3c3b8697cf3b31da05e9e77fb1baf89fae2e527993e4570b79bb052a6279b02409559f0eb631d8b1f9130018a5d38ea7b7b45a907d611185fb99798ad8efcf52584a3291772e5d427c6356cb564c336c900f07599e0e0000d0",
+    signature: "93e8f7e949548928a32a8d5084558832b81039fdee3fec19e4c2acfed8f88b5986c0ee5988b75154a90d58d2c47b168207164ba509a331dfd002e06d666bd5eaa50dddc23aebcc768b2fe6559aef7facdee75c9d42c5fd76527de7d74da0de1c"
+};
+
+pub fn send_update_randomness_message_generic(
+    app: &mut StargazeApp,
+    contracts: &RaffleContracts,
+    raffle_id: u64,
+    randomness: DrandRandomness,
 ) -> anyhow::Result<()> {
     // We send a nois message (that is automatic in the real world)
-    let response = app.execute_contract(
+    app.execute_contract(
+        Addr::unchecked("anyone, really"),
         contracts.raffle.clone(),
-        contracts.nois.clone(),
-        &ProxyExecuteMsg::GetNextRandomness {
-            job_id: format!("{TEST_NOIS_PREFIX}raffle-{raffle_id}"),
+        &raffles::msg::ExecuteMsg::UpdateRandomness {
+            raffle_id,
+            randomness,
         },
         &[],
     )?;
-    // We get the error value
-    let error_value = response
-        .events
-        .into_iter()
-        .filter(|e| e.ty == "wasm")
-        .flat_map(|e| {
-            e.attributes
-                .into_iter()
-                .filter(|a| a.key == ERROR_ON_NOIS_EXEC)
-                .map(|a| a.value)
-                .collect::<Vec<_>>()
-        })
-        .collect::<Vec<_>>();
+    Ok(())
+}
 
-    if error_value.is_empty() {
-        Ok(())
+pub fn send_update_randomness_message(
+    app: &mut StargazeApp,
+    contracts: &RaffleContracts,
+    raffle_id: u64,
+    randomness_id: u8,
+) -> anyhow::Result<()> {
+    if randomness_id == 0 {
+        send_update_randomness_message_generic(app, contracts, raffle_id, rand(RANDOMNESS_1)?)
     } else {
-        bail!("Error on executing on nois randomness : {:?}", error_value)
+        send_update_randomness_message_generic(app, contracts, raffle_id, rand(RANDOMNESS_2)?)
     }
+}
+
+pub fn rand(rand: DrandRandomnessConst) -> anyhow::Result<DrandRandomness> {
+    Ok(DrandRandomness {
+        round: rand.round,
+        previous_signature: Binary::from(rand.previous_signature.from_hex()?),
+        signature: Binary::from(rand.signature.from_hex()?),
+    })
 }

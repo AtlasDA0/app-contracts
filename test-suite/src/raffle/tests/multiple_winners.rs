@@ -6,13 +6,13 @@ mod tests {
 
     use utils::state::{AssetInfo, Sg721Token};
 
-    use crate::common_setup::nois_proxy::DEFAULT_RANDOMNESS_SEED;
     use crate::common_setup::setup_accounts_and_block::setup_accounts;
     use crate::common_setup::setup_accounts_and_block::setup_n_accounts;
     use crate::common_setup::setup_raffle::proper_raffle_instantiate;
 
     use crate::common_setup::setup_minter::common::constants::OWNER_ADDR;
     use crate::common_setup::setup_raffle::proper_raffle_instantiate_precise;
+    use crate::raffle::setup::helpers::finish_raffle_timeout_generic;
     use crate::raffle::setup::helpers::mint_additional_token;
     use crate::raffle::setup::helpers::mint_one_token;
     use crate::raffle::setup::helpers::{finish_raffle_timeout, raffle_info};
@@ -115,7 +115,7 @@ mod tests {
                 },
             )
             .unwrap();
-        assert_eq!(res.owner, one.to_string());
+        assert_eq!(res.owner, two.to_string());
         let res: cw721::OwnerOfResponse = app
             .wrap()
             .query_wasm_smart(
@@ -126,7 +126,7 @@ mod tests {
                 },
             )
             .unwrap();
-        assert_eq!(res.owner, two.to_string());
+        assert_eq!(res.owner, one.to_string());
     }
 
     #[test]
@@ -252,9 +252,9 @@ mod tests {
         assert_eq!(res.owner, owner_addr.to_string());
     }
 
-    fn test_n_randomness(n: u64, randomness: &str) {
+    fn test_n_randomness(n: u64, randomness_id: u8) {
         // create testing app
-        let (mut app, contracts) = proper_raffle_instantiate_precise(None, Some(randomness));
+        let (mut app, contracts) = proper_raffle_instantiate_precise(None);
         let (owner, _, _) = setup_accounts(&mut app);
         let participants = setup_n_accounts(&mut app, n);
 
@@ -321,25 +321,16 @@ mod tests {
             .unwrap();
         }
 
-        finish_raffle_timeout(&mut app, &contracts, 0, 1000).unwrap();
+        finish_raffle_timeout_generic(&mut app, &contracts, 0, 1000, randomness_id).unwrap();
     }
 
     #[test]
     fn random_with_default_randomness() {
-        test_n_randomness(5, DEFAULT_RANDOMNESS_SEED);
+        test_n_randomness(5, 0);
     }
 
     #[test]
     fn random_with_other() {
-        let rand = "2be4a8f75c1f18b817a755b3f7cd5b402e28a660e18b24964b28806cb1c30de7";
-        test_n_randomness(5, rand);
-    }
-
-    #[test]
-    fn some_rand_tests() {
-        for _ in 0..1_000 {
-            let rand: Vec<u8> = (0..32).map(|_| rand::random::<u8>()).collect();
-            test_n_randomness(5, &hex::encode(rand));
-        }
+        test_n_randomness(5, 1);
     }
 }

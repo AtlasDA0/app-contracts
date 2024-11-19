@@ -1,6 +1,6 @@
 use cosmwasm_std::{coin, coins, Coins, Uint128};
 use cw721_base::interface::{Cw721, ExecuteMsg};
-use cw_orch::{environment::Environment, prelude::*, tokio::runtime::Runtime};
+use cw_orch::{daemon::RUNTIME, environment::Environment, prelude::*};
 use cw_orch_clone_testing::CloneTesting;
 use p2p_trading::P2PTrading;
 use p2p_trading_export::msg::{AddAssetAction, ExecuteMsgFns, InstantiateMsg};
@@ -15,7 +15,6 @@ use super::{
 };
 
 pub struct TradingTestEnv {
-    rt: Runtime,
     chain: CloneTesting,
     treasury: Addr,
     nft: Cw721<CloneTesting>,
@@ -24,8 +23,9 @@ pub struct TradingTestEnv {
 }
 
 fn direct_buy_init() -> anyhow::Result<TradingTestEnv> {
-    let rt = Runtime::new()?;
-    let mut chain = CloneTesting::new(&rt, STARGAZE_1)?;
+    let mut chain_info = STARGAZE_1;
+    // chain_info.grpc_urls = &["http://stargaze-grpc.polkachu.com:13790"];
+    let mut chain = CloneTesting::new(&RUNTIME, chain_info)?;
     chain.set_sender(Addr::unchecked(COUNTER_TRADER));
 
     let treasury = chain.app.borrow().api().addr_make("treasury");
@@ -69,7 +69,6 @@ fn direct_buy_init() -> anyhow::Result<TradingTestEnv> {
     )?;
 
     Ok(TradingTestEnv {
-        rt,
         nft,
         sns,
         p2p,
@@ -81,7 +80,6 @@ fn direct_buy_init() -> anyhow::Result<TradingTestEnv> {
 #[test]
 fn direct_buy_works() -> anyhow::Result<()> {
     let TradingTestEnv {
-        rt: _,
         nft: _,
         sns: _,
         p2p,
@@ -124,7 +122,6 @@ fn direct_buy_works() -> anyhow::Result<()> {
 #[test]
 fn direct_buy_insufficient_funds() -> anyhow::Result<()> {
     let TradingTestEnv {
-        rt: _,
         nft: _,
         sns: _,
         p2p,
@@ -156,7 +153,6 @@ fn direct_buy_insufficient_funds() -> anyhow::Result<()> {
 #[test]
 fn direct_buy_cant_counter_after() -> anyhow::Result<()> {
     let TradingTestEnv {
-        rt: _,
         nft: _,
         sns: _,
         p2p,
@@ -190,7 +186,6 @@ fn direct_buy_cant_counter_after() -> anyhow::Result<()> {
 #[test]
 fn direct_buy_respects_royalties() -> anyhow::Result<()> {
     let TradingTestEnv {
-        rt: _,
         nft,
         sns: _,
         p2p,

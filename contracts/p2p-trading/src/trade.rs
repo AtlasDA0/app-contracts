@@ -541,10 +541,6 @@ pub fn gather_royalties(
                         &sg721_base::msg::QueryMsg::CollectionInfo {},
                     );
 
-                println!(
-                    "Collection : {:?}, royalties : {:?}",
-                    token.address, collection_info
-                );
                 match collection_info {
                     Ok(collection_info) => collection_info.royalty_info,
                     Err(_) => None,

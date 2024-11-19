@@ -59,14 +59,14 @@ pub struct RaffleCodeIds {
     pub factory_code_id: u64,
     pub sg721_code_id: u64,
     pub raffle_code_id: u64,
-    pub nois_code_id: u64,
+    pub randomness_code_id: u64,
 }
 
 #[cw_serde]
 pub struct RaffleContracts {
     pub factory: Addr,
     pub raffle: Addr,
-    pub nois: Addr,
+    pub randomness_verifier: Addr,
 }
 
 #[cw_serde]

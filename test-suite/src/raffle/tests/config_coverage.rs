@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::{coin, Addr, Decimal, HexBinary, Uint128};
+    use cosmwasm_std::{coin, Addr, Binary, Decimal, Uint128};
     use cw_multi_test::Executor;
-    use nois::NoisCallback;
     use raffles::{
         error::ContractError,
-        msg::{ConfigResponse, ExecuteMsg, QueryMsg as RaffleQueryMsg},
+        msg::{ConfigResponse, DrandConfig, ExecuteMsg, QueryMsg as RaffleQueryMsg},
     };
+    use rustc_serialize::hex::FromHex;
     use utils::state::{AssetInfo, Locks, Sg721Token, SudoMsg as RaffleSudoMsg, NATIVE_DENOM};
 
     use crate::{
@@ -14,13 +14,12 @@ mod tests {
             app::StargazeApp,
             helpers::assert_error,
             msg::RaffleContracts,
-            nois_proxy::{NOIS_AMOUNT, NOIS_DENOM},
             setup_accounts_and_block::setup_accounts,
             setup_minter::common::constants::{
                 CREATION_FEE_AMNT_NATIVE, CREATION_FEE_AMNT_STARS, OWNER_ADDR, RAFFLE_NAME,
                 RAFFLE_TAX, TREASURY_ADDR,
             },
-            setup_raffle::proper_raffle_instantiate,
+            setup_raffle::{proper_raffle_instantiate, DRAND_TIMEOUT, DRAND_URL, HEX_PUBKEY},
         },
         raffle::setup::{
             execute_msg::{buy_tickets_template, create_raffle_function},
@@ -74,8 +73,6 @@ mod tests {
                 minimum_raffle_duration: 1,
                 max_tickets_per_raffle: Some(100_000),
                 raffle_fee: RAFFLE_TAX,
-                nois_proxy_addr: contracts.nois.clone().to_string(),
-                nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM),
                 creation_coins: vec![
                     coin(CREATION_FEE_AMNT_NATIVE, NATIVE_DENOM),
                     coin(CREATION_FEE_AMNT_STARS, NATIVE_DENOM)
@@ -85,6 +82,12 @@ mod tests {
                     sudo_lock: false,
                 },
                 fee_discounts: vec![],
+                drand_config: DrandConfig {
+                    random_pubkey: Binary::from(HEX_PUBKEY.from_hex().unwrap()),
+                    drand_url: DRAND_URL.to_string(),
+                    verify_signature_contract: contracts.randomness_verifier.clone(),
+                    timeout: DRAND_TIMEOUT
+                },
             }
         )
     }
@@ -92,7 +95,6 @@ mod tests {
     #[test]
     fn test_raffle_contract_config_permissions_coverage() {
         let (mut app, contracts) = proper_raffle_instantiate();
-        let current_time = app.block_info().time;
         // errors
         // unable to update contract config
         let error_updating_config = app
@@ -105,11 +107,10 @@ mod tests {
                     fee_addr: None,
                     minimum_raffle_duration: None,
                     raffle_fee: None,
-                    nois_proxy_addr: None,
-                    nois_proxy_coin: None,
                     creation_coins: None,
                     max_tickets_per_raffle: None,
                     fee_discounts: None,
+                    drand_config: None,
                 },
                 &[],
             )
@@ -123,24 +124,6 @@ mod tests {
                 &[],
             )
             .unwrap_err();
-        // unable to provide randomness unless nois_proxy address is sending msg
-        let error_not_proxy_providing_randomness = app
-            .execute_contract(
-                Addr::unchecked("not-nois-proxy"),
-                contracts.raffle.clone(),
-                &raffles::msg::ExecuteMsg::NoisReceive {
-                    callback: NoisCallback {
-                        job_id: "raffle-0".to_string(),
-                        published: current_time,
-                        randomness: HexBinary::from_hex(
-                            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa115",
-                        )
-                        .unwrap(),
-                    },
-                },
-                &[],
-            )
-            .unwrap_err();
 
         assert_error(
             Err(error_updating_config),
@@ -149,10 +132,6 @@ mod tests {
         assert_error(
             Err(error_locking_contract),
             ContractError::Unauthorized {}.to_string(),
-        );
-        assert_error(
-            Err(error_not_proxy_providing_randomness),
-            ContractError::UnauthorizedReceive {}.to_string(),
         );
         let _updating_config = app
             .execute_contract(
@@ -164,11 +143,10 @@ mod tests {
                     fee_addr: Some("new-owner".to_string()),
                     minimum_raffle_duration: Some(60),
                     raffle_fee: Some(Decimal::percent(99)),
-                    nois_proxy_addr: Some("new-owner".to_string()),
-                    nois_proxy_coin: Some(coin(NOIS_AMOUNT, NOIS_DENOM)),
                     creation_coins: Some(vec![coin(420, "new-new")]),
                     max_tickets_per_raffle: None,
                     fee_discounts: None,
+                    drand_config: None,
                 },
                 &[],
             )
@@ -188,14 +166,18 @@ mod tests {
                 minimum_raffle_duration: 60,
                 max_tickets_per_raffle: Some(100_000),
                 raffle_fee: Decimal::percent(99),
-                nois_proxy_addr: "new-owner".to_string(),
-                nois_proxy_coin: coin(NOIS_AMOUNT, NOIS_DENOM),
                 creation_coins: vec![coin(420, "new-new")],
                 locks: Locks {
                     lock: false,
                     sudo_lock: false,
                 },
                 fee_discounts: vec![],
+                drand_config: DrandConfig {
+                    random_pubkey: Binary::from(HEX_PUBKEY.from_hex().unwrap()),
+                    drand_url: DRAND_URL.to_string(),
+                    verify_signature_contract: contracts.randomness_verifier.clone(),
+                    timeout: DRAND_TIMEOUT
+                },
             }
         )
     }

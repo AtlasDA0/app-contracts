@@ -6,46 +6,22 @@ use sg721::ExecuteMsg as Sg721ExecuteMsg;
 
 use crate::{
     error::ContractError,
-    state::{get_raffle_state, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO, RAFFLE_TICKETS},
+    state::{
+        get_raffle_state, Config, RaffleInfo, RaffleState, CONFIG, RAFFLE_INFO, RAFFLE_TICKETS,
+    },
 };
 use cosmwasm_std::{
-    coins, to_json_binary, Addr, BankMsg, Coin, Decimal, Deps, Empty, Env, HexBinary, Order,
-    StdError, StdResult, Storage, Uint128, WasmMsg,
+    coins, Addr, BankMsg, Coin, Decimal, Deps, Empty, Env, HexBinary, Order, StdError, StdResult,
+    Storage, Uint128,
 };
 use cw721::Cw721ExecuteMsg;
 use cw721_base::Extension;
 
-use nois::ProxyExecuteMsg;
 use rand::Rng;
 use utils::{
     state::{dedupe, into_cosmos_msg, AssetInfo},
     types::CosmosMsg,
 };
-
-pub fn get_nois_randomness(deps: Deps, raffle_id: u64) -> Result<CosmosMsg, ContractError> {
-    let raffle_info = RAFFLE_INFO.load(deps.storage, raffle_id)?;
-    let config = CONFIG.load(deps.storage)?;
-    let id: String = raffle_id.to_string();
-    let nois_fee: Coin = config.nois_proxy_coin;
-
-    // cannot provide new randomness once value is provided
-    if raffle_info.randomness.is_some() {
-        return Err(ContractError::RandomnessAlreadyProvided {});
-    }
-
-    // request randomness
-    Ok(WasmMsg::Execute {
-        contract_addr: config.nois_proxy_addr.into_string(),
-        // GetNextRandomness requests the randomness from the proxy
-        // The job id is needed to know what randomness we are referring to upon reception in the callback.
-        msg: to_json_binary(&ProxyExecuteMsg::GetNextRandomness {
-            job_id: "raffle-".to_string() + id.as_str(),
-        })?,
-
-        funds: vec![nois_fee], // Pay from the contract
-    }
-    .into())
-}
 
 /// Util to get the organizers and helpers messages to return when claiming a Raffle (returns the funds)
 pub fn get_raffle_owner_funds_finished_messages(
@@ -148,15 +124,16 @@ pub fn get_raffle_winners(
     raffle_id: u64,
     raffle_info: RaffleInfo,
 ) -> Result<Vec<Addr>, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
     // if randomness not has been provided then we expect an error
-    if raffle_info.randomness.is_none() {
+    if raffle_info.drand_randomness.is_none() {
         return Err(ContractError::WrongStateForClaim {
-            status: get_raffle_state(env, &raffle_info),
+            status: get_raffle_state(env, &config, &raffle_info),
         });
     }
 
     // We initiate the random number generator
-    let randomness: [u8; 32] = HexBinary::to_array(&raffle_info.randomness.unwrap())?;
+    let randomness = raffle_info.drand_randomness.unwrap().randomness;
 
     let nb_winners = if raffle_info.raffle_options.one_winner_per_asset {
         raffle_info.assets.len()
@@ -184,6 +161,7 @@ pub fn get_raffle_winners(
 /// 2. You select this number as the first winner
 /// 3. Then you exchange this number with the elements in nth place inside the vector
 /// 4. You start again with the same vector where you remove the last elements
+///
 /// Because this has at least 0(n) complexity, here, we simulate this vector with the map:HashMap
 /// This structure allows us to store the maps without having to store the whole vector
 /// At step k, you have a vector of length n-k in which you want to take an element.
@@ -300,8 +278,12 @@ pub fn ticket_cost(raffle_info: RaffleInfo, ticket_count: u32) -> Result<AssetIn
 }
 
 /// Can only buy a ticket when the raffle has started and is not closed
-pub fn can_buy_ticket(env: Env, raffle_info: RaffleInfo) -> Result<(), ContractError> {
-    if get_raffle_state(&env, &raffle_info) == RaffleState::Started {
+pub fn can_buy_ticket(
+    env: Env,
+    config: &Config,
+    raffle_info: RaffleInfo,
+) -> Result<(), ContractError> {
+    if get_raffle_state(&env, config, &raffle_info) == RaffleState::Started {
         Ok(())
     } else {
         Err(ContractError::CantBuyTickets {})

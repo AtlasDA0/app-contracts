@@ -147,7 +147,7 @@ mod tests {
         let res = raffle_info(&app, &contracts, 0);
 
         assert!(
-            res.raffle_info.unwrap().randomness.is_some(),
+            res.raffle_info.unwrap().drand_randomness.is_some(),
             "randomness should have been updated into the raffle state"
         );
 
@@ -166,7 +166,7 @@ mod tests {
                 },
             )
             .unwrap();
-        assert_eq!(res.owner, one.to_string());
+        assert_eq!(res.owner, two.to_string());
 
         // confirm owner of nft is now raffle winner
         let res: ApprovalsResponse = app

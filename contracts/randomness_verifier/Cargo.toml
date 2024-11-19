@@ -1,0 +1,34 @@
+[package]
+name = "randomness_verifier"
+version = "0.9.0"
+authors = ["Nicolas KOWALSKI <kowalski.kowalskin@gmail.com>"]
+edition = "2018"
+description = "Verify contract for drand randomness"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+
+[dependencies]
+#CosmWasm
+cosmwasm-std = { version = "1.1.0" }
+cosmwasm-schema = { version = "1.1.0" }
+
+#Other Modules
+schemars = "0.8.1"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+drand-verify = "0.1"
+
+# Local Modules
+randomness = { path = "../../packages/randomness", version = "0.1.0" }
+cw-orch = "0.24.0"
+
+[dev-dependencies]
+cosmwasm-schema = { version = "1.0.0" }
+rustc-serialize = "0.3.24"
+
+[profile.release]
+overflow-checks = true

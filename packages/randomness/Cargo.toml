@@ -1,0 +1,9 @@
+[package]
+name = "randomness"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cosmwasm-schema.workspace = true
+cosmwasm-std.workspace = true
+cw-orch = "0.24.0"

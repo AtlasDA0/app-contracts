@@ -36,11 +36,10 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         minimum_raffle_duration: config.minimum_raffle_duration,
         raffle_fee: config.raffle_fee,
         locks: config.locks,
-        nois_proxy_addr: config.nois_proxy_addr.to_string(),
         creation_coins: config.creation_coins,
-        nois_proxy_coin: config.nois_proxy_coin,
         max_tickets_per_raffle: config.max_tickets_per_raffle,
         fee_discounts: config.fee_discounts,
+        drand_config: config.drand_config,
     })
 }
 
@@ -152,9 +151,10 @@ fn parse_raffles(
     env: &Env,
     item: StdResult<(u64, RaffleInfo)>,
 ) -> Result<RaffleResponse, ContractError> {
+    let config = CONFIG.load(deps.storage)?;
     item.map_err(Into::into)
         .and_then(|(raffle_id, mut raffle)| {
-            let raffle_state = get_raffle_state(env, &raffle);
+            let raffle_state = get_raffle_state(env, &config, &raffle);
             add_raffle_winners(deps, env, raffle_id, &mut raffle)?;
             Ok(RaffleResponse {
                 raffle_id,
@@ -230,8 +230,9 @@ pub fn raffle_filter(
     raffle_info: &RaffleInfo,
     filters: &Option<QueryFilters>,
 ) -> bool {
+    let config = CONFIG.load(deps.storage).unwrap();
     if let Some(filters) = filters {
-        state_filter(&env, raffle_info, filters)
+        state_filter(&env, &config, raffle_info, filters)
             && owner_filter(raffle_info, filters)
             && contains_token_filter(raffle_info, filters)
             && has_gated_rights_filter(deps, raffle_info, filters)
@@ -306,7 +307,7 @@ pub fn add_raffle_winners(
     raffle_id: u64,
     raffle_info: &mut RaffleInfo,
 ) -> Result<(), ContractError> {
-    if raffle_info.randomness.is_some() {
+    if raffle_info.drand_randomness.is_some() {
         if raffle_info.number_of_tickets == 0u32
             || raffle_info.number_of_tickets
                 < raffle_info.raffle_options.min_ticket_number.unwrap_or(0)

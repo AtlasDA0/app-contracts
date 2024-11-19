@@ -328,8 +328,6 @@ mod tests {
         let current_block = app.block_info().height;
         let chainid = app.block_info().chain_id.clone();
 
-        println!("{:#?}", current_block);
-
         app.set_block(BlockInfo {
             height: current_block + 20,
             time: current_time.clone().plus_seconds(20),

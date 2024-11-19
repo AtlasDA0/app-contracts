@@ -45,7 +45,7 @@ pub const FIRST_FUND_AMOUNT: u128 = 485;
 pub const SECOND_FUND_AMOUNT: u128 = 456;
 
 pub const COUNTER_TRADER: &str = "stars1s46jmv3c05usk6yk50tyy8axc4t9rglrvdky2u";
-pub const COUNTER_ID: &str = "2887";
+pub const COUNTER_ID: &str = "1024";
 
 pub const NICOCO_FEE_AMOUNT: u128 = 498579754654;
 pub const FEE_AMOUNT: u128 = 4514987;

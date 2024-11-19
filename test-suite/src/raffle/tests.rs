@@ -7,4 +7,6 @@ pub mod gating;
 pub mod init;
 pub mod integration_tests;
 pub mod multiple_winners;
+pub mod randomness;
 pub mod ticket_limits;
+pub mod token_raffles;

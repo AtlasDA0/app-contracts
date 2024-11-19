@@ -2,9 +2,7 @@ use cosmwasm_std::{to_json_binary, WasmMsg};
 use cw_orch::{contract::interface_traits::CwOrchUpload, prelude::*};
 use dao_cw_orch::DaoPreProposeSingle;
 use dao_pre_propose_base::msg::ExecuteMsgFns;
-use raffles::msg::MigrateMsg;
 use scripts::loans::Loans;
-use scripts::raffles::Raffles;
 use scripts::STARGAZE_1;
 
 const MULTISIG_ADDRESS: &str = "stars1wk327tnqj03954zq2hzf36xzs656pmffzy0udsmjw2gjxrthh6qqfsvr4v";
@@ -12,10 +10,8 @@ const MULTISIG_ADDRESS: &str = "stars1wk327tnqj03954zq2hzf36xzs656pmffzy0udsmjw2
 pub fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     env_logger::init();
-    let chain = Daemon::builder()
-        .chain(STARGAZE_1)
-        .authz_granter(MULTISIG_ADDRESS)
-        .build()?;
+    let mut chain = Daemon::builder(STARGAZE_1).build()?;
+    chain.authz_granter(MULTISIG_ADDRESS);
 
     let loans = Loans::new(chain.clone());
     // loans.upload()?;
@@ -25,10 +21,10 @@ pub fn main() -> anyhow::Result<()> {
     let msg = WasmMsg::Migrate {
         contract_addr: loans.address()?.to_string(),
         new_code_id: loans.code_id()?,
-        msg: to_json_binary(&MigrateMsg {})?,
+        msg: to_json_binary(&Empty {})?,
     };
 
-    let chain = Daemon::builder().chain(STARGAZE_1).build()?;
+    let chain = Daemon::builder(STARGAZE_1).build()?;
 
     let contract_info = chain.wasm_querier().contract_info(loans.address()?)?;
     println!("{:?}", contract_info);
