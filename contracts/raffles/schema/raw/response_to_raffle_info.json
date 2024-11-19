@@ -269,6 +269,16 @@
             "$ref": "#/definitions/AssetInfo"
           }
         },
+        "drand_randomness": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Randomness"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "is_cancelled": {
           "type": "boolean"
         },
@@ -389,6 +399,35 @@
         "finished",
         "cancelled"
       ]
+    },
+    "Randomness": {
+      "type": "object",
+      "required": [
+        "randomness",
+        "randomness_owner",
+        "randomness_round"
+      ],
+      "properties": {
+        "randomness": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint8",
+            "minimum": 0.0
+          },
+          "maxItems": 32,
+          "minItems": 32
+        },
+        "randomness_owner": {
+          "$ref": "#/definitions/Addr"
+        },
+        "randomness_round": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
     },
     "Sg721Token": {
       "type": "object",

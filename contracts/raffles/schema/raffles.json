@@ -7,10 +7,9 @@
     "title": "InstantiateMsg",
     "type": "object",
     "required": [
+      "drand_config",
       "fee_discounts",
       "name",
-      "nois_proxy_addr",
-      "nois_proxy_coin",
       "raffle_fee"
     ],
     "properties": {
@@ -22,6 +21,9 @@
         "items": {
           "$ref": "#/definitions/Coin"
         }
+      },
+      "drand_config": {
+        "$ref": "#/definitions/DrandConfig"
       },
       "fee_addr": {
         "type": [
@@ -54,12 +56,6 @@
       "name": {
         "type": "string"
       },
-      "nois_proxy_addr": {
-        "type": "string"
-      },
-      "nois_proxy_coin": {
-        "$ref": "#/definitions/Coin"
-      },
       "owner": {
         "type": [
           "string",
@@ -72,6 +68,10 @@
     },
     "additionalProperties": false,
     "definitions": {
+      "Addr": {
+        "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
+        "type": "string"
+      },
       "AdvantageOptionsMsg": {
         "oneOf": [
           {
@@ -200,6 +200,10 @@
           }
         ]
       },
+      "Binary": {
+        "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
+        "type": "string"
+      },
       "Coin": {
         "type": "object",
         "required": [
@@ -234,6 +238,39 @@
       "Decimal": {
         "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
         "type": "string"
+      },
+      "DrandConfig": {
+        "type": "object",
+        "required": [
+          "drand_url",
+          "random_pubkey",
+          "timeout",
+          "verify_signature_contract"
+        ],
+        "properties": {
+          "drand_url": {
+            "description": "The drand provider url (to find the right entropy provider)",
+            "type": "string"
+          },
+          "random_pubkey": {
+            "$ref": "#/definitions/Binary"
+          },
+          "timeout": {
+            "description": "Duration of the randomness providing round",
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0.0
+          },
+          "verify_signature_contract": {
+            "description": "The contract that can verify the entropy signature",
+            "allOf": [
+              {
+                "$ref": "#/definitions/Addr"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
       },
       "FeeDiscountMsg": {
         "type": "object",
@@ -363,6 +400,16 @@
                   "$ref": "#/definitions/Coin"
                 }
               },
+              "drand_config": {
+                "anyOf": [
+                  {
+                    "$ref": "#/definitions/DrandConfig"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "fee_addr": {
                 "type": [
                   "string",
@@ -398,22 +445,6 @@
                 "type": [
                   "string",
                   "null"
-                ]
-              },
-              "nois_proxy_addr": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "nois_proxy_coin": {
-                "anyOf": [
-                  {
-                    "$ref": "#/definitions/Coin"
-                  },
-                  {
-                    "type": "null"
-                  }
                 ]
               },
               "owner": {
@@ -515,40 +546,7 @@
         "additionalProperties": false
       },
       {
-        "type": "object",
-        "required": [
-          "receive"
-        ],
-        "properties": {
-          "receive": {
-            "$ref": "#/definitions/Cw721ReceiveMsg"
-          }
-        },
-        "additionalProperties": false
-      },
-      {
-        "type": "object",
-        "required": [
-          "nois_receive"
-        ],
-        "properties": {
-          "nois_receive": {
-            "type": "object",
-            "required": [
-              "callback"
-            ],
-            "properties": {
-              "callback": {
-                "$ref": "#/definitions/NoisCallback"
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        "additionalProperties": false
-      },
-      {
-        "description": "Provide job_id for randomness contract",
+        "description": "Provide job_id for randomness contract Provide randomness from drand",
         "type": "object",
         "required": [
           "update_randomness"
@@ -557,13 +555,17 @@
           "update_randomness": {
             "type": "object",
             "required": [
-              "raffle_id"
+              "raffle_id",
+              "randomness"
             ],
             "properties": {
               "raffle_id": {
                 "type": "integer",
                 "format": "uint64",
                 "minimum": 0.0
+              },
+              "randomness": {
+                "$ref": "#/definitions/DrandRandomness"
               }
             },
             "additionalProperties": false
@@ -594,6 +596,10 @@
       }
     ],
     "definitions": {
+      "Addr": {
+        "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
+        "type": "string"
+      },
       "AdvantageOptionsMsg": {
         "oneOf": [
           {
@@ -813,30 +819,64 @@
         },
         "additionalProperties": false
       },
-      "Cw721ReceiveMsg": {
-        "description": "Cw721ReceiveMsg should be de/serialized under `Receive()` variant in a ExecuteMsg",
+      "Decimal": {
+        "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
+        "type": "string"
+      },
+      "DrandConfig": {
         "type": "object",
         "required": [
-          "msg",
-          "sender",
-          "token_id"
+          "drand_url",
+          "random_pubkey",
+          "timeout",
+          "verify_signature_contract"
         ],
         "properties": {
-          "msg": {
+          "drand_url": {
+            "description": "The drand provider url (to find the right entropy provider)",
+            "type": "string"
+          },
+          "random_pubkey": {
             "$ref": "#/definitions/Binary"
           },
-          "sender": {
-            "type": "string"
+          "timeout": {
+            "description": "Duration of the randomness providing round",
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0.0
           },
-          "token_id": {
-            "type": "string"
+          "verify_signature_contract": {
+            "description": "The contract that can verify the entropy signature",
+            "allOf": [
+              {
+                "$ref": "#/definitions/Addr"
+              }
+            ]
           }
         },
         "additionalProperties": false
       },
-      "Decimal": {
-        "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
-        "type": "string"
+      "DrandRandomness": {
+        "type": "object",
+        "required": [
+          "previous_signature",
+          "round",
+          "signature"
+        ],
+        "properties": {
+          "previous_signature": {
+            "$ref": "#/definitions/Binary"
+          },
+          "round": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0.0
+          },
+          "signature": {
+            "$ref": "#/definitions/Binary"
+          }
+        },
+        "additionalProperties": false
       },
       "FeeDiscountMsg": {
         "type": "object",
@@ -850,42 +890,6 @@
           },
           "discount": {
             "$ref": "#/definitions/Decimal"
-          }
-        },
-        "additionalProperties": false
-      },
-      "HexBinary": {
-        "description": "This is a wrapper around Vec<u8> to add hex de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is similar to `cosmwasm_std::Binary` but uses hex. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
-        "type": "string"
-      },
-      "NoisCallback": {
-        "description": "This must be accepted in an `NoisReceive { callback: NoisCallback }` enum case in the ExecuteMsg of the app.",
-        "type": "object",
-        "required": [
-          "job_id",
-          "published",
-          "randomness"
-        ],
-        "properties": {
-          "job_id": {
-            "description": "The ID chosen by the caller for this job. Use this field to map responses to requests.",
-            "type": "string"
-          },
-          "published": {
-            "description": "The point in time when the randomness was first published. This information is provided by the randomness provider. This is not the time when the randomness was processed on chain.",
-            "allOf": [
-              {
-                "$ref": "#/definitions/Timestamp"
-              }
-            ]
-          },
-          "randomness": {
-            "description": "The randomness. This is guaranteed to be 32 bytes long.",
-            "allOf": [
-              {
-                "$ref": "#/definitions/HexBinary"
-              }
-            ]
           }
         },
         "additionalProperties": false
@@ -1480,6 +1484,16 @@
                 "$ref": "#/definitions/AssetInfo"
               }
             },
+            "drand_randomness": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Randomness"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "is_cancelled": {
               "type": "boolean"
             },
@@ -1629,6 +1643,35 @@
             "cancelled"
           ]
         },
+        "Randomness": {
+          "type": "object",
+          "required": [
+            "randomness",
+            "randomness_owner",
+            "randomness_round"
+          ],
+          "properties": {
+            "randomness": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint8",
+                "minimum": 0.0
+              },
+              "maxItems": 32,
+              "minItems": 32
+            },
+            "randomness_owner": {
+              "$ref": "#/definitions/Addr"
+            },
+            "randomness_round": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        },
         "Sg721Token": {
           "type": "object",
           "required": [
@@ -1677,14 +1720,13 @@
       "type": "object",
       "required": [
         "creation_coins",
+        "drand_config",
         "fee_addr",
         "fee_discounts",
         "last_raffle_id",
         "locks",
         "minimum_raffle_duration",
         "name",
-        "nois_proxy_addr",
-        "nois_proxy_coin",
         "owner",
         "raffle_fee"
       ],
@@ -1694,6 +1736,9 @@
           "items": {
             "$ref": "#/definitions/Coin"
           }
+        },
+        "drand_config": {
+          "$ref": "#/definitions/DrandConfig"
         },
         "fee_addr": {
           "type": "string"
@@ -1727,12 +1772,6 @@
         },
         "name": {
           "type": "string"
-        },
-        "nois_proxy_addr": {
-          "type": "string"
-        },
-        "nois_proxy_coin": {
-          "$ref": "#/definitions/Coin"
         },
         "owner": {
           "type": "string"
@@ -1875,6 +1914,10 @@
             }
           ]
         },
+        "Binary": {
+          "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
+          "type": "string"
+        },
         "Coin": {
           "type": "object",
           "required": [
@@ -1909,6 +1952,39 @@
         "Decimal": {
           "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
           "type": "string"
+        },
+        "DrandConfig": {
+          "type": "object",
+          "required": [
+            "drand_url",
+            "random_pubkey",
+            "timeout",
+            "verify_signature_contract"
+          ],
+          "properties": {
+            "drand_url": {
+              "description": "The drand provider url (to find the right entropy provider)",
+              "type": "string"
+            },
+            "random_pubkey": {
+              "$ref": "#/definitions/Binary"
+            },
+            "timeout": {
+              "description": "Duration of the randomness providing round",
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "verify_signature_contract": {
+              "description": "The contract that can verify the entropy signature",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Addr"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
         },
         "FeeDiscount": {
           "type": "object",
@@ -2439,6 +2515,16 @@
                 "$ref": "#/definitions/AssetInfo"
               }
             },
+            "drand_randomness": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Randomness"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "is_cancelled": {
               "type": "boolean"
             },
@@ -2559,6 +2645,35 @@
             "finished",
             "cancelled"
           ]
+        },
+        "Randomness": {
+          "type": "object",
+          "required": [
+            "randomness",
+            "randomness_owner",
+            "randomness_round"
+          ],
+          "properties": {
+            "randomness": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint8",
+                "minimum": 0.0
+              },
+              "maxItems": 32,
+              "minItems": 32
+            },
+            "randomness_owner": {
+              "$ref": "#/definitions/Addr"
+            },
+            "randomness_round": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
         },
         "Sg721Token": {
           "type": "object",
