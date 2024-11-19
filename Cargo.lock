@@ -1391,8 +1391,6 @@ dependencies = [
 [[package]]
 name = "cw-orch-daemon"
 version = "0.24.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "474651c5495b8644139a6978632ebe2e56f0e0fa3097b5e8b1bd7bd8128f8774"
 dependencies = [
  "anyhow",
  "async-recursion",

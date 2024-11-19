@@ -1,5 +1,5 @@
 use anyhow::Error as anyhow_error;
-use cosmwasm_std::{coin, Coin};
+use cosmwasm_std::{coin, Coin, Coins};
 use cw_multi_test::{AppResponse, BankSudo, Executor, SudoMsg};
 use raffles::{
     msg::{ExecuteMsg as RaffleExecuteMsg, QueryMsg as RaffleQueryMsg},
@@ -93,6 +93,15 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> anyhow::Result<()> {
     let raffle_nfts = params.raffle_nfts;
     let duration = params.duration;
 
+    let mut sent_coins = Coins::default();
+
+    for asset in &raffle_nfts {
+        if let AssetInfo::Coin(coin) = asset {
+            sent_coins.add(coin.clone())?;
+        }
+    }
+    sent_coins.add(coin(CREATION_FEE_AMNT_STARS, "ustars"))?;
+
     // create a raffle
     router.execute_contract(
         owner_addr.clone(),
@@ -118,7 +127,7 @@ pub fn create_raffle_setup(params: CreateRaffleParams) -> anyhow::Result<()> {
                 amount: raffle_ticket_price,
             }),
         },
-        &[coin(CREATION_FEE_AMNT_STARS, "ustars")],
+        &sent_coins.to_vec(),
     )?;
 
     let res: raffles::msg::RaffleResponse = router.wrap().query_wasm_smart(

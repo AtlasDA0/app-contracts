@@ -41,3 +41,6 @@ overflow-checks = true
 opt-level = 3
 debug = false
 debug-assertions = false
+
+[patch.crates-io]
+cw-orch-daemon = {path = "/root/.rhack/cw-orch-daemon-0.24.5"}

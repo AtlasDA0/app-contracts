@@ -246,7 +246,11 @@ fn _get_raffle_end_asset_messages(
                     };
                     into_cosmos_msg(message, sg721_token.address.clone(), None)
                 }
-                _ => Err(StdError::generic_err("unreachable")),
+                AssetInfo::Coin(coin) => Ok(BankMsg::Send {
+                    to_address: receiver,
+                    amount: vec![coin.clone()],
+                }
+                .into()),
             }
         })
         .collect()
