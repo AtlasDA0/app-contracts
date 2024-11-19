@@ -22,11 +22,16 @@ pub fn main() -> anyhow::Result<()> {
     chain.authz_granter(MULTISIG_ADDRESS);
 
     let verifier = Verifier::new(chain.clone());
-    verifier.upload()?;
-    verifier.instantiate(&Empty {}, None, None)?;
-
+    // verifier.upload()?;
     let raffles = Raffles::new(chain.clone());
-    raffles.upload()?;
+    // raffles.upload()?;
+    drop(chain);
+
+    let chain = Daemon::builder(STARGAZE_1).build()?;
+    let verifier = Verifier::new(chain.clone());
+
+    verifier.instantiate(&Empty {}, None, None)?;
+    // Then we do the migration proposal (no authz_granter this time)
 
     let proposal_title = "Migrate Raffles to 0.9.0";
     let proposal_description = "This migrates the raffle contract to allow for a new drand process";
@@ -42,9 +47,6 @@ pub fn main() -> anyhow::Result<()> {
             },
         })?,
     };
-
-    // Then we do the migration proposal (no authz_granter this time)
-    let chain = Daemon::builder(STARGAZE_1).build()?;
 
     let dao_proposal = DaoPreProposeSingle::new("atlas-dao-pre-proposal", chain.clone());
     // New version is not compatible, use the old version of dao-dao and add cw-orch
