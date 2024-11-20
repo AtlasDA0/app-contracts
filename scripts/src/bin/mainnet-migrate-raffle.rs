@@ -30,11 +30,12 @@ pub fn main() -> anyhow::Result<()> {
     let chain = Daemon::builder(STARGAZE_1).build()?;
     let verifier = Verifier::new(chain.clone());
 
-    verifier.instantiate(&Empty {}, None, None)?;
+    // verifier.instantiate(&Empty {}, None, None)?;
     // Then we do the migration proposal (no authz_granter this time)
 
-    let proposal_title = "Migrate Raffles to 0.9.0";
-    let proposal_description = "This migrates the raffle contract to allow for a new drand process";
+    let proposal_title = "Migrate Raffles to 0.9.1";
+    let proposal_description =
+        "This migrates the raffle contract to allow for a new drand  + allows for token raffles";
     let msg = WasmMsg::Migrate {
         contract_addr: raffles.address()?.to_string(),
         new_code_id: raffles.code_id()?,
