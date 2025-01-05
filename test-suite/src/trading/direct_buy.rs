@@ -101,7 +101,7 @@ fn direct_buy_works() -> anyhow::Result<()> {
             coin(SECOND_FUND_AMOUNT, "uosmosis"),
         ],
     )?;
-    counter_p2p.direct_buy(0, &coins(FIRST_FUND_AMOUNT, "ujuno"))?;
+    counter_p2p.direct_buy(0, None, &coins(FIRST_FUND_AMOUNT, "ujuno"))?;
 
     p2p.withdraw_successful_trade(trade_id, &coins(FEE_AMOUNT, FEE_DENOM))?;
 
@@ -144,7 +144,7 @@ fn direct_buy_insufficient_funds() -> anyhow::Result<()> {
         ],
     )?;
     counter_p2p
-        .direct_buy(0, &coins(FIRST_FUND_AMOUNT - 1, "ujuno"))
+        .direct_buy(0, None, &coins(FIRST_FUND_AMOUNT - 1, "ujuno"))
         .unwrap_err();
 
     Ok(())
@@ -174,7 +174,7 @@ fn direct_buy_cant_counter_after() -> anyhow::Result<()> {
             coin(SECOND_FUND_AMOUNT, "uosmosis"),
         ],
     )?;
-    counter_p2p.direct_buy(0, &coins(FIRST_FUND_AMOUNT, "ujuno"))?;
+    counter_p2p.direct_buy(0, None, &coins(FIRST_FUND_AMOUNT, "ujuno"))?;
 
     counter_p2p
         .suggest_counter_trade(trade_id, None)
@@ -218,7 +218,7 @@ fn direct_buy_respects_royalties() -> anyhow::Result<()> {
             coin(SECOND_FUND_AMOUNT, "uosmosis"),
         ],
     )?;
-    counter_p2p.direct_buy(0, &coins(FIRST_FUND_AMOUNT, "ujuno"))?;
+    counter_p2p.direct_buy(0, None, &coins(FIRST_FUND_AMOUNT, "ujuno"))?;
 
     p2p.withdraw_successful_trade(trade_id, &coins(FEE_AMOUNT, FEE_DENOM))?;
 

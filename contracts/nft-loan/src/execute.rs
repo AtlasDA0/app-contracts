@@ -497,9 +497,9 @@ pub fn make_offer(
     loan_id: u64,
     terms: LoanTerms,
     comment: Option<String>,
+    on_behalf_of: Option<String>,
 ) -> Result<Response, ContractError> {
     // We query the loan info
-
     let borrower = deps.api.addr_validate(&borrower)?;
 
     // checks comment size
@@ -508,10 +508,16 @@ pub fn make_offer(
             "Comment too long. max = (20000 UTF-8 bytes)",
         )));
     }
+
+    let lender = on_behalf_of
+        .map(|o| deps.api.addr_validate(&o))
+        .transpose()?
+        .unwrap_or(info.sender);
+
     let (global_offer_id, _offer_id) = _make_offer_raw(
         deps.storage,
         env,
-        info.sender.clone(),
+        lender.clone(),
         info.funds,
         borrower.clone(),
         loan_id,
@@ -522,7 +528,7 @@ pub fn make_offer(
     Ok(Response::new()
         .add_attribute("action", "make_offer")
         .add_attribute("borrower", borrower)
-        .add_attribute("lender", info.sender)
+        .add_attribute("lender", lender)
         .add_attribute("loan_id", loan_id.to_string())
         .add_attribute("global_offer_id", global_offer_id))
 }

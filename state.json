@@ -1,0 +1,26 @@
+{
+  "stargaze": {
+    "stargaze-1": {
+      "code_ids": {
+        "controller": 1,
+        "loans": 477,
+        "p2p_trading": 478,
+        "polytone:note": 1,
+        "polytone:proxy": 3,
+        "polytone:voice": 2,
+        "raffles": 479,
+        "trading": 287
+      },
+      "default": {
+        "atlas-dao-pre-proposal": "stars1jsx9wjngx2seccv0493f90px8l8wzd2my5r0rju4c9yqpashhljqtwty3f",
+        "controller": "stars14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9srsl6sm",
+        "loans": "stars16u49fhakqrvnyyhw075x9n6mrevgauwacfca39vj2utpepauplqsz7z3h5",
+        "p2p_trading": "stars1jdn2g54su0dkfkynjzv4eyj7vk7v28wtuglst3t0srkchpultklsfh2qhh",
+        "polytone:voice": null,
+        "polytone:voice | juno-1": "stars1wug8sewp6cedgkmrmvhl3lf3tulagm9hnvy8p0rppz9yjw0g4wtqmpd9x3",
+        "raffles": "stars19g0l90sxlr64ksjj9qpqz72e8dtvw772fv6dxcvva3rqas6vryzs903x60",
+        "verifier": "stars1l76w2jykjqfnfhwl9t9rv863cme3u4a3n26dfavc3ed3m4a3kmxs3my77z"
+      }
+    }
+  }
+}

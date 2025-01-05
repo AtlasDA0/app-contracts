@@ -14,9 +14,14 @@ pub fn direct_buy(
     env: Env,
     info: MessageInfo,
     trade_id: u64,
+    on_behalf_of: Option<String>,
 ) -> Result<Response, ContractError> {
     // We make sure the sender can buy the specified assets
-    let trade_info = can_suggest_counter_trade(deps.storage, trade_id, &info.sender)?;
+    let buyer = on_behalf_of
+        .map(|o| deps.api.addr_validate(&o))
+        .transpose()?
+        .unwrap_or(info.sender);
+    let trade_info = can_suggest_counter_trade(deps.storage, trade_id, &buyer)?;
 
     // We make sure the necessary funds are sent with this message
     {
@@ -40,7 +45,7 @@ pub fn direct_buy(
     // The buy is legitimate, we exchange the assets and close the trade
     let all_responses = {
         let buyer_info = MessageInfo {
-            sender: info.sender.clone(),
+            sender: buyer.clone(),
             funds: vec![],
         };
         let trader_info = MessageInfo {
@@ -54,7 +59,7 @@ pub fn direct_buy(
             trade_id,
             Some("Direct Buy Offer".to_string()),
         )?;
-        let counter_id = LAST_USER_COUNTER_TRADE.load(deps.storage, (&info.sender, trade_id))?;
+        let counter_id = LAST_USER_COUNTER_TRADE.load(deps.storage, (&buyer, trade_id))?;
 
         let all_add_assets_response = info
             .funds

@@ -24,7 +24,7 @@ pub fn main() -> anyhow::Result<()> {
     let verifier = Verifier::new(chain.clone());
     // verifier.upload()?;
     let raffles = Raffles::new(chain.clone());
-    // raffles.upload()?;
+    raffles.upload()?;
     drop(chain);
 
     let chain = Daemon::builder(STARGAZE_1).build()?;
@@ -34,8 +34,7 @@ pub fn main() -> anyhow::Result<()> {
     // Then we do the migration proposal (no authz_granter this time)
 
     let proposal_title = "Migrate Raffles to 0.9.1";
-    let proposal_description =
-        "This migrates the raffle contract to allow for a new drand  + allows for token raffles";
+    let proposal_description = "This migrates the raffle contract to add on_behalf_of";
     let msg = WasmMsg::Migrate {
         contract_addr: raffles.address()?.to_string(),
         new_code_id: raffles.code_id()?,

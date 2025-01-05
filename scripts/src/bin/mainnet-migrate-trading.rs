@@ -15,7 +15,7 @@ pub fn main() -> anyhow::Result<()> {
     chain.authz_granter(MULTISIG_ADDRESS);
 
     let trading = P2PTrading::new(chain.clone());
-    // trading.upload()?;
+    trading.upload()?;
 
     let proposal_title = "Migrate Trading to 0.8.1";
     let proposal_description =

@@ -158,7 +158,17 @@ pub fn execute(
             loan_id,
             terms,
             comment,
-        } => make_offer(deps, env, info, borrower, loan_id, terms, comment),
+            on_behalf_of,
+        } => make_offer(
+            deps,
+            env,
+            info,
+            borrower,
+            loan_id,
+            terms,
+            comment,
+            on_behalf_of,
+        ),
         ExecuteMsg::CancelOffer { global_offer_id } => {
             cancel_offer(deps, env, info, global_offer_id)
         }

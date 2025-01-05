@@ -179,7 +179,10 @@ pub fn execute(
         ExecuteMsg::WithdrawSuccessfulTrade { trade_id } => {
             withdraw_successful_trade(deps, env, info, trade_id)
         }
-        ExecuteMsg::DirectBuy { trade_id } => direct_buy(deps, env, info, trade_id),
+        ExecuteMsg::DirectBuy {
+            trade_id,
+            on_behalf_of,
+        } => direct_buy(deps, env, info, trade_id, on_behalf_of),
         ExecuteMsg::SetNewOwner { owner } => set_new_owner(deps, env, info, owner),
         ExecuteMsg::SetNewTreasury { treasury } => set_new_treasury(deps, env, info, treasury),
         ExecuteMsg::SetNewAcceptFee { accept_fee } => {

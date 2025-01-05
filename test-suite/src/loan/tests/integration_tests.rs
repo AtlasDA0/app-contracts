@@ -213,6 +213,7 @@ mod tests {
                         duration_in_blocks: 15,
                     },
                     comment: Some("Obey the principles without being bound by them".to_string()),
+                    on_behalf_of: None,
                 },
                 &[Coin {
                     denom: NATIVE_DENOM.to_string(),
@@ -638,6 +639,7 @@ mod tests {
                         interest: Uint128::new(15),
                         duration_in_blocks: 15,
                     },
+                    on_behalf_of: None,
                     comment: Some("Obey the principles without being bound by them".to_string()),
                 },
                 &[],
@@ -664,6 +666,7 @@ mod tests {
                         interest: Uint128::new(15),
                         duration_in_blocks: 15,
                     },
+                    on_behalf_of: None,
                     comment: Some("Obey the principles without being bound by them".to_string()),
                 },
                 &[Coin {
@@ -693,6 +696,7 @@ mod tests {
                         interest: Uint128::new(15),
                         duration_in_blocks: 15,
                     },
+                    on_behalf_of: None,
                     comment: Some("Obey the principles without being bound by them".to_string()),
                 },
                 &[Coin {
@@ -812,6 +816,7 @@ mod tests {
                         interest: Uint128::new(50),
                         duration_in_blocks: 15,
                     },
+                    on_behalf_of: None,
                     comment: Some("Obey the principles without being bound by them".to_string()),
                 },
                 &[Coin {
@@ -885,6 +890,7 @@ mod tests {
                         interest: Uint128::new(50),
                         duration_in_blocks: 15,
                     },
+                    on_behalf_of: None,
                     comment: Some("Obey the principles without being bound by them".to_string()),
                 },
                 &[Coin {

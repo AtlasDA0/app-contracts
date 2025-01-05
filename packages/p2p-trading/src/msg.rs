@@ -196,6 +196,7 @@ pub enum ExecuteMsg {
     #[cw_orch(payable)]
     DirectBuy {
         trade_id: u64,
+        on_behalf_of: Option<String>,
     },
 
     // Admin operations //

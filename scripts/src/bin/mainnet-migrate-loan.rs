@@ -14,10 +14,11 @@ pub fn main() -> anyhow::Result<()> {
     chain.authz_granter(MULTISIG_ADDRESS);
 
     let loans = Loans::new(chain.clone());
-    // loans.upload()?;
+    //loans.upload()?;
 
-    let proposal_title = "Migrate Loans to 0.7.0";
-    let proposal_description = "This migrates the loans contract to introduce collection offers";
+    let proposal_title = "Migrate Loans to 0.9.2";
+    let proposal_description =
+        "This migrates the loans contract to introduce on-behalf-of field and functionalities";
     let msg = WasmMsg::Migrate {
         contract_addr: loans.address()?.to_string(),
         new_code_id: loans.code_id()?,
@@ -31,11 +32,11 @@ pub fn main() -> anyhow::Result<()> {
 
     // Then we do the migration proposal
     let dao_proposal = DaoPreProposeSingle::new("atlas-dao-pre-proposal", chain.clone());
-    // dao_proposal.propose(dao_pre_propose_single::contract::ProposeMessage::Propose {
-    //     title: proposal_title.to_string(),
-    //     description: proposal_description.to_string(),
-    //     msgs: vec![msg.into()],
-    // })?;
+    dao_proposal.propose(dao_pre_propose_single::contract::ProposeMessage::Propose {
+        title: proposal_title.to_string(),
+        description: proposal_description.to_string(),
+        msgs: vec![msg.into()],
+    })?;
 
     Ok(())
 }

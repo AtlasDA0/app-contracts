@@ -59,6 +59,7 @@ pub enum ExecuteMsg {
         loan_id: u64,
         terms: LoanTerms,
         comment: Option<String>,
+        on_behalf_of: Option<String>,
     },
     CancelOffer {
         global_offer_id: String,
