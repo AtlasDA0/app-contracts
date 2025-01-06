@@ -95,24 +95,6 @@ pub fn instantiate(
 
 #[cfg_attr(not(feature = "library"), ::cosmwasm_std::entry_point)]
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> StdResult<Response> {
-    msg.validate(deps.as_ref())?;
-    let old_config = OLD_CONFIG.load(deps.storage)?;
-    let config = Config {
-        name: old_config.name,
-        owner: old_config.owner,
-        fee_addr: old_config.fee_addr,
-        last_raffle_id: old_config.last_raffle_id,
-        minimum_raffle_duration: old_config.minimum_raffle_duration,
-        max_tickets_per_raffle: old_config.max_tickets_per_raffle,
-        raffle_fee: old_config.raffle_fee,
-        locks: old_config.locks,
-        creation_coins: old_config.creation_coins,
-        fee_discounts: old_config.fee_discounts,
-        drand_config: msg.drand_config,
-    };
-
-    CONFIG.save(deps.storage, &config)?;
-
     set_contract_version(
         deps.storage,
         env!("CARGO_PKG_NAME"),

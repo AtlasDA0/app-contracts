@@ -33,19 +33,12 @@ pub fn main() -> anyhow::Result<()> {
     // verifier.instantiate(&Empty {}, None, None)?;
     // Then we do the migration proposal (no authz_granter this time)
 
-    let proposal_title = "Migrate Raffles to 0.9.1";
+    let proposal_title = "Migrate Raffles to 0.9.2";
     let proposal_description = "This migrates the raffle contract to add on_behalf_of";
     let msg = WasmMsg::Migrate {
         contract_addr: raffles.address()?.to_string(),
         new_code_id: raffles.code_id()?,
-        msg: to_json_binary(&MigrateMsg {
-            drand_config: DrandConfig {
-                drand_url: DRAND_URL.to_string(),
-                random_pubkey: HEX_PUBKEY.from_hex()?.into(),
-                verify_signature_contract: verifier.address()?,
-                timeout: DRAND_TIMEOUT,
-            },
-        })?,
+        msg: to_json_binary(&MigrateMsg {})?,
     };
 
     let dao_proposal = DaoPreProposeSingle::new("atlas-dao-pre-proposal", chain.clone());

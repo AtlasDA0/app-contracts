@@ -204,13 +204,4 @@ pub struct IsClaimedResponse {
 }
 
 #[cw_serde]
-pub struct MigrateMsg {
-    pub drand_config: DrandConfig,
-}
-
-impl MigrateMsg {
-    pub fn validate(&self, deps: Deps) -> StdResult<()> {
-        self.drand_config.validate(deps)?;
-        Ok(())
-    }
-}
+pub struct MigrateMsg {}
