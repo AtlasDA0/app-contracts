@@ -126,12 +126,12 @@ mod tests {
 
                 raffles.call_as(&Addr::unchecked(ADMIN)).migrate(
                     &MigrateMsg {
-                        // drand_config: DrandConfig {
-                        //     random_pubkey: Binary::from(HEX_PUBKEY.from_hex()?),
-                        //     drand_url: DRAND_URL.to_string(),
-                        //     verify_signature_contract: verifier.address()?,
-                        //     timeout: DRAND_TIMEOUT,
-                        // },
+                        drand_config: DrandConfig {
+                            random_pubkey: Binary::from(HEX_PUBKEY.from_hex()?),
+                            drand_url: DRAND_URL.to_string(),
+                            verify_signature_contract: verifier.address()?,
+                            timeout: DRAND_TIMEOUT,
+                        },
                     },
                     new_code_id,
                 )?;
