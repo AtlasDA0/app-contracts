@@ -367,7 +367,11 @@ pub fn withdraw_successful_trade(
 
     let contract_info = CONTRACT_INFO.load(deps.storage)?;
     // We check that they pay the right fee
-    let funds = assert_payment(&info, contract_info.accept_trade_fee)?;
+    let funds = if info.funds.is_empty() && contract_info.accept_trade_fee.is_empty() {
+        None
+    } else {
+        assert_payment(&info, contract_info.accept_trade_fee).map(|fee| Some(fee))?
+    };
 
     // We load the corresponding counter_trade
     let counter_id = trade_info
@@ -379,7 +383,7 @@ pub fn withdraw_successful_trade(
 
     // We withdraw the funds that the trader gets from the counter trade (the counter_info object)
     let royalties = gather_royalties(deps.as_ref(), &trade_info)?;
-    let trader_res = check_and_create_withdraw_messages(
+    let mut trader_res = check_and_create_withdraw_messages(
         deps.as_ref(),
         &trade_info.owner,
         &counter_info,
@@ -402,19 +406,25 @@ pub fn withdraw_successful_trade(
     COUNTER_TRADE_INFO.save(deps.storage, (trade_id, counter_id), &counter_info)?;
     TRADE_INFO.save(deps.storage, trade_id, &trade_info)?;
 
-    Ok(trader_res
+    let resp = trader_res
         .add_submessages(counter_trader_res.messages)
         .add_events(counter_trader_res.events)
         .add_attributes(counter_trader_res.attributes)
-        .add_message(BankMsg::Send {
-            to_address: contract_info.treasury.to_string(),
-            amount: vec![funds],
-        })
         .add_attribute("action", "withdraw_funds")
         .add_attribute("trade_id", trade_id.to_string())
         .add_attribute("counter_id", counter_id.to_string())
         .add_attribute("trader", trade_info.owner)
-        .add_attribute("counter_trader", counter_info.owner))
+        .add_attribute("counter_trader", counter_info.owner);
+
+    // We need add the fee send the if it exists
+    Ok(if let Some(funds) = funds {
+        resp.clone().add_message(BankMsg::Send {
+            to_address: contract_info.treasury.to_string(),
+            amount: vec![funds.clone()],
+        })
+    } else {
+        resp
+    })
 }
 
 #[cfg(test)]
