@@ -233,3 +233,76 @@ fn direct_buy_respects_royalties() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn direct_buy_works_without_accept_fee() -> anyhow::Result<()> {
+    let mut chain_info = STARGAZE_1;
+    let mut chain = CloneTesting::new(&RUNTIME, chain_info)?;
+    chain.set_sender(Addr::unchecked(COUNTER_TRADER));
+
+    let treasury = chain.app.borrow().api().addr_make("treasury");
+
+    let nft: Cw721<CloneTesting> = Cw721::new("geckies", chain.clone());
+    nft.set_address(&Addr::unchecked(GECKIES_ADDRESS));
+
+    let p2p = P2PTrading::new(chain.clone());
+    p2p.upload()?;
+
+    // Instantiate with empty accept_trade_fee
+    p2p.instantiate(
+        &InstantiateMsg {
+            name: "AtlasDaoTrading".to_string(),
+            owner: None,
+            accept_trade_fee: vec![], // Empty vector for no accept fee
+            fund_fee: FUND_FEE,
+            treasury: treasury.to_string(),
+        },
+        None,
+        None,
+    )?;
+
+    // Create and set up the trade
+    p2p.create_trade(None, None)?;
+    nft.execute(
+        &ExecuteMsg::ApproveAll {
+            operator: p2p.address()?.to_string(),
+            expires: None,
+        },
+        None,
+    )?;
+    p2p.add_asset(
+        AddAssetAction::ToLastTrade {},
+        AssetInfo::Sg721Token(Sg721Token {
+            address: nft.address()?.to_string(),
+            token_id: COUNTER_ID.to_string(),
+        }),
+        &[],
+    )?;
+
+    // Add tokens wanted and confirm trade
+    p2p.add_tokens_wanted(coins(FIRST_FUND_AMOUNT, "ujuno"), None)?;
+    p2p.confirm_trade(None)?;
+    let trade_id = 0;
+
+    // Execute direct buy as counter trader
+    let counter_p2p = p2p.call_as(&Addr::unchecked(OWNER));
+    counter_p2p.environment().add_balance(
+        &counter_p2p.environment().sender_addr(),
+        vec![coin(FIRST_FUND_AMOUNT, "ujuno")],
+    )?;
+    counter_p2p.direct_buy(0, None, &coins(FIRST_FUND_AMOUNT, "ujuno"))?;
+
+    // Withdraw successful trade without any accept fee
+    p2p.withdraw_successful_trade(trade_id, &[])?;
+
+    // Check treasury balance - should only have fund fee
+    let treasury_balance = chain.balance(treasury, None)?;
+    let expected_coins = vec![coin(
+        (FUND_FEE * Uint128::from(FIRST_FUND_AMOUNT)).u128(),
+        "ujuno",
+    )];
+
+    assert_eq!(treasury_balance, expected_coins);
+
+    Ok(())
+}
