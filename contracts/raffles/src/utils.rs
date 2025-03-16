@@ -24,7 +24,7 @@ use utils::{
 };
 
 /// Util to get the organizers and helpers messages to return when claiming a Raffle (returns the funds)
-pub fn get_raffle_owner_funds_finished_messages(
+pub fn get_raffle_reciever_funds_finished_messages(
     deps: Deps,
     _env: Env,
     raffle_info: RaffleInfo,
@@ -46,10 +46,10 @@ pub fn get_raffle_owner_funds_finished_messages(
             Ok::<_, ContractError>(
                 if discount
                     .condition
-                    .has_advantage(deps, raffle_info.owner.to_string())
+                    .has_advantage(deps, raffle_info.reciever_address.to_string())
                     .is_ok()
                 {
-                    Decimal::one() - discount.discount(deps, raffle_info.owner.to_string())?
+                    Decimal::one() - discount.discount(deps, raffle_info.reciever_address.to_string())?
                 } else {
                     Decimal::one()
                 },
@@ -58,7 +58,7 @@ pub fn get_raffle_owner_funds_finished_messages(
         .fold(Decimal::one(), |acc, el| acc * el);
     let treasury_amount = total_paid * config.raffle_fee * discount_rate;
 
-    let owner_amount = total_paid - treasury_amount;
+    let reciever_amount = total_paid - treasury_amount;
 
     // Then we craft the messages needed for asset transfers
     match raffle_info.raffle_ticket_price {
@@ -73,11 +73,11 @@ pub fn get_raffle_owner_funds_finished_messages(
                     .into(),
                 );
             };
-            if owner_amount != Uint128::zero() {
+            if reciever_amount != Uint128::zero() {
                 messages.push(
                     BankMsg::Send {
-                        to_address: raffle_info.owner.to_string(),
-                        amount: coins(owner_amount.u128(), coin.denom),
+                        to_address: raffle_info.reciever_address.to_string(),
+                        amount: coins(reciever_amount.u128(), coin.denom),
                     }
                     .into(),
                 );

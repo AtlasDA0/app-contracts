@@ -116,6 +116,7 @@ pub fn execute(
             assets,
             raffle_options,
             raffle_ticket_price,
+            reciever_address
         } => execute_create_raffle(
             deps,
             env,
@@ -124,6 +125,7 @@ pub fn execute(
             assets,
             raffle_ticket_price,
             raffle_options,
+            reciever_address
         ),
         ExecuteMsg::CancelRaffle { raffle_id } => execute_cancel_raffle(deps, env, info, raffle_id),
         ExecuteMsg::ModifyRaffle {

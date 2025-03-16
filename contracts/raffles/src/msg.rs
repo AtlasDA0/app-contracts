@@ -77,6 +77,7 @@ pub enum ExecuteMsg {
         assets: Vec<AssetInfo>,
         raffle_options: RaffleOptionsMsg,
         raffle_ticket_price: AssetInfo,
+        reciever_address:Option<String>
     },
     CancelRaffle {
         raffle_id: u64,

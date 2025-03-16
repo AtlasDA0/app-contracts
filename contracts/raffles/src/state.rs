@@ -207,6 +207,7 @@ pub struct RaffleInfo {
     pub is_cancelled: bool,
     pub raffle_options: RaffleOptions,
     pub drand_randomness: Option<Randomness>, // This for drand now, migrating away from nois
+    pub reciever_address:Addr
 }
 
 #[cw_serde]

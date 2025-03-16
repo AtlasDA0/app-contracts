@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use cosmwasm_std::{
     ensure, ensure_eq, Addr, BankMsg, Coin, Coins, Decimal, DepsMut, Empty, Env, MessageInfo,
     StdError, StdResult, Uint128,
@@ -23,7 +25,7 @@ use crate::{
         RAFFLE_TICKETS, USER_TICKETS,
     },
     utils::{
-        buyer_can_buy_ticket, can_buy_ticket, get_raffle_owner_funds_finished_messages,
+        buyer_can_buy_ticket, can_buy_ticket,get_raffle_reciever_funds_finished_messages,
         get_raffle_owner_messages, get_raffle_refund_funds_finished_messages,
         get_raffle_winner_messages, get_raffle_winners, is_raffle_owner, ticket_cost,
     },
@@ -40,6 +42,7 @@ pub fn execute_create_raffle(
     all_assets: Vec<AssetInfo>,
     raffle_ticket_price: AssetInfo,
     raffle_options: RaffleOptionsMsg,
+    reciever_address:Option<String>,
 ) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
@@ -146,6 +149,7 @@ pub fn execute_create_raffle(
 
     // Then we create the internal raffle structure
     let owner = owner.map(|x| deps.api.addr_validate(&x)).transpose()?;
+    let reciever_address = reciever_address.map(|x| deps.api.addr_validate(&x)).transpose()?;
     // defines the fee token to send to nois-proxy, by the smart contract
     let raffle_id = _create_raffle(
         deps.branch(),
@@ -154,6 +158,7 @@ pub fn execute_create_raffle(
         all_assets,
         raffle_ticket_price,
         raffle_options.clone(),
+        reciever_address.clone().unwrap_or_else(|| info.sender.clone())
     )?;
 
     let raffle_options = RAFFLE_INFO.load(deps.storage, raffle_id)?.raffle_options;
@@ -191,6 +196,7 @@ pub fn _create_raffle(
     all_assets: Vec<AssetInfo>,
     raffle_ticket_price: AssetInfo,
     raffle_options: RaffleOptionsMsg,
+    reciever_address:Addr
 ) -> Result<u64, ContractError> {
     let config = CONFIG.load(deps.storage)?;
 
@@ -225,6 +231,7 @@ pub fn _create_raffle(
                 config,
             )?,
             drand_randomness: None,
+            reciever_address
         }),
     })?;
     Ok(raffle_id)
@@ -521,14 +528,14 @@ pub fn execute_claim(deps: DepsMut, env: Env, raffle_id: u64) -> Result<Response
         // We calculate the winner of the raffle and save it to the contract. The raffle is now claimed !
         raffle_info.winners =
             get_raffle_winners(deps.as_ref(), &env, raffle_id, raffle_info.clone())?;
-        let owner_funds_msg = get_raffle_owner_funds_finished_messages(
+        let reciever_funds_msg =get_raffle_reciever_funds_finished_messages(
             deps.as_ref(),
             env.clone(),
             raffle_info.clone(),
         )?;
         let nft_msg = get_raffle_winner_messages(deps.as_ref(), env.clone(), raffle_info.clone())?;
 
-        [owner_funds_msg, nft_msg].concat()
+        [reciever_funds_msg, nft_msg].concat()
     };
 
     RAFFLE_INFO.save(deps.storage, raffle_id, &raffle_info)?;
