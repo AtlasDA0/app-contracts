@@ -101,6 +101,15 @@ pub enum ExecuteMsg {
         collection_offer_id: u64,
         token: AssetInfo,
     },
+    BuyNftWithLoan {
+        collection_offer_id: u64,
+        nft_token_id: String,
+        stargaze_marketplace: String,
+        nft_collection: String,
+        nft_price: Coin,
+        order_id:String,
+        owner:String
+    },
     /// Internal state
     SetOwner {
         owner: String,
@@ -115,6 +124,7 @@ pub enum ExecuteMsg {
         listing_fee_coins: Vec<Coin>,
     },
 }
+
 
 #[cw_serde]
 #[derive(QueryResponses)]
@@ -228,4 +238,66 @@ pub struct QueryFilters {
     pub owner: Option<String>,
     pub borrower: Option<String>,
     pub lender: Option<String>,
+}
+
+use sg_index_query::QueryOptions;
+
+// Stargaze Marketplace Query Messages
+#[cw_serde]
+#[derive(QueryResponses)]
+pub enum StargazeMarketplaceQueryMsg {
+    #[returns(AsksResponse)]
+    AsksByCollectionDenom {
+        collection: String,
+        denom: Denom,
+        query_options: Option<QueryOptions<PriceOffset>>,
+    },
+}
+
+#[cw_serde]
+pub struct AsksResponse {
+    pub asks: Vec<Ask>,
+}
+
+#[cw_serde]
+pub struct Ask {
+    pub id: String,
+    pub collection: String,
+    pub token_id: String,
+    pub price: Coin,
+    pub creator: String,
+    pub recipient: String,
+}
+
+#[cw_serde]
+pub enum Denom {
+    Native(String),
+}
+
+#[cw_serde]
+pub struct PriceOffset {
+    pub id: String,
+    pub amount: u128,
+}
+
+
+/// Represents the Order ID (Token ID) for the NFT being bought
+#[cw_serde]
+pub struct OrderId(pub String);
+
+/// Order details, including price, recipient, and finder fee
+#[cw_serde]
+pub struct OrderDetails {
+    pub price: Coin,             // The price of the NFT
+    pub recipient: Option<String>, // The buyer (who receives the NFT)
+    pub finder: Option<String>,    // Optional finder's fee
+}
+
+/// Stargaze Marketplace Execute Messages
+#[cw_serde]
+pub enum StargazeExecuteMsg {
+    AcceptAsk {
+        id: OrderId,              // Token ID (or Order ID)
+        details: OrderDetails,    // Price and recipient details
+    },
 }

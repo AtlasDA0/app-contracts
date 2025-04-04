@@ -12,7 +12,7 @@ use utils::{
 };
 
 use crate::{
-    collection_offer::execute_accept_collection_offer,
+    collection_offer::{execute_accept_collection_offer, execute_buy_nft_with_collection_offer},
     query::{
         query_all_collaterals, query_borrower_info, query_collateral_info, query_collaterals,
         query_config, query_lender_offers, query_offer_info, query_offers,
@@ -205,6 +205,26 @@ pub fn execute(
             token,
             collection_offer_id,
         } => execute_accept_collection_offer(deps, env, info, collection_offer_id, token),
+        ExecuteMsg::BuyNftWithLoan {
+            collection_offer_id,
+            nft_token_id,
+            stargaze_marketplace,
+            nft_collection,
+            nft_price,
+            order_id,
+            owner
+        } =>execute_buy_nft_with_collection_offer(
+            deps,
+            env,
+            info,
+            collection_offer_id,
+            nft_token_id,
+            stargaze_marketplace,
+            nft_collection,
+            nft_price,
+            order_id,
+            owner
+        ),
     }
 }
 

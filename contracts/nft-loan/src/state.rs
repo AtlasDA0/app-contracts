@@ -147,6 +147,7 @@ pub struct OfferInfo {
     pub list_date: Timestamp,
     pub deposited_funds: Option<Coin>,
     pub comment: Option<String>,
+    pub owner:Addr
 }
 
 #[cw_serde]

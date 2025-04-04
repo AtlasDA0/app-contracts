@@ -1,6 +1,11 @@
-use cosmwasm_std::{BankMsg, Deps, DepsMut, Env, MessageInfo, Order, StdError};
+use std::collections;
+
+use cosmwasm_std::{
+    to_binary, to_json_binary, BankMsg, Coin, Deps, DepsMut, Env, MessageInfo, Order, StdError,
+    Uint128, WasmMsg,
+};
 use utils::{
-    state::{is_valid_comment, AssetInfo},
+    state::{is_valid_comment, AssetInfo, Cw721Coin},
     types::{CosmosMsg, Response},
 };
 
@@ -8,11 +13,10 @@ use crate::{
     error::ContractError,
     execute::{_accept_offer_raw, _internal_list_collaterals, _make_offer_raw},
     helpers::assert_listing_fee,
-    msg::{CollectionOfferResponse, MultipleCollectionOffersResponse},
+    msg::{AsksResponse, CollectionOfferResponse, MultipleCollectionOffersResponse, OrderDetails, StargazeExecuteMsg, OrderId},
     query::{DEFAULT_QUERY_LIMIT, MAX_QUERY_LIMIT},
     state::{LoanTerms, CONFIG},
 };
-
 use cosmwasm_std::Addr;
 use cw_storage_plus::{Bound, Index, IndexList, IndexedMap, MultiIndex};
 
@@ -134,6 +138,7 @@ pub fn execute_accept_collection_offer(
         None,
         None,
         None,
+        borrower.clone()
     )?;
 
     // We create an offer on this collateral listing
@@ -147,6 +152,7 @@ pub fn execute_accept_collection_offer(
         collateral_id,
         collection_info.terms,
         None,
+        borrower.clone()
     )?;
 
     // We accept this collateral listing
@@ -203,6 +209,113 @@ pub fn query_collection_offers(
         },
         offers,
     })
+}
+
+// Allows borrowers to purchase an NFT using a collection loan offer.
+/// If the loan offer is lower than the NFT floor price, the borrower pays the difference.
+pub fn execute_buy_nft_with_collection_offer(
+    mut deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    collection_offer_id: u64,
+    nft_token_id: String,
+    marketplace_contract: String,
+    nft_collection: String,
+    nft_price: Coin,
+    order_id:String,
+    owner:String
+) -> Result<Response, ContractError> {
+    // Load collection offer details
+    let collection_offer =
+        collection_offers().load(deps.storage, &collection_offer_id.to_string())?;
+
+    if collection_offer.collection!=nft_collection{
+        return Err(ContractError::Std(StdError::generic_err(
+            "The collection should match to take nft_collection",
+        )));
+    }
+    // Verify loan amount is less than NFT price
+    if collection_offer.terms.principle.amount >= nft_price.amount {
+        return Err(ContractError::Std(StdError::generic_err(
+            "Loan amount must be lower than the NFT price.",
+        )));
+    }
+
+    // Calculate the difference that user must pay
+    let borrower_payment_amount = nft_price
+        .amount
+        .checked_sub(collection_offer.terms.principle.amount)
+        .map_err(|_| ContractError::InsufficientFunds {})?;
+
+    // Validate user sent correct funds (price difference)
+    if info.funds.len() != 1
+        || info.funds[0].denom != nft_price.denom
+        || info.funds[0].amount < borrower_payment_amount
+    {
+        return Err(ContractError::InsufficientFunds {});
+    }
+
+    let buy_nft_msg = CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: marketplace_contract.clone(),
+        msg: to_json_binary(&StargazeExecuteMsg::AcceptAsk {
+            id: OrderId(order_id.clone()), // Order ID for the NFT
+            details: OrderDetails {
+                price: nft_price.clone(),                 // Price to pay
+                recipient: Some(env.contract.address.to_string()), // Buyer will receive the NFT
+                finder: None,                             // No finder's fee
+            },
+        })?,
+        funds: vec![nft_price.clone()], // Include the full NFT price
+    });
+
+    // List NFT as collateral internally in your contract
+    let borrower = info.sender.clone();
+    let token = AssetInfo::Cw721Coin(Cw721Coin {
+        address: nft_collection.clone(),
+        token_id: nft_token_id.clone(),
+    });
+
+    let (attributes, collateral_id) = _internal_list_collaterals(
+        deps.branch(),
+        env.clone(),
+        borrower.clone(),
+        vec![token],
+        Some(collection_offer.terms.clone()),
+        None,
+        None,
+        Addr::unchecked(owner.clone())
+    )?;
+    
+
+    // Now create the offer based on collection offer (Loan starts immediately)
+    let (global_offer_id, _offer_id) = _make_offer_raw(
+        deps.storage,
+        env.clone(),
+        collection_offer.lender.clone(),
+        vec![collection_offer.terms.principle.clone()],
+        borrower.clone(),
+        collateral_id,
+        collection_offer.terms.clone(),
+        None,
+        Addr::unchecked(owner)
+    )?;
+
+    // Accept the created offer (loan officially starts)
+    let accept_res = _accept_offer_raw(deps.branch(), env.clone(), global_offer_id)?;
+
+    // Remove the collection offer since it's now accepted
+    collection_offers().remove(deps.storage, &collection_offer_id.to_string())?;
+
+    Ok(Response::new()
+        .add_message(buy_nft_msg)
+        .add_attribute("action", "buy_nft_with_loan")
+        .add_attribute("borrower", borrower)
+        .add_attribute("collection", nft_collection)
+        .add_attribute("token_id", nft_token_id)
+    .add_attributes(attributes)
+    .add_attributes(accept_res.attributes)
+    .add_submessages(accept_res.messages)
+    .add_events(accept_res.events))
 }
 
 pub struct CollectionOfferIndexes<'a> {

@@ -54,7 +54,7 @@ pub fn list_collaterals(
     let borrower = info.sender;
 
     let (attributes, _loan_id) =
-        _internal_list_collaterals(deps, env, borrower, tokens, terms, comment, loan_preview)?;
+        _internal_list_collaterals(deps, env, borrower.clone(), tokens, terms, comment, loan_preview,borrower)?;
 
     Ok(Response::new()
         .add_message(transfer_fee_msg)
@@ -79,6 +79,7 @@ pub fn _internal_list_collaterals(
     terms: Option<LoanTerms>,
     comment: Option<String>,
     loan_preview: Option<AssetInfo>,
+    owner:Addr
 ) -> Result<(Vec<Attribute>, u64), ContractError> {
     // ensure atleas one asset has been provided
     if tokens.is_empty() {
@@ -90,7 +91,7 @@ pub fn _internal_list_collaterals(
             // asserts borrower is owner of collateral
             is_nft_owner(
                 deps.as_ref(),
-                borrower.clone(),
+                owner.clone(),
                 address.to_string(),
                 token_id.to_string(),
             )?;
@@ -98,7 +99,7 @@ pub fn _internal_list_collaterals(
             is_approved_cw721(
                 deps.as_ref(),
                 env.clone(),
-                borrower.clone(),
+                owner.clone(),
                 address.clone(),
                 token_id.clone(),
             )
@@ -108,7 +109,7 @@ pub fn _internal_list_collaterals(
             // asserts borrower is owner of collateral
             is_sg721_owner(
                 deps.as_ref(),
-                borrower.clone(),
+            owner.clone(),
                 address.to_string(),
                 token_id.to_string(),
             )?;
@@ -116,7 +117,7 @@ pub fn _internal_list_collaterals(
             is_approved_sg721(
                 deps.as_ref(),
                 env.clone(),
-                borrower.clone(),
+                owner.clone(),
                 address.clone(),
                 token_id.clone(),
             )
@@ -282,10 +283,11 @@ pub fn accept_loan(
         env.clone(),
         info.sender,
         info.funds,
-        borrower_addr,
+        borrower_addr.clone(),
         loan_id,
         terms,
         comment,
+        borrower_addr
     )?;
 
     // Then we make the borrower accept the loan
@@ -307,6 +309,7 @@ pub fn _make_offer_raw(
     loan_id: u64,
     terms: LoanTerms,
     comment: Option<String>,
+    owner:Addr
 ) -> Result<(String, u64), ContractError> {
     let mut contract_config = CONFIG.load(storage)?;
 
@@ -347,6 +350,7 @@ pub fn _make_offer_raw(
             list_date: env.block.time,
             deposited_funds: Some(terms.principle),
             comment,
+            owner
         },
     )?;
 
@@ -365,6 +369,7 @@ pub fn _accept_offer_raw(
 
     let borrower = offer.borrower.clone();
     let loan_id = offer.loan_id;
+    let owner=offer.clone().owner;
     let mut collateral = COLLATERAL_INFO.load(deps.storage, (borrower.clone(), loan_id))?;
     is_loan_acceptable(&collateral)?;
 
@@ -396,7 +401,7 @@ pub fn _accept_offer_raw(
                 // Otherwise, this would cause anyone to be able to create loans in the name of the owner if a bad approval was done
                 is_nft_owner(
                     deps.as_ref(),
-                    borrower.clone(),
+                    owner.clone(),
                     address.to_string(),
                     token_id.to_string(),
                 )?;
@@ -414,7 +419,7 @@ pub fn _accept_offer_raw(
             AssetInfo::Sg721Token(Sg721Token { address, token_id }) => {
                 is_sg721_owner(
                     deps.as_ref(),
-                    borrower.clone(),
+                    owner.clone(),
                     address.to_string(),
                     token_id.to_string(),
                 )?;
@@ -523,6 +528,7 @@ pub fn make_offer(
         loan_id,
         terms,
         comment,
+        borrower.clone()
     )?;
 
     Ok(Response::new()
